@@ -3,9 +3,9 @@ import React, { Component } from 'react';
 import { Input, Feedback } from '@icedesign/base';
 import { Button } from '@alifd/next';
 import { encode } from 'rlp';
+import * as fractal from 'fractal-web3';
 import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
-import { sendRawTransaction, getTransactionReceipt } from '../../api';
 
 
 export default class RawTxConstructor extends Component {
@@ -73,8 +73,8 @@ export default class RawTxConstructor extends Component {
     if (txInfo.length > 130 && txInfo.charAt(0) === '{' && txInfo.charAt(txInfo.length - 1) === '}') {
       try {
         const txObj = JSON.parse(txInfo);
-        sendRawTransaction(txObj, this.state.privateKey).then(resp => {
-          this.setState({ txResult: JSON.stringify(resp.data) });
+        fractal.ft.sendSingleSigTransaction(txInfo, this.state.privateKey).then(txHash => {
+          this.setState({ txResult: txHash });
         });
       } catch (error) {
         Feedback.toast.error(error.message);
@@ -84,10 +84,9 @@ export default class RawTxConstructor extends Component {
     }
   }
   getReceipt = () => {
-    const txResultObj = JSON.parse(this.state.txResult);
-    if (txResultObj.result != null) {
-      getTransactionReceipt([txResultObj.result]).then(resp => {
-        this.setState({ receipt: JSON.stringify(resp.data) });
+    if (this.state.txResult != null) {
+      fractal.ft.getTransactionReceipt(this.state.txResult).then(resp => {
+        this.setState({ receipt: resp });
       });
     } else {
       Feedback.toast.prompt('无法获取receipt');

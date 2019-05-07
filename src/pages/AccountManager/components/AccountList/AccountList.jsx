@@ -106,6 +106,9 @@ export default class AccountList extends Component {
                         <Button type='primary' onClick={() => {this.onWithdrawTxFeeOK.bind(this)}}>提取</Button>
                         <Button type='normal' onClick={this.getTxFee.bind(this)}>查询</Button>
                        </view>),
+      authorListFooter: (<view>
+                        <Button type='primary' onClick={this.bindNewAuthor.bind(this)}>绑定新权限</Button>
+                      </view>),
       txFeeInfo: '',
     };
   }
@@ -754,10 +757,10 @@ export default class AccountList extends Component {
         <Button type="primary" onClick={this.showAuthors.bind(this, index)}>
           权限列表
         </Button>
-        &nbsp;&nbsp;
+        {/* &nbsp;&nbsp;
         <Button type="primary" onClick={this.bindNewAuthor.bind(this, index)}>
           绑定新权限
-        </Button>
+        </Button> */}
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.withdrawTxFee.bind(this, index)}>
           手续费
@@ -1708,6 +1711,7 @@ export default class AccountList extends Component {
           onOk={this.onAuthorListClose.bind(this)}
           onCancel={this.onAuthorListClose.bind(this)}
           onClose={this.onAuthorListClose.bind(this)}
+          footer={this.state.authorListFooter}
         >
           <div className="editable-table">
             <IceContainer>
