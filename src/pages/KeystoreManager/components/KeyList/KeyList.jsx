@@ -17,7 +17,7 @@ import './KeyList.scss';
 
 const { Group: TagGroup, Selectable: SelectableTag } = Tag;
 const ActionType = { CreateFirstAccountByMnemonic: 0, CreateNewAccount: 1, ExportPrivateKey: 2, ExportKeyStoreInfo: 3, ExportMnemonic: 4,
-                     DeleteAccount: 5, ImportKeystore: 6 };
+                     DeleteAccount: 5, ImportKeystore: 6, ImportPrivateKey: 7 };
 const MnemonicPath = "m/44'/550'/0'/0/";
 const ConfusePwd = '*&^()!@863';
 const ConfuseMnemonic = '*&^() !@863 sdfs* (*^d';
@@ -255,17 +255,19 @@ export default class KeyList extends Component {
 
   importPrikey = () => {
     if (!this.hasKeyStoreFile()) {
-      Feedback.toast.prompt('请先新增一对公私钥或是通过助记词导入私钥后才能使用此功能。');
+      Feedback.toast.prompt('初始化钱包后才能使用此功能。');
       return;
     }
+    
+    this.state.method = ActionType.ImportPrivateKey;
     this.setState({
-      importKeyDialogVisible: true,
+      pwdDialogVisible: true,
     });
   }
 
   importKeystore = () => {
     if (!this.hasKeyStoreFile()) {
-      Feedback.toast.prompt('请先新增一对公私钥或是通过助记词导入私钥后才能使用此功能。');
+      Feedback.toast.prompt('初始化钱包后才能使用此功能。');
       return;
     }
     this.state.method = ActionType.ImportKeystore;
@@ -455,6 +457,14 @@ export default class KeyList extends Component {
           pwdDialogVisible: false,
         });
       });
+    } else if (this.state.method === ActionType.ImportPrivateKey) {
+      this.processAction((item, index) => index === 0, '密码验证中', wallet => {
+        Feedback.toast.hide();
+        this.setState({
+          importKeyDialogVisible: true,
+          pwdDialogVisible: false,
+        });
+      });
     }
   };
 
@@ -509,7 +519,7 @@ export default class KeyList extends Component {
       return;
     }
     let wallet = new ethers.Wallet(privateKey);
-    const publicKey = '0x' + EthCrypto.publicKeyByPrivateKey(privateKey);
+    //const publicKey = '0x' + EthCrypto.publicKeyByPrivateKey(privateKey);
     this.encryptWallet(wallet, password, '导入成功');
   };
 
@@ -834,19 +844,6 @@ export default class KeyList extends Component {
             size="medium"
             defaultValue=""
             maxLength={66}
-            hasLimitHint
-            onPressEnter={this.onImportKeyOK}
-          />
-          <p />
-          <p />
-          <Input hasClear
-            htmlType="password"
-            onChange={this.handlePasswordChange.bind(this)}
-            style={{ width: 400 }}
-            addonBefore="密码"
-            size="medium"
-            defaultValue=""
-            maxLength={20}
             hasLimitHint
             onPressEnter={this.onImportKeyOK}
           />
