@@ -217,7 +217,7 @@ export default class AccountList extends Component {
     if (promiseArr.length > 0) {
       Promise.all(promiseArr).then(assets => {
         for (const asset of assets) {
-          self.state.assetInfos[asset.assetId] = asset;
+          self.state.assetInfos[asset.assetId == null ? 0 : asset.assetId] = asset;
         }
         self.setState({
           assetVisible: true,
