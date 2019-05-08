@@ -1587,7 +1587,7 @@ export default class AccountList extends Component {
             addonBefore="其它公钥"
             size="medium"
             defaultValue=""
-            maxLength={67}
+            maxLength={132}
             hasLimitHint
             disabled={!this.state.inputOtherPK}
             placeholder="若此处填入公钥，创建时将以此公钥为准"
