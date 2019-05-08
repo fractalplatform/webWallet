@@ -35,6 +35,7 @@ const BlockStatus = { Rollbacked: -1, Irreversible: 0, Reversible: 1, Unknown: 2
 
 const UpdateAuthorType = { Add: 0, Update: 1, Delete: 2};
 const AuthorOwnerType = { Error: -1, AccountName: 0, PublicKey: 1, Address: 2 };
+const TxFeeType = { Asset:0, Contract:1, Miner:2 };
 
 export default class AccountList extends Component {
   static displayName = 'AccountList';
@@ -92,6 +93,7 @@ export default class AccountList extends Component {
       txConfirmVisible: false,
       innerTxVisible: false,
       withdrawTxFeeVisible: false,
+      inputAssetName: false,
       accountInfos: [],
       authorList: [],
       accountNames: [],
@@ -101,7 +103,7 @@ export default class AccountList extends Component {
       syncTxInterval: 60000,
       syncTxTimeoutId: 0,
       innerTxInfos: [],
-      txFeeTypes: [{value:0, label:'资产'}, {value:1, label:'合约'}, {value:2, label:'挖矿'}],
+      txFeeTypes: [{value:TxFeeType.Asset, label:'资产'}, {value:TxFeeType.Contract, label:'合约'}, {value:TxFeeType.Miner, label:'挖矿'}],
       withdrawFooter: (<view>
                         <Button type='primary' onClick={() => {this.onWithdrawTxFeeOK.bind(this)}}>提取</Button>
                         <Button type='normal' onClick={this.getTxFee.bind(this)}>查询</Button>
@@ -1020,7 +1022,8 @@ export default class AccountList extends Component {
     this.setState({ withdrawTxFeeVisible: false });
   }
   getTxFee = async () => {
-    const txFeeInfoObj = await fractal.fee.getObjectFeeByName(this.state.curAccount.accountName, this.state.txFeeType);
+    const txFeeName = this.state.txFeeType == TxFeeType.Asset ? this.state.assetName : this.state.curAccount.accountName;
+    const txFeeInfoObj = await fractal.fee.getObjectFeeByName(txFeeName, this.state.txFeeType);
     //console.log(txFeeInfo);
     if (txFeeInfoObj == null) {
       Feedback.toast.prompt('无手续费信息');
@@ -1031,6 +1034,10 @@ export default class AccountList extends Component {
   }
   onChangeTxFeeTypeAccount = (value) => {
     this.state.txFeeType = value;
+    this.setState({ inputAssetName: value == TxFeeType.Asset });
+  }
+  onChangeAssetName = (value) => {
+    this.state.assetName = value;
   }
   onAssetClose = () => {
     this.setState({
@@ -1677,6 +1684,17 @@ export default class AccountList extends Component {
             placeholder="选择手续费类型"
             onChange={this.onChangeTxFeeTypeAccount.bind(this)}
             dataSource={this.state.txFeeTypes}
+          />
+          <p /><p />
+          <Input hasClear 
+            disabled={!this.state.inputAssetName}
+            onChange={this.onChangeAssetName.bind(this)}
+            style={{ width: 400 }}
+            addonBefore="资产名"
+            size="medium"
+            defaultValue=""
+            maxLength={16}
+            hasLimitHint
           />
           <p />
           {this.state.txFeeInfo}
