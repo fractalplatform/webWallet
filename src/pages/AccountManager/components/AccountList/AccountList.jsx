@@ -116,6 +116,7 @@ export default class AccountList extends Component {
   componentDidMount = async () => {
     this.state.dposInfo = await fractal.dpos.getDposInfo();
     this.state.chainConfig = await fractal.ft.getChainConfig();
+    this.state.chainConfig.sysTokenID = 0;
     this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
     this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
     this.state.irreversibleInfo = await fractal.dpos.getDposIrreversibleInfo();

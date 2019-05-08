@@ -73,6 +73,7 @@ export default class ProducerList extends Component {
 
   componentDidMount = async () => {
     this.state.chainConfig = await fractal.ft.getChainConfig();
+    this.state.chainConfig.sysTokenID = 0;
     const myVoterAccounts = [];
     const myProducers = [];
     const otherAccounts = [];
