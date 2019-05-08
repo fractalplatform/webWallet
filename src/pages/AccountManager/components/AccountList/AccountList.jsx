@@ -1339,11 +1339,11 @@ export default class AccountList extends Component {
           return;
         }
       }
-  
+      const transferAssetId = self.state.curTransferAsset.assetId;
       const transferInfo = { actionType: constant.TRANSFER,
         accountName: self.state.curAccount.accountName,
         toAccountName: self.state.transferToAccount,
-        assetId: self.state.curTransferAsset.assetId,
+        assetId: transferAssetId == null ? 0 : transferAssetId,
         gasLimit: new BigNumber(self.state.gasLimit).toNumber(),
         gasPrice: new BigNumber(self.state.gasPrice).shiftedBy(9).toNumber(),
         value: new BigNumber(value).toNumber(),
