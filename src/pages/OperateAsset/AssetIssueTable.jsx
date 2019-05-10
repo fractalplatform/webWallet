@@ -8,6 +8,7 @@ import {
   FormBinder as IceFormBinder,
 } from '@icedesign/form-binder';
 import { encode } from 'rlp';
+import * as fractal from 'fractal-web3';
 import * as action from '../../utils/constant';
 import TxSend from "../TxSend";
 
@@ -31,17 +32,24 @@ export default class AssetIssueTable extends Component {
         owner: '',
         founder: '',
         upperLimit: 0,
+        contract: '',
+        desc: '',
       },
       inputPasswordVisible: false,
       password: '',
       txSendVisible: false,
       txInfo: {},
+      assetReg: new RegExp('^([a-z][a-z0-9]{1,15})(?:\\.([a-z0-9]{1,8})){0,1}$'),
+      assetInfoSet: [],
+      curAccountName: '',
     };
   }
 
 
   componentWillReceiveProps(nextProps) {
     this.setState({
+      assetInfoSet: nextProps.assetInfoSet,
+      curAccountName: nextProps.accountName,
       txSendVisible: false,
     })
   }
@@ -53,64 +61,82 @@ export default class AssetIssueTable extends Component {
     });
   };
 
-  onSubmit = () => {
+  onSubmit = async () => {
     const { value } = this.state;
 
-    const curAccountName = this.props.accountName;
-    if (curAccountName === '') {
+    if (this.state.curAccountName === '') {
       Feedback.toast.error('请选择需要操作资产的账户');
       return;
     }
-    // const assetNameReg = new RegExp('^([a-z][a-z0-9]{1,15})(?:\\.([a-z0-9]{1,8})){0,1}$');
-    // if (!assetNameReg.test(value.assetName)) {
-    //   Feedback.toast.error('资产名称错误');
-    //   return;
-    // }
-    // let resp = await rpc.getAssetInfoByName([value.assetName]);
-    // if (resp.data.result != null) {
-    //   Feedback.toast.error('资产名称已存在');
-    //   return;
-    // }
-    // const assetSymbolReg = new RegExp('^[a-z0-9]{2,16}$');
-    // if (!assetSymbolReg.test(value.symbol)) {
-    //   Feedback.toast.error('资产符号错误');
-    //   return;
-    // }
-    // const zero = new BigNumber(0);
-    // const amount = new BigNumber(value.amount);
-    // if (amount.comparedTo(zero) < 0) {
-    //   Feedback.toast.error('资产金额必须大于0');
-    //   return;
-    // }
+    if (!this.state.assetReg.test(value.assetName)) {
+      Feedback.toast.error('资产名称错误');
+      return;
+    }
+    try {
+      const assetInfo = await fractal.account.getAssetInfoByName(value.assetName);
+      if (assetInfo != null) {
+        Feedback.toast.error('资产已存在');
+        return;
+      }
+    } catch (error) {
+      
+    }
+    const accountInfo = await fractal.account.getAccountByName(value.assetName);
+    if (accountInfo != null) {
+      Feedback.toast.error('资产名同账号名冲突，不可用');
+      return;
+    }
+    const dotIndex = value.assetName.indexOf('.');
+    if (dotIndex > -1) {
+      const fatherAssetName = value.assetName.substr(0, dotIndex);
+      let bExistAsset = false;
+      this.state.assetInfoSet.map(item => {
+        if (item.assetName == fatherAssetName) {
+          bExistAsset = true;
+        }
+      })
+      if (!bExistAsset) {
+        Feedback.toast.error('由于父资产的管理者不属于此账户，因此无法创建此子资产');
+        return;
+      }
+    }
 
-    // const decimals = parseInt(value.decimals, 10);
-    // if (decimals === undefined) {
-    //   Feedback.toast.error('请输入正确的精度');
-    //   return;
-    // }
-
-    // resp = await rpc.isAccountExist([value.owner]);
-    // if (resp.data.result === false) {
-    //   Feedback.toast.error('管理者不存在');
-    //   return;
-    // }
-    // resp = await rpc.isAccountExist([value.founder]);
-    // if (resp.data.result === false) {
-    //   Feedback.toast.error('创办者不存在');
-    //   return;
-    // }
-    // const upperLimit = new BigNumber(value.upperLimit);
-    // if (upperLimit.comparedTo(amount) < 0) {
-    //   Feedback.toast.error('资产上限必须大于等于资产发行金额');
-    //   return;
-    // }
+    if (!this.state.assetReg.test(value.symbol)) {
+      Feedback.toast.error('资产符号错误');
+      return;
+    }
+    const zero = new BigNumber(0);
     const amount = new BigNumber(value.amount);
+    if (amount.comparedTo(zero) < 0) {
+      Feedback.toast.error('资产金额必须大于0');
+      return;
+    }
+
     const decimals = parseInt(value.decimals, 10);
+    if (decimals == null) {
+      Feedback.toast.error('请输入正确的精度');
+      return;
+    }
+
+    let bExist = await fractal.account.isAccountExist(value.owner);
+    if (!bExist) {
+      Feedback.toast.error('管理者账户不存在');
+      return;
+    }
+    bExist = await fractal.account.isAccountExist(value.founder);
+    if (!bExist) {
+      Feedback.toast.error('创办者不存在');
+      return;
+    }
     const upperLimit = new BigNumber(value.upperLimit);
+    if (upperLimit.comparedTo(amount) < 0) {
+      Feedback.toast.error('资产上限必须大于等于资产发行金额');
+      return;
+    }
 
     const txInfo = {};
     txInfo.actionType = action.ISSUE_ASSET;
-    txInfo.accountName = curAccountName;
+    txInfo.accountName = this.state.curAccountName;
     txInfo.toAccountName = 'fractal.asset';
     txInfo.assetId = 0;
     txInfo.value = 0;
@@ -122,30 +148,6 @@ export default class AssetIssueTable extends Component {
       txInfo,
       txSendVisible: true,
     });
-  }
-
-  onClose = () => {
-    this.setState({
-      inputPasswordVisible: false,
-    });
-  }
-
-  handlePasswordChange = (v) => {
-    this.state.password = v;
-  }
-
-  onInputPasswordOK = async () => {
-    const { value } = this.state;
-    if (this.state.password === '') {
-      Feedback.toast.error('请输入钱包密码');
-      return;
-    }
-    this.onClose();
-
-    
-    
-    
-    
   }
 
   render() {
@@ -163,8 +165,8 @@ export default class AssetIssueTable extends Component {
                   addonBefore="名称:" // "^[a-z0-9]{2,16}$"
                   name="assetName"
                   size="large"
-                  placeholder="a~z、0~9组成，2-16位"
-                  //maxLength={16}
+                  placeholder="不可跟已有的资产和账户名冲突"
+                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
@@ -174,8 +176,8 @@ export default class AssetIssueTable extends Component {
                   addonBefore="符号:" // "^[a-z0-9]{2,16}$"
                   name="symbol"
                   size="large"
-                  placeholder="a~z、0~9组成，2-16位"
-                  //maxLength={16}
+                  placeholder="a~z、0~9.组成，2-16位"
+                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
@@ -194,7 +196,7 @@ export default class AssetIssueTable extends Component {
                   addonBefore="精度:"
                   name="decimals"
                   size="large"
-                  //maxLength={2}
+                  maxLength={2}
                 />
               </IceFormBinder>
             </Row>
@@ -205,7 +207,7 @@ export default class AssetIssueTable extends Component {
                   name="owner"
                   size="large"
                   placeholder="可对此资产进行管理"
-                  //maxLength={16}
+                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
@@ -216,7 +218,7 @@ export default class AssetIssueTable extends Component {
                   name="founder"
                   size="large"
                   placeholder="可收取相关手续费"
-                  //maxLength={16}
+                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>

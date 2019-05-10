@@ -42,7 +42,7 @@ export default class AssetOperator extends Component {
 
   onChangeAccount = async (accountName) => {
     const assetInfoSet = await AssetUtils.getAssetInfoOfOwner(accountName);
-    this.setState({ selectedAccountName: accountName, assetInfoSet,  });
+    this.setState({ selectedAccountName: accountName, assetInfoSet });
   }
 
   render() {
@@ -63,7 +63,7 @@ export default class AssetOperator extends Component {
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
-          <AssetIssueTable accountName={this.state.selectedAccountName} />
+          <AssetIssueTable accountName={this.state.selectedAccountName} assetInfoSet={this.state.assetInfoSet}/>
         </Card>
 
         <Card

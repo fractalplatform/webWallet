@@ -84,27 +84,31 @@ export default class SearchTable extends Component {
     return assetInfo;
   }
   onAssetSearch = async (value) => {
-    const assetKey = value.key;
-    if (utils.isEmptyObj(assetKey)) {
-      return;
-    }
-    if (this.state.assetInfos[assetKey] != null) {
-      this.setState({ assetInfo: [this.state.assetInfos[assetKey]] });
-    } else {
-      let assetInfo;
-      if (assetKey[0] < '0' || assetKey[0] > '9') {
-        assetInfo = await fractal.account.getAssetInfoByName(assetKey);
-      } else {
-        assetInfo = await fractal.account.getAssetInfoById(parseInt(assetKey, 10));
-      }
-
-      if (assetInfo == null) {
-        Feedback.toast.error('无此资产信息');
+    try {
+      const assetKey = value.key;
+      if (utils.isEmptyObj(assetKey)) {
         return;
       }
-
-      assetInfo = this.convertAssetNumber(assetInfo);
-      this.setState({ assetInfo: [assetInfo] });
+      if (this.state.assetInfos[assetKey] != null) {
+        this.setState({ assetInfo: [this.state.assetInfos[assetKey]] });
+      } else {
+        let assetInfo;
+        if (assetKey[0] < '0' || assetKey[0] > '9') {
+          assetInfo = await fractal.account.getAssetInfoByName(assetKey);
+        } else {
+          assetInfo = await fractal.account.getAssetInfoById(parseInt(assetKey, 10));
+        }
+  
+        if (assetInfo == null) {
+          Feedback.toast.error('无此资产信息');
+          return;
+        }
+  
+        assetInfo = this.convertAssetNumber(assetInfo);
+        this.setState({ assetInfo: [assetInfo] });
+      }
+    } catch (error) {
+      Feedback.toast.error(error);
     }
   }
   render() {
