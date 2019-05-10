@@ -2,12 +2,14 @@
 import React, { Component } from 'react';
 import { Select, Card } from '@icedesign/base';
 import IceContainer from '@icedesign/container';
+import * as fractal from 'fractal-web3';
 import AssetIssueTable from './AssetIssueTable';
 import AssetIncrease from './AssetIncrease';
 import AssetFounderSet from './AssetFounderSet';
-import { getBoundInfo, getDposInfo } from '../../api';
 import AssetOwnerSet from './AssetOwnerSet';
 import AssetDestroy from './AssetDestroy';
+import * as utils from '../../utils/utils';  
+import * as AssetUtils from './AssetUtils';
 
 export default class AssetOperator extends Component {
   static displayName = 'SearchTable';
@@ -19,37 +21,28 @@ export default class AssetOperator extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      accountNames: [],
+      accounts: [],
       selectedAccountName: '',
-      cardHeight: 350,
+      cardHeight: 150,
       dposInfo: {},
+      assetInfoSet: [],
     };
-    const myThis = this;
-    getBoundInfo([]).then(response => {
-      if (Object.prototype.hasOwnProperty.call(response.data, 'result')) {
-        if (response.data.result !== undefined) {
-          const accountNames = [];
-          for (const account of response.data.result) {
-            accountNames.push(account.accountName);
-          }
-          myThis.setState({ accountNames });
-        }
-      }
-    });
-
-    let dposInfo = {};
-    getDposInfo().then(dposResp => {
-      if (Object.prototype.hasOwnProperty.call(dposResp.data, 'result') && dposResp.data.result != null) {
-        dposInfo = dposResp.data.result;
-        myThis.state.dposInfo = dposInfo;
-      }
-    });
   }
 
-  onChangeAccount = (value) => {
-    this.setState({ selectedAccountName: value });
+  componentWillMount = async () => {
+    const chainConfig = await fractal.ft.getChainConfig();
+    fractal.ft.setChainId(chainConfig.chainId);
+    const accounts = await utils.loadAccountsFromLS();
+    for (let account of accounts) {
+      this.state.accounts.push(account.accountName);
+    }
+
+    this.state.dposInfo = await fractal.dpos.getDposInfo();
   }
-  handlePasswordChange = () => {
+
+  onChangeAccount = async (accountName) => {
+    const assetInfoSet = await AssetUtils.getAssetInfoOfOwner(accountName);
+    this.setState({ selectedAccountName: accountName, assetInfoSet,  });
   }
 
   render() {
@@ -61,7 +54,7 @@ export default class AssetOperator extends Component {
             style={{ width: 350 }}
             placeholder="选择发起资产操作的账户"
             onChange={this.onChangeAccount.bind(this)}
-            dataSource={this.state.accountNames}
+            dataSource={this.state.accounts}
           />
         </IceContainer>
         <Card
@@ -79,7 +72,7 @@ export default class AssetOperator extends Component {
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
-          <AssetIncrease accountName={this.state.selectedAccountName} />
+          <AssetIncrease accountName={this.state.selectedAccountName} assetInfoSet={this.state.assetInfoSet}/>
         </Card>
 
         <Card
@@ -88,16 +81,16 @@ export default class AssetOperator extends Component {
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
-          <AssetOwnerSet accountName={this.state.selectedAccountName} />
+          <AssetOwnerSet accountName={this.state.selectedAccountName} assetInfoSet={this.state.assetInfoSet} />
         </Card>
 
         <Card
           style={styles.card}
-          title="设置资产创建者"
+          title="设置资产创办者"
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
-          <AssetFounderSet accountName={this.state.selectedAccountName} />
+          <AssetFounderSet accountName={this.state.selectedAccountName} assetInfoSet={this.state.assetInfoSet} />
         </Card>
 
         <Card
@@ -106,7 +99,7 @@ export default class AssetOperator extends Component {
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
-          <AssetDestroy accountName={this.state.selectedAccountName} dposInfo={this.state.dposInfo} />
+          <AssetDestroy accountName={this.state.selectedAccountName} dposInfo={this.state.dposInfo}  assetInfoSet={this.state.assetInfoSet}/>
         </Card>
       </IceContainer>
     );

@@ -75,7 +75,7 @@ const asideMenuConfig = [
     ],
   },
   {
-    name: '资产管理(待更新)',
+    name: '资产管理',
     path: '/portlets',
     icon: 'ul-list',
     children: [

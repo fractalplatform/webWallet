@@ -9,6 +9,7 @@ import { Table, Button, Tag, Balloon, Icon } from '@alifd/next';
 import { Input, Dialog, Select, Feedback } from '@icedesign/base';
 import BigNumber from 'bignumber.js';
 import { encode } from 'rlp';
+import * as fractal from 'fractal-web3';
 
 import * as rpc from '../../api';
 import * as ACTION from '../../utils/constant';
@@ -120,7 +121,7 @@ export default class ProducerList extends Component {
       this.state.myVoterAccounts = myVoterAccounts;
     }
 
-    let resp = await rpc.getCadidates();
+    let resp = await fractal.dpos.getCandidates();
     const producers = [];
     if (Object.prototype.hasOwnProperty.call(resp.data, 'result') && resp.data.result != null) {
       for (const producer of resp.data.result) {

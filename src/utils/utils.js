@@ -332,6 +332,38 @@ function removeDataFromFile(fileName) {
   global.localStorage.setItem(fileName, JSON.stringify(dataObj));
 }
 
+
+function loadKeystoreFromLS() {
+  const keystoreInfoObj = getDataFromFile(Constant.KeyStoreFile);
+  if (keystoreInfoObj != null) {
+    return keystoreInfoObj.keyList;
+  }
+  return null;
+}
+async function loadAccountsFromLS() {
+  const accountInfos = [];
+  const accounts = getDataFromFile(Constant.AccountFile);
+  if (accounts != null) {
+    for (const account of accounts) {
+      const accountObj = await fractal.account.getAccountByName(account);
+      if (accountObj != null) {
+        accountInfos.push(accountObj);
+      } 
+    }
+  }
+  return accountInfos;
+}
+
+function getReadableNumber(value, assetDecimal, displayDecimal) {
+  let renderValue = new BigNumber(value);
+  renderValue = renderValue.shiftedBy(assetDecimal * -1);
+
+  BigNumber.config({ DECIMAL_PLACES: displayDecimal == null ? 6 : displayDecimal });
+  renderValue = renderValue.toString(10);
+  return renderValue;
+}
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, 
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
-         isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, removeDataFromFile };
+         isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
+         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber };

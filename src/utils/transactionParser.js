@@ -3,18 +3,9 @@ import { decode } from 'rlp';
 import BigNumber from 'bignumber.js';
 
 import * as actionTypes from './constant';
-import { bytes2Hex, bytes2Number, utf8ByteToUnicodeStr } from './utils';
+import { bytes2Hex, bytes2Number, utf8ByteToUnicodeStr, getReadableNumber } from './utils';
 import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants';
 
-
-function getReadableNumber(value, assetDecimal) {
-  let renderValue = new BigNumber(value);
-  renderValue = renderValue.shiftedBy(assetDecimal * -1);
-
-  BigNumber.config({ DECIMAL_PLACES: 6 });
-  renderValue = renderValue.toString(10);
-  return renderValue;
-}
 
 function needParsePayload(actionType) {
   return actionType !== actionTypes.TRANSFER
@@ -194,49 +185,47 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       const addedAssetInfo = allAssetInfos[assetId];
       amount = getReadableNumber(amount, addedAssetInfo.decimals);
       const toAccount = String.fromCharCode.apply(null, payloadInfo[2]);
-      actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId},资产名称:${addedAssetInfo.assetname}, 增发数量=${amount}${addedAssetInfo.symbol}`;
+      actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId},资产名称:${addedAssetInfo.assetName}, 增发数量=${amount}${addedAssetInfo.symbol}`;
       actionParseInfo.detailObj = { assetId, assetName: assetInfo.assetname, amount, toAccount };
       break;
     }
     case actionTypes.ISSUE_ASSET: {
       actionParseInfo.actionType = '发行资产';
-      const assetName = String.fromCharCode.apply(null, payloadInfo[1]);
-      const symbol = String.fromCharCode.apply(null, payloadInfo[2]);
-      let amount = bytes2Number(payloadInfo[3]).toNumber();
-      const decimals = payloadInfo[4][0] === undefined ? 0 : payloadInfo[4][0];
-      const founder = String.fromCharCode.apply(null, payloadInfo[5]);
-      const owner = String.fromCharCode.apply(null, payloadInfo[6]);
-      let upperLimit = bytes2Number(payloadInfo[8]).toNumber();
+      const assetName = String.fromCharCode.apply(null, payloadInfo[0]);
+      const symbol = String.fromCharCode.apply(null, payloadInfo[1]);
+      let amount = bytes2Number(payloadInfo[2]).toNumber();
+      const decimals = payloadInfo[3][0] === undefined ? 0 : payloadInfo[3][0];
+      const founder = String.fromCharCode.apply(null, payloadInfo[4]);
+      const owner = String.fromCharCode.apply(null, payloadInfo[5]);
+      let upperLimit = bytes2Number(payloadInfo[6]).toNumber();
+      const contract = String.fromCharCode.apply(null, payloadInfo[7]);
+      const desc = String.fromCharCode.apply(null, payloadInfo[8]);
 
       actionParseInfo.detailObj = { assetName, symbol, amount, decimals, founder, owner, upperLimit };
 
       amount = getReadableNumber(amount, decimals);
       upperLimit = getReadableNumber(upperLimit, decimals);
 
-      actionParseInfo.detailInfo = `资产名:${assetName},符号:${symbol},初始发行金额:${amount}${symbol},发行上限:${upperLimit}${symbol},精度:${decimals}位,创办者账号:${founder},管理者账号:${owner}`;
+      actionParseInfo.detailInfo = `资产名:${assetName},符号:${symbol},初始发行金额:${amount}${symbol},发行上限:${upperLimit}${symbol},精度:${decimals}位,创办者账号:${founder},管理者账号:${owner},合约账号:${contract},资产描述:${desc}`;
       break;
     }
-    case actionTypes.DESTORY_ASSET: {
+    case actionTypes.DESTORY_ASSET:
       actionParseInfo.actionType = '销毁资产';
-      const assetId = payloadInfo[0][0];
-      let destroyAmount = bytes2Number(payloadInfo[3]).toNumber();
-      destroyAmount = getReadableNumber(destroyAmount, allAssetInfos[assetId].decimals);
-      actionParseInfo.detailInfo = '资产ID:' + assetId + ', 销毁数量:' + destroyAmount;
-      actionParseInfo.detailObj = {};
+      actionParseInfo.detailInfo = `资产ID:${actionInfo.assetID},数量:${readableNum}`;
+      actionParseInfo.detailObj = { from: actionInfo.from, value: readableNum, assetId: actionInfo.assetId };
       break;
-    }
     case actionTypes.SET_ASSET_OWNER: {
       actionParseInfo.actionType = '设置资产所有者';
       const assetId = payloadInfo[0][0];
-      const owner = String.fromCharCode.apply(null, payloadInfo[6]);
+      const owner = String.fromCharCode.apply(null, payloadInfo[1]);
       actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的管理者:' + owner;
       actionParseInfo.detailObj = {};
       break;
     }
-    case actionTypes.SET_ASSET_FOUNDER: {
-      actionParseInfo.actionType = '设置资产创建者';
+    case actionTypes.UPDATE_ASSET: {
+      actionParseInfo.actionType = '设置资产创办者';
       const assetId = payloadInfo[0][0];
-      const founder = String.fromCharCode.apply(null, payloadInfo[5]);
+      const founder = String.fromCharCode.apply(null, payloadInfo[1]);
       actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的创办者:' + founder;
       actionParseInfo.detailObj = {};
       break;
@@ -304,10 +293,10 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
     default:
       console.log('error action type:' + actionInfo.type);
   }
-  if (actionInfo.value > 0 && actionInfo.type !== actionTypes.TRANSFER) {
+  if (actionInfo.value > 0 && actionInfo.type !== actionTypes.TRANSFER && actionInfo.type !== actionTypes.DESTORY_ASSET) {
     actionParseInfo.detailInfo += ',新账号收到转账:' + readableNum + assetInfo.symbol;
   }
   return actionParseInfo;
 }
 
-export { getReadableNumber, parseAction, getActionTypeStr };
+export { parseAction, getActionTypeStr };

@@ -14,24 +14,7 @@ import './AccountList.scss';
 
 import * as txParser from '../../../../utils/transactionParser';
 import * as utils from '../../../../utils/utils';  //{ utils.hex2Bytes, utils.isEmptyObj, utils.getPublicKeyWithPrefix }
-import * as constant from '../../../../utils/constant';
-
-/* 交易状态：
-* 1: 发送失败：无需更新
-* 2：发送成功，但尚未执行：需更新
-* 3：发送成功，执行成功：需检查是否被回滚
-* 4：发送成功，执行失败：需检查是否被回滚
-* 5：内部交易成功：需检查是否被回滚
-* 6：内部交易失败：需检查是否被回滚
-*/
-const TxStatus = { SendError:1, NotExecute:2, ExecuteSuccess:3, ExecuteFail:4, InnerSuccess:5, InnerFail:6 };
-
-/* 区块状态：
-    * 1: 可逆：   1   //初始默认的状态值
-    * 2：不可逆   0
-    * 3：被回滚  -1
-*/
-const BlockStatus = { Rollbacked: -1, Irreversible: 0, Reversible: 1, Unknown: 2 };
+import * as Constant from '../../../../utils/constant';
 
 const UpdateAuthorType = { Add: 0, Update: 1, Delete: 2};
 const AuthorOwnerType = { Error: -1, AccountName: 0, PublicKey: 1, Address: 2 };
@@ -116,34 +99,20 @@ export default class AccountList extends Component {
   }
 
   componentDidMount = async () => {
-    this.state.dposInfo = await fractal.dpos.getDposInfo();
-    this.state.chainConfig = await fractal.ft.getChainConfig();
+    fractal.dpos.getDposInfo().then(dposInfo => this.state.dposInfo = dposInfo);
+    fractal.ft.getChainConfig().then(chainConfig => this.state.chainConfig = chainConfig);
     this.state.chainConfig.sysTokenID = 0;
     this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
     this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
-    this.state.irreversibleInfo = await fractal.dpos.getDposIrreversibleInfo();
-    this.loadAccountsFromLS();
-    this.loadKeystoreFromLS();
-    this.syncTxFromNode();
-  }
-  loadKeystoreFromLS = () => {
-    const keystoreInfoObj = utils.getDataFromFile(constant.KeyStoreFile);
-    if (keystoreInfoObj != null) {
-      this.state.keystoreList = keystoreInfoObj.keyList;
-    }
-  }
-  loadAccountsFromLS = async () => {
-    const accounts = utils.getDataFromFile(constant.AccountFile);
-    if (accounts != null) {
-      for (const account of accounts) {
-        const accountObj = await fractal.account.getAccountByName(account);
-        if (accountObj != null) {
-          this.state.accountInfos.push(accountObj);
-        } 
-      }
+    fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => this.state.irreversibleInfo = irreversibleInfo);
+    const chainConfig = await fractal.ft.getChainConfig();
+    fractal.ft.setChainId(chainConfig.chainId);
 
-      this.setState({accountInfos: this.state.accountInfos});
-    }
+    this.state.keystoreList = utils.loadKeystoreFromLS();
+    utils.loadAccountsFromLS().then(accountInfos => { 
+      this.setState({ accountInfos }); 
+    });
+    this.syncTxFromNode();
   }
   // 返回true表示区块被回滚
   checkBlockRollback = async (blockHash, blockNum) => {
@@ -153,7 +122,7 @@ export default class AccountList extends Component {
   saveAccountsToLS = () => {
     let accounts = [];
     this.state.accountInfos.map(item => accounts.push(item.accountName));
-    utils.storeDataToFile(constant.AccountFile, accounts);
+    utils.storeDataToFile(Constant.AccountFile, accounts);
   }
 
   onImportAccount = () => {
@@ -212,7 +181,7 @@ export default class AccountList extends Component {
       if (this.state.assetInfos[balance.assetID] === undefined) {
         promiseArr.push(fractal.account.getAssetInfoById(balance.assetID));
       }
-      if (balance.assetID === 1) {
+      if (balance.assetID === 0) {
         this.state.curAccountFTBalance = balance.balance;
       }
     }
@@ -282,14 +251,14 @@ export default class AccountList extends Component {
         }
       }
 
-      let allTxInfoSet = utils.getDataFromFile(constant.TxInfoFile);
+      let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
       if (allTxInfoSet != null) {
         let accountTxInfoSet = allTxInfoSet[this.state.curAccount.accountName];
         if (accountTxInfoSet == null) {   // 如果在本地不存在此账号的交易信息，则从链上同步其所有交易
           await fractal.ft.getCurrentBlock(false).then(async (curBlock) => {
             const accountTxs = await this.syncTxsOfAccount(this.state.curAccount, curBlock.number);
             allTxInfoSet[this.state.curAccount.accountName] = { txInfos: accountTxs };
-            utils.storeDataToFile(constant.TxInfoFile, allTxInfoSet);
+            utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet);
             accountTxInfoSet = allTxInfoSet[this.state.curAccount.accountName];
           });
         }
@@ -304,7 +273,7 @@ export default class AccountList extends Component {
               this.state.assetInfos[actionInfo.assetID] = asset;
             }
             const parsedAction = txParser.parseAction(actionInfo, this.state.assetInfos[actionInfo.assetID], this.state.assetInfos, this.state.dposInfo);
-            if (txInfo.txStatus != TxStatus.SendError && txInfo.txStatus != TxStatus.NotExecute) {
+            if (txInfo.txStatus != Constant.TxStatus.SendError && txInfo.txStatus != Constant.TxStatus.NotExecute) {
               parsedAction.result = actionInfo.status == 1 ? '成功' : `失败（${actionInfo.error}）`;
               parsedAction.gasFee = `${actionInfo.gasUsed} aft`;
               parsedAction.gasAllot = actionInfo.gasAllot;
@@ -341,16 +310,16 @@ export default class AccountList extends Component {
     *   1.2 如果不可逆，则pass
    *  */
   updateTxStatus = async (txInfo, lastIrreveribleBlockNum, callback) => {
-    if (Object.prototype.hasOwnProperty.call(txInfo, 'txStatus') && txInfo.txStatus != TxStatus.NotExecute && txInfo.txStatus != TxStatus.SendError) {   // 通过txStatus判断交易receipt是否已经获取过，条件成立则同步区块状态，否则获取交易的receipt
-      if (txInfo.blockStatus == null || txInfo.blockStatus == BlockStatus.Reversible || txInfo.blockStatus == BlockStatus.Unknown) {
+    if (Object.prototype.hasOwnProperty.call(txInfo, 'txStatus') && txInfo.txStatus != Constant.TxStatus.NotExecute && txInfo.txStatus != Constant.TxStatus.SendError) {   // 通过txStatus判断交易receipt是否已经获取过，条件成立则同步区块状态，否则获取交易的receipt
+      if (txInfo.blockStatus == null || txInfo.blockStatus == Constant.BlockStatus.Reversible || txInfo.blockStatus == Constant.BlockStatus.Unknown) {
         if (this.state.blockRollbackCache[txInfo.blockHash] == null) {
           const blockInfo = await fractal.ft.getBlockByNum(txInfo.blockNumber);
           this.state.blockRollbackCache[txInfo.blockHash] = blockInfo.hash != txInfo.blockHash;
         }
         if (this.state.blockRollbackCache[txInfo.blockHash]) {
-          txInfo.blockStatus = BlockStatus.Rollbacked;
+          txInfo.blockStatus = Constant.BlockStatus.Rollbacked;
         } else {
-          txInfo.blockStatus = txInfo.blockNumber <= lastIrreveribleBlockNum ? BlockStatus.Irreversible : BlockStatus.Reversible; 
+          txInfo.blockStatus = txInfo.blockNumber <= lastIrreveribleBlockNum ? Constant.BlockStatus.Irreversible : Constant.BlockStatus.Reversible; 
         }
       }
       callback(txInfo);
@@ -360,7 +329,7 @@ export default class AccountList extends Component {
         txInfo.blockHash = receipt.blockHash;
         txInfo.blockNumber = receipt.blockNumber;
         txInfo.actions[0].status = receipt.actionResults[0].status;
-        txInfo.txStatus = receipt.actionResults[0].status == 1 ? TxStatus.ExecuteSuccess : TxStatus.ExecuteFail;
+        txInfo.txStatus = receipt.actionResults[0].status == 1 ? Constant.TxStatus.ExecuteSuccess : Constant.TxStatus.ExecuteFail;
         txInfo.actions[0].gasUsed = receipt.actionResults[0].gasUsed;
         txInfo.actions[0].gasAllot = receipt.actionResults[0].gasAllot;
         txInfo.actions[0].error = receipt.actionResults[0].error;
@@ -376,12 +345,12 @@ export default class AccountList extends Component {
   }
 
   deleteTxFromFile = (accountName) => {
-    let allTxInfoSet = utils.getDataFromFile(constant.TxInfoFile);
+    let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
     if (allTxInfoSet == null) {
       return;
     }
     delete allTxInfoSet[accountName];
-    utils.storeDataToFile(constant.TxInfoFile, allTxInfoSet);
+    utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet);
   }
   /** 
     * {account1:{lastBlockHash, lastBlockNum, txInfos:[{isInnerTx,txStatus,date,txHash,blockHash,blockNumber,blockStatus, actions:[ {type,from,to,assetID,value,payload,status,actionIndex,gasUsed,gasAllot: [ account,gas,typeId],error}],{...}]}}
@@ -415,7 +384,7 @@ export default class AccountList extends Component {
       console.log('syncTxFromNode start');
       let startSyncBlockNum = 0;
       const chainId = fractal.ft.getChainId();
-      let allTxInfoSet = utils.getDataFromFile(constant.TxInfoFile, chainId);
+      let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile, chainId);
       if (allTxInfoSet == null) {
         allTxInfoSet = {};
       }
@@ -442,7 +411,7 @@ export default class AccountList extends Component {
             for (const txInfo of allTxInfoSet[accountName].txInfos) {           // 本地提取所有未发送失败的交易，并且同步其状态
               // console.log('txInfo:' + txInfo.blockNumber + "----" + JSON.stringify(txInfo));
               // console.log('**************************');
-              if (txInfo.txStatus == null || txInfo.txStatus !== TxStatus.SendError) {                     // 同步所有非发送失败的交易的状态
+              if (txInfo.txStatus == null || txInfo.txStatus !== Constant.TxStatus.SendError) {                     // 同步所有非发送失败的交易的状态
                 await self.updateTxStatus(txInfo, lastIrreveribleBlockNum, (updatedTxInfo) => {                  
                   accountExistTxs[updatedTxInfo.txHash] = updatedTxInfo; 
                   // console.log('**************************');
@@ -515,7 +484,7 @@ export default class AccountList extends Component {
           this.state.syncTxInterval = 60000;
         }
         //console.log('allTxInfoSet:' + JSON.stringify(allTxInfoSet));
-        utils.storeDataToFile(constant.TxInfoFile, allTxInfoSet, chainId);
+        utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet, chainId);
       });
     } catch (error) {
       if (error.message) {
@@ -578,7 +547,7 @@ export default class AccountList extends Component {
   hasUnExecutedTx = (allTxInfoSet) => {
     for (const accountInfo of Object.values(allTxInfoSet)) {
       for (const tx of accountInfo.txInfos) {
-        if (tx.txStatus === TxStatus.NotExecute) {
+        if (tx.txStatus === Constant.TxStatus.NotExecute) {
           return true;
         }
       }
@@ -647,18 +616,18 @@ export default class AccountList extends Component {
   renderTxStatus = (value, index, record) => {
     let status = '';
     switch(value) {
-      case TxStatus.SendError:
+      case Constant.TxStatus.SendError:
         status = <b>发送失败</b>;
         break;
-      case TxStatus.NotExecute:
+      case Constant.TxStatus.NotExecute:
         status = <b>尚未执行</b>;
         break;
-      case TxStatus.ExecuteFail:
-      case TxStatus.InnerFail:
+      case Constant.TxStatus.ExecuteFail:
+      case Constant.TxStatus.InnerFail:
         status = <font color='red'><b>执行失败</b></font>;
         break;
-      case TxStatus.ExecuteSuccess:
-      case TxStatus.InnerSuccess:
+      case Constant.TxStatus.ExecuteSuccess:
+      case Constant.TxStatus.InnerSuccess:
         status = '执行成功';
         break;        
     }
@@ -669,15 +638,15 @@ export default class AccountList extends Component {
     let status = '';
     const confirmBlockNum = this.state.curBlock.number - record.blockNumber;
     switch(value) {
-      case BlockStatus.Rollbacked:
+      case Constant.BlockStatus.Rollbacked:
         return '已回滚';
-      case BlockStatus.Irreversible:
+      case Constant.BlockStatus.Irreversible:
         status = '不可逆';
         break;
-      case BlockStatus.Reversible:
+      case Constant.BlockStatus.Reversible:
         status = '可逆';
         break;  
-      case BlockStatus.Unknown:
+      case Constant.BlockStatus.Unknown:
         return '';
       default:
         return '';  
@@ -776,7 +745,7 @@ export default class AccountList extends Component {
     const { threshold, updateAuthorThreshold } = this.state.curAccount;
     const { owner, weight } = this.state.authorList[index];
     const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [owner, weight]]]).toString('hex');
-    this.state.txInfo = { actionType: constant.UPDATE_ACCOUNT_AUTHOR,
+    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,
       assetId: 1,
@@ -884,7 +853,7 @@ export default class AccountList extends Component {
     this.state.curAccount = await fractal.account.getAccountByName(this.state.creator);
 
     const payload = '0x' + encode([this.state.newAccountName, this.state.creator, publicKey, accountDetail]).toString('hex');
-    this.state.txInfo = { actionType: constant.CREATE_NEW_ACCOUNT,
+    this.state.txInfo = { actionType: Constant.CREATE_NEW_ACCOUNT,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,  // fractal.account
       assetId: this.state.chainConfig.sysTokenID,  // ft
@@ -976,7 +945,7 @@ export default class AccountList extends Component {
 
     const { threshold, updateAuthorThreshold } = this.state.curAccount;
     const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Add, [ownerType, newOwner, this.state.weight]]]]).toString('hex');
-    this.state.txInfo = { actionType: constant.UPDATE_ACCOUNT_AUTHOR,
+    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,
       assetId: 1,
@@ -1002,7 +971,7 @@ export default class AccountList extends Component {
       ownerType = AuthorOwnerType.AccountName;
     }
     const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Update, [ownerType, owner, this.state.weight]]]]).toString('hex');
-    this.state.txInfo = { actionType: constant.UPDATE_ACCOUNT_AUTHOR,
+    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,
       assetId: 1,
@@ -1135,7 +1104,7 @@ export default class AccountList extends Component {
 
     const authors = this.state.curAccount.authors;
     let threshold = this.state.curAccount.threshold;
-    if (txInfo.actionType === constant.UPDATE_ACCOUNT_AUTHOR) {
+    if (txInfo.actionType === Constant.UPDATE_ACCOUNT_AUTHOR) {
       threshold = this.state.curAccount.updateAuthorThreshold;
     }
     const keystores = this.getValidKeystores(authors, threshold);
@@ -1185,7 +1154,7 @@ export default class AccountList extends Component {
     }
   }
   /** 
-   *  const txInfo = { actionType: constant.TRANSFER,
+   *  const txInfo = { actionType: Constant.TRANSFER,
         accountName: self.state.curAccount.accountName,
         toAccountName: self.state.transferToAccount,
         assetId: self.state.curTransferAsset.assetId,
@@ -1198,11 +1167,11 @@ export default class AccountList extends Component {
     */
    addSendSuccessTxToFile = (txInfo) => {
     txInfo.isInnerTx = 0;
-    txInfo.txStatus = TxStatus.NotExecute;
+    txInfo.txStatus = Constant.TxStatus.NotExecute;
     txInfo.date = new Date().getTime() * 1000000;
     txInfo.blockHash = '0x';
     txInfo.blockNumber = '';
-    txInfo.blockStatus = BlockStatus.Unknown;
+    txInfo.blockStatus = Constant.BlockStatus.Unknown;
     let action = {};
     action.type = txInfo.actionType;
     action.from = txInfo.accountName;
@@ -1216,7 +1185,7 @@ export default class AccountList extends Component {
     action.gasAllot = [];
     txInfo.actions = [action];
 
-    let allTxInfoSet = utils.getDataFromFile(constant.TxInfoFile);
+    let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
     if (allTxInfoSet != null) {
       const accountTxInfoSet = allTxInfoSet[txInfo.accountName];
       if (accountTxInfoSet == null) {
@@ -1231,16 +1200,16 @@ export default class AccountList extends Component {
       allTxInfoSet[txInfo.accountName] = {};
       allTxInfoSet[txInfo.accountName].txInfos = [txInfo];
     }
-    utils.storeDataToFile(constant.TxInfoFile, allTxInfoSet);
+    utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet);
   }
   addSendErrorTxToFile = (txInfo) => {
     txInfo.isInnerTx = 0;
-    txInfo.txStatus = TxStatus.SendError;
+    txInfo.txStatus = Constant.TxStatus.SendError;
     txInfo.date = new Date().getTime() * 1000000;
     txInfo.txHash = '0x';
     txInfo.blockHash = '0x';
     txInfo.blockNumber = '';
-    txInfo.blockStatus = BlockStatus.Unknown;
+    txInfo.blockStatus = Constant.BlockStatus.Unknown;
     let action = {};
     action.type = txInfo.actionType;
     action.from = txInfo.accountName;
@@ -1254,7 +1223,7 @@ export default class AccountList extends Component {
     action.gasAllot = [];
     txInfo.actions = [action];
 
-    let allTxInfoSet = utils.getDataFromFile(constant.TxInfoFile);
+    let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
     if (allTxInfoSet != null) {
       const accountTxInfoSet = allTxInfoSet[txInfo.accountName];
       if (accountTxInfoSet == null) {
@@ -1269,7 +1238,7 @@ export default class AccountList extends Component {
       allTxInfoSet[txInfo.accountName] = {};
       allTxInfoSet[txInfo.accountName].txInfos = [txInfo];
     }
-    utils.storeDataToFile(constant.TxInfoFile, allTxInfoSet);
+    utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet);
   }
 
   onTxConfirmClose = () => {
@@ -1347,7 +1316,7 @@ export default class AccountList extends Component {
         }
       }
       const transferAssetId = self.state.curTransferAsset.assetId;
-      const transferInfo = { actionType: constant.TRANSFER,
+      const transferInfo = { actionType: Constant.TRANSFER,
         accountName: self.state.curAccount.accountName,
         toAccountName: self.state.transferToAccount,
         assetId: transferAssetId == null ? 0 : transferAssetId,

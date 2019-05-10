@@ -9,9 +9,9 @@ import {
   FormBinder as IceFormBinder,
 } from '@icedesign/form-binder';
 import { encode } from 'rlp';
-import * as rpc from '../../api';
-import * as action from '../../utils/constant';
-import { saveTxHash } from '../../utils/utils';
+import * as fractal from 'fractal-web3';
+import TxSend from "../TxSend";
+import * as Constant from '../../utils/constant';
 
 const { Row } = Grid;
 
@@ -31,33 +31,17 @@ export default class AssetFounderSet extends Component {
       },
       assetInfoSet: [],
       inputPasswordVisible: false,
+      txInfo: {},
+      txSendVisible: false,
     };
   }
-  getAssetInfoOfOwner = async (accountName, _this) => {
-    let resp = await rpc.getAccountInfo([accountName]);
-    const assetInfoSet = [];
-    if (Object.prototype.hasOwnProperty.call(resp.data, 'result') && resp.data.result != null) {
-      const account = resp.data.result;
-      for (const balance of account.balances) {
-        resp = await rpc.getAssetInfoById([balance.assetID]);
-        if (Object.prototype.hasOwnProperty.call(resp.data, 'result') && resp.data.result != null) {
-          const assetInfo = resp.data.result;
-          if (assetInfo.owner === accountName) {
-            assetInfo.label = `${assetInfo.assetId}--${assetInfo.assetName}`;
-            assetInfo.value = assetInfo.assetId;
-            assetInfoSet.push(assetInfo);
-          }
-        }
-      }
-      _this.setState({ assetInfoSet, assetId: '' });
-    }
-  }
   componentWillReceiveProps(nextProps) {
-    this.getAssetInfoOfOwner(nextProps.accountName, this);
+    this.setState({ assetInfoSet: nextProps.assetInfoSet, txSendVisible: false });
   }
   formChange = (value) => {
     this.setState({
       value,
+      txSendVisible: false,
     });
   };
 
@@ -87,13 +71,27 @@ export default class AssetFounderSet extends Component {
       return;
     }
 
-    const resp = await rpc.isAccountExist([value.founder]);
-    if (resp.data.result === false) {
+    const bExist = await fractal.account.isAccountExist(value.founder);
+    if (bExist === false) {
       Feedback.toast.error('创办者不存在');
       return;
     }
+
+    const txInfo = {};
+    txInfo.actionType = Constant.UPDATE_ASSET;
+    txInfo.accountName = curAccountName;
+    txInfo.toAccountName = 'fractal.asset';
+    txInfo.assetId = 0;
+    txInfo.value = 0;
+
+    const assetId = parseInt(value.assetId, 10);
+
+    const rlpData = encode([assetId, value.founder]);
+    txInfo.payload = `0x${rlpData.toString('hex')}`;
+
     this.setState({
-      inputPasswordVisible: true,
+      txInfo,
+      txSendVisible: true,
     });
   }
   onClose = () => {
@@ -106,44 +104,6 @@ export default class AssetFounderSet extends Component {
     this.state.password = v;
   }
 
-  onInputPasswordOK = async () => {
-    const { value } = this.state;
-    if (this.state.password === '') {
-      Feedback.toast.error('请先输入账户所绑定密钥对应的密码');
-      return;
-    }
-    this.onClose();
-
-    const curAccountName = this.props.accountName;
-    const password = this.state.password;
-    const assetId = parseInt(value.assetId, 10);
-    const founder = value.founder;
-
-    const params = {};
-    params.actionType = action.UPDATE_ASSET;
-    params.accountName = curAccountName;
-    params.password = password;
-
-    const rlpData = encode([assetId, '', '', 0, 0, founder, curAccountName, 0, 0]);
-    params.data = '0x' + rlpData.toString('hex');
-    console.log(params.data);
-    try {
-      const response = await rpc.sendTransaction(params);
-      if (response.status === 200) {
-        if (response.data.result != null) {
-          saveTxHash(params.accountName, params.actionType, response.data.result);
-          Feedback.toast.success('交易发送成功');
-        } else {
-          Feedback.toast.error('交易发送失败:' + response.data.error.message);
-        }
-      } else {
-        Feedback.toast.error('交易发送失败, 错误号:' + response.status);
-      }
-      return response.data;
-    } catch (error) {
-      Feedback.toast.error('交易发送失败, 错误信息:' + error);
-    }
-  }
   render() {
     return (
       <div>
@@ -154,7 +114,7 @@ export default class AssetFounderSet extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-                        需改变创办者的资产ID:
+                        需改变创办者的资产:
               <IceFormBinder required message="Required!">
                 <Select
                   dataSource={this.state.assetInfoSet}
@@ -176,28 +136,7 @@ export default class AssetFounderSet extends Component {
             </Row>
           </div>
         </IceFormBinderWrapper>
-        <Dialog
-          visible={this.state.inputPasswordVisible}
-          title="输入密码"
-          footerActions="ok"
-          footerAlign="center"
-          closeable="true"
-          onOk={this.onInputPasswordOK.bind(this)}
-          onCancel={this.onClose.bind(this)}
-          onClose={this.onClose.bind(this)}
-        >
-          <Input hasClear
-            htmlType="password"
-            onChange={this.handlePasswordChange.bind(this)}
-            style={{ width: 400 }}
-            addonBefore="密码"
-            size="medium"
-            defaultValue=""
-            maxLength={20}
-            hasLimitHint
-            onPressEnter={this.onInputPasswordOK.bind(this)}
-          />
-        </Dialog>
+        <TxSend visible={this.state.txSendVisible} accountName={this.props.accountName} txInfo={this.state.txInfo}/>
       </div>
     );
   }

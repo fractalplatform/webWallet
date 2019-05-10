@@ -10,9 +10,11 @@ import {
 } from '@icedesign/form-binder';
 import { encode } from 'rlp';
 import BigNumber from 'bignumber.js';
-import * as rpc from '../../api';
-import * as action from '../../utils/constant';
-import { saveTxHash } from '../../utils/utils';
+import * as fractal from 'fractal-web3';
+import * as Constant from '../../utils/constant';
+import * as utils from '../../utils/utils';
+import * as AssetUtils from './AssetUtils';
+import TxSend from "../TxSend";
 
 const { Row } = Grid;
 
@@ -34,29 +36,13 @@ export default class AssetIncrease extends Component {
       assetInfoSet: [],
       inputPasswordVisible: false,
       decimals: 0,
+      txInfo: {},
+      txSendVisible: false,
     };
   }
-  getAssetInfoOfOwner = async (accountName, _this) => {
-    let resp = await rpc.getAccountInfo([accountName]);
-    const assetInfoSet = [];
-    if (Object.prototype.hasOwnProperty.call(resp.data, 'result') && resp.data.result != null) {
-      const account = resp.data.result;
-      for (const balance of account.balances) {
-        resp = await rpc.getAssetInfoById([balance.assetID]);
-        if (Object.prototype.hasOwnProperty.call(resp.data, 'result') && resp.data.result != null) {
-          const assetInfo = resp.data.result;
-          if (assetInfo.owner === accountName) {
-            assetInfo.label = `${assetInfo.assetId}--${assetInfo.assetName}`;
-            assetInfo.value = assetInfo.assetId;
-            assetInfoSet.push(assetInfo);
-          }
-        }
-      }
-      _this.setState({ assetInfoSet, assetId: '' });
-    }
-  }
+
   componentWillReceiveProps(nextProps) {
-    this.getAssetInfoOfOwner(nextProps.accountName, this);
+    this.setState({ assetInfoSet: nextProps.assetInfoSet, assetId: '', txSendVisible: false });
   }
   formChange = (value) => {
     this.setState({
@@ -109,13 +95,30 @@ export default class AssetIncrease extends Component {
       return;
     }
 
-    const resp = await rpc.isAccountExist([value.toAccount]);
-    if (resp.data.result === false) {
+    const bAccountExist = await fractal.account.isAccountExist(value.toAccount);
+    if (bAccountExist === false) {
       Feedback.toast.error('增发对象不存在');
       return;
     }
+
+    const txInfo = {};
+    txInfo.actionType = Constant.INCREASE_ASSET;
+    txInfo.accountName = curAccountName;
+    txInfo.toAccountName = 'fractal.asset';
+    txInfo.assetId = 0;
+    txInfo.value = 0;
+
+    const assetId = parseInt(value.assetId, 10);
+    const addMount = new BigNumber(value.amount);
+    const decimals = parseInt(this.state.decimals, 10);
+    const toAccount = value.toAccount;
+
+    const rlpData = encode([assetId, addMount.shiftedBy(decimals).toNumber(), toAccount]);
+    txInfo.payload = `0x${rlpData.toString('hex')}`;
+
     this.setState({
-      inputPasswordVisible: true,
+      txInfo,
+      txSendVisible: true,
     });
   }
   onClose = () => {
@@ -127,46 +130,6 @@ export default class AssetIncrease extends Component {
   handlePasswordChange = (v) => {
     this.state.password = v;
   }
-
-  onInputPasswordOK = async () => {
-    const { value } = this.state;
-    if (this.state.password == '') {
-      Feedback.toast.error('请先输入账户所绑定密钥对应的密码');
-      return;
-    }
-    this.onClose();
-
-    const curAccountName = this.props.accountName;
-    const password = this.state.password;
-    const assetId = parseInt(value.assetId, 10);
-    const addMount = new BigNumber(value.amount);
-    const decimals = parseInt(this.state.decimals, 10);
-    const toAccount = value.toAccount;
-
-    const params = {};
-    params.actionType = action.INCREASE_ASSET;
-    params.accountName = curAccountName;
-    params.password = password;
-    const rlpData = encode([assetId, addMount.shiftedBy(decimals).toNumber(), toAccount]);
-    params.data = `0x${rlpData.toString('hex')}`;
-    console.log(params.data);
-    try {
-      const response = await rpc.sendTransaction(params);
-      if (response.status === 200) {
-        if (response.data.result != null) {
-          saveTxHash(params.accountName, params.actionType, response.data.result);
-          Feedback.toast.success('交易发送成功');
-        } else {
-          Feedback.toast.error('交易发送失败:' + response.data.error.message);
-        }
-      } else {
-        Feedback.toast.error('交易发送失败, 错误号:' + response.status);
-      }
-      return response.data;
-    } catch (error) {
-      Feedback.toast.error('交易发送失败, 错误信息:' + error);
-    }
-  }
   render() {
     return (
       <div>
@@ -177,7 +140,7 @@ export default class AssetIncrease extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-                        待增发的资产ID:
+                        待增发的资产:
               <IceFormBinder required message="Required!">
                 <Select
                   placeholder="选择需要增发的资产ID"
@@ -210,28 +173,7 @@ export default class AssetIncrease extends Component {
             </Row>
           </div>
         </IceFormBinderWrapper>
-        <Dialog
-          visible={this.state.inputPasswordVisible}
-          title="输入密码"
-          footerActions="ok"
-          footerAlign="center"
-          closeable="true"
-          onOk={this.onInputPasswordOK.bind(this)}
-          onCancel={this.onClose.bind(this)}
-          onClose={this.onClose.bind(this)}
-        >
-          <Input hasClear
-            htmlType="password"
-            onChange={this.handlePasswordChange.bind(this)}
-            style={{ width: 400 }}
-            addonBefore="密码"
-            size="medium"
-            defaultValue=""
-            maxLength={20}
-            hasLimitHint
-            onPressEnter={this.onInputPasswordOK.bind(this)}
-          />
-        </Dialog>
+        <TxSend visible={this.state.txSendVisible} accountName={this.props.accountName} txInfo={this.state.txInfo}/>
       </div>
     );
   }
