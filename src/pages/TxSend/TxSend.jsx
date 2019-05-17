@@ -7,22 +7,26 @@ import * as fractal from 'fractal-web3';
 import * as utils from '../../utils/utils';
 import * as Constant from '../../utils/constant';
 
+
 export default class TxSend extends Component {
   constructor(props) {
     super(props);
     this.state = {
       txConfirmVisible: this.props.visible,
+      originalTxInfo: {},
       txInfo: {},
       sysTokenID: 0,
       curAccount: {accountName: ''},
       keystoreList: [],
       suggestionPrice: 1,
+      chainConfig: {},
     };
   }
 
   componentDidMount = async () => {
-    const chainConfig = await fractal.ft.getChainConfig();
-    fractal.ft.setChainId(chainConfig.chainId);
+    this.state.chainConfig = await fractal.ft.getChainConfig();
+    this.state.chainConfig.sysTokenID = 0;
+    fractal.ft.setChainId(this.state.chainConfig.chainId);
     this.state.keystoreList = utils.loadKeystoreFromLS();
     fractal.ft.getSuggestionGasPrice().then(gasPrice => {
       this.setState({ suggestionPrice: utils.getReadableNumber(gasPrice, 9, 9) });
@@ -33,6 +37,7 @@ export default class TxSend extends Component {
     if (nextProps.accountName != '') {
       fractal.account.getAccountByName(nextProps.accountName).then(account => this.state.curAccount = account);
     }
+    this.state.originalTxInfo = utils.deepClone(nextProps.txInfo);
     this.setState({
       txInfo: nextProps.txInfo,
       txConfirmVisible: nextProps.visible,
@@ -61,19 +66,11 @@ export default class TxSend extends Component {
       Feedback.toast.error('请输入GAS单价');
       return;
     }
-    // if (!this.state.gasReg.test(this.state.gasPrice)) {
-    //   Feedback.toast.error('请输入正确GAS单价');
-    //   return;
-    // }
 
     if (this.state.gasLimit == '') {
       Feedback.toast.error('请输入愿意支付的最多GAS数量');
       return;
     }
-    // if (!this.state.gasReg.test(this.state.gasLimit)) {
-    //   Feedback.toast.error('请输入正确的GAS上限');
-    //   return;
-    // }
 
     if (this.state.password == '') {
       Feedback.toast.error('请输入钱包密码');
@@ -94,16 +91,28 @@ export default class TxSend extends Component {
       Feedback.toast.error('余额不足以支付gas费用');
       return;
     }
+    if (this.state.txInfo.assetId === this.state.sysTokenID) {
+      const value = new BigNumber(this.state.txInfo.amount);
+      const valueAddGasFee = value.plus(gasValue);
 
-    const txInfo = this.state.txInfo;
-    txInfo.gasAssetId = this.state.sysTokenID;  // ft作为gas asset
+      if (valueAddGasFee.comparedTo(maxValue) > 0) {
+        Feedback.toast.error('余额不足');
+        return;
+      }
+    }
+
+    let txInfo = {};
+    let actionInfo = this.state.txInfo;
+    actionInfo.gasLimit = new BigNumber(this.state.gasLimit).toNumber();
+    actionInfo.remark = this.state.remark;
+
+    txInfo.gasAssetId = this.state.chainConfig.sysTokenID;  // ft作为gas asset
     txInfo.gasPrice = new BigNumber(this.state.gasPrice).shiftedBy(9).toNumber();
-    txInfo.gasLimit = new BigNumber(this.state.gasLimit).toNumber();
-    txInfo.remark = this.state.remark;
+    txInfo.actions = [actionInfo];
 
     const authors = this.state.curAccount.authors;
     let threshold = this.state.curAccount.threshold;
-    if (txInfo.actionType === Constant.UPDATE_ACCOUNT_AUTHOR) {
+    if (actionInfo.actionType === Constant.UPDATE_ACCOUNT_AUTHOR) {
       threshold = this.state.curAccount.updateAuthorThreshold;
     }
     const keystores = this.getValidKeystores(authors, threshold);
@@ -116,10 +125,14 @@ export default class TxSend extends Component {
       for (const ethersKSInfo of keystores) {
         promiseArr.push(ethers.Wallet.fromEncryptedJson(JSON.stringify(ethersKSInfo), this.state.password));
       }
-      Promise.all(promiseArr).then(wallets => {
-        for (const wallet of wallets) {
-          multiSigInfos.push({privateKey: wallet.privateKey, indexes: [index]});
+      utils.confuseInfo(this.state.password);
+      const self = this;
+      Promise.all(promiseArr).then(async (wallets) => {
+        for (let wallet of wallets) {
+          const signInfo = await fractal.ft.signTx(txInfo, wallet.privateKey);
+          multiSigInfos.push({signInfo, indexes: [index]});
           index++;
+          utils.confuseInfo(wallet.privateKey);
         }
 
         fractal.ft.sendMultiSigTransaction(txInfo, multiSigInfos).then(txHash => {
@@ -128,6 +141,7 @@ export default class TxSend extends Component {
         }).catch(error => {
           Feedback.toast.error('交易发送失败：' + error);
           this.addSendErrorTxToFile(txInfo);
+          self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
         });
       }).catch(error => {
         console.log(error);
@@ -172,33 +186,26 @@ export default class TxSend extends Component {
     txInfo.blockHash = '0x';
     txInfo.blockNumber = '';
     txInfo.blockStatus = Constant.BlockStatus.Unknown;
-    let action = {};
-    action.type = txInfo.actionType;
-    action.from = txInfo.accountName;
-    action.to = txInfo.toAccountName;
-    action.assetID = txInfo.assetId;
-    action.value = txInfo.value;
-    action.payload = txInfo.payload;
-    action.status = 0;
-    action.actionIndex = 0;
-    action.gasUsed = 0;
-    action.gasAllot = [];
-    txInfo.actions = [action];
+    txInfo.actions[0].status = 0;
+    txInfo.actions[0].actionIndex = 0;
+    txInfo.actions[0].gasUsed = 0;
+    txInfo.actions[0].gasAllot = [];
 
+    const accountName = txInfo.actions[0].accountName;
     let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
     if (allTxInfoSet != null) {
-      const accountTxInfoSet = allTxInfoSet[txInfo.accountName];
+      let accountTxInfoSet = allTxInfoSet[accountName];
       if (accountTxInfoSet == null) {
         accountTxInfoSet = {};
         accountTxInfoSet.txInfos = [txInfo];
-        allTxInfoSet[txInfo.accountName] = accountTxInfoSet;
+        allTxInfoSet[accountName] = accountTxInfoSet;
       } else {
         accountTxInfoSet.txInfos.push(txInfo);
       }
     } else {
       allTxInfoSet = {};
-      allTxInfoSet[txInfo.accountName] = {};
-      allTxInfoSet[txInfo.accountName].txInfos = [txInfo];
+      allTxInfoSet[accountName] = {};
+      allTxInfoSet[accountName].txInfos = [txInfo];
     }
     utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet);
   }
@@ -211,22 +218,14 @@ export default class TxSend extends Component {
     txInfo.blockHash = '0x';
     txInfo.blockNumber = '';
     txInfo.blockStatus = Constant.BlockStatus.Unknown;
-    let action = {};
-    action.type = txInfo.actionType;
-    action.from = txInfo.accountName;
-    action.to = txInfo.toAccountName;
-    action.assetID = txInfo.assetId;
-    action.value = txInfo.value;
-    action.payload = txInfo.payload;
-    action.status = 0;
-    action.actionIndex = 0;
-    action.gasUsed = 0;
-    action.gasAllot = [];
-    txInfo.actions = [action];
+    txInfo.actions[0].status = 0;
+    txInfo.actions[0].actionIndex = 0;
+    txInfo.actions[0].gasUsed = 0;
+    txInfo.actions[0].gasAllot = [];
 
     let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
     if (allTxInfoSet != null) {
-      const accountTxInfoSet = allTxInfoSet[txInfo.accountName];
+      let accountTxInfoSet = allTxInfoSet[txInfo.accountName];
       if (accountTxInfoSet == null) {
         accountTxInfoSet = {};
         accountTxInfoSet.txInfos = [txInfo];

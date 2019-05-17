@@ -106,7 +106,7 @@ export default class AssetIncrease extends Component {
     txInfo.accountName = curAccountName;
     txInfo.toAccountName = 'fractal.asset';
     txInfo.assetId = 0;
-    txInfo.value = 0;
+    txInfo.amount = 0;
 
     const assetId = parseInt(value.assetId, 10);
     const addMount = new BigNumber(value.amount);

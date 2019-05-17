@@ -139,7 +139,7 @@ export default class AssetIssueTable extends Component {
     txInfo.accountName = this.state.curAccountName;
     txInfo.toAccountName = 'fractal.asset';
     txInfo.assetId = 0;
-    txInfo.value = 0;
+    txInfo.amount = 0;
     const rlpData = encode([value.assetName, value.symbol, amount.shiftedBy(decimals).toNumber(),
       decimals, value.founder, value.owner, upperLimit.shiftedBy(decimals).toNumber(), value.contract, value.desc]);
     txInfo.payload = `0x${rlpData.toString('hex')}`;

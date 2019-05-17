@@ -363,7 +363,12 @@ function getReadableNumber(value, assetDecimal, displayDecimal) {
   return renderValue;
 }
 
+
+function confuseInfo(originalInfo) {
+  originalInfo = originalInfo.replace(/a-z0-9A-Z/g, '*');
+}
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, 
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
-         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber };
+         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo };

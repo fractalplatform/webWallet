@@ -90,12 +90,12 @@ const asideMenuConfig = [
     ],
   },
   {
-    name: '生产者(待更新)',
+    name: 'DPos',
     path: '/portlets',
     icon: 'repair',
     children: [
       {
-        name: '生产者列表',
+        name: '候选者列表',
         path: '/producerList',
       },
     ],

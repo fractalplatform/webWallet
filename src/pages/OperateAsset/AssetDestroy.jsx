@@ -86,7 +86,7 @@ export default class AssetFounderSet extends Component {
     txInfo.toAccountName = 'fractal.asset';
     const assetId = parseInt(value.assetId, 10);
     txInfo.assetId = assetId;
-    txInfo.value = amount.toNumber();
+    txInfo.amount = amount.toNumber();
 
     txInfo.payload = '';
     if (!utils.isEmptyObj(value.desc)) {

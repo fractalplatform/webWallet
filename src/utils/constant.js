@@ -13,16 +13,14 @@ export const SET_ASSET_OWNER = 515;
 export const UPDATE_ASSET = 516;
 export const TRANSFER = 517;
 
-export const REG_CADIDATE = 768;
-export const UPDATE_CADIDATE = 769;
-export const UNREG_CADIDATE = 770;
-export const REMOVE_VOTER = 771;
-export const VOTE_CADIDATE = 772;
-export const CHANGE_CADIDATE = 773;
-export const UNVOTE_CADIDATE = 774;
+export const REG_CANDIDATE = 768;
+export const UPDATE_CANDIDATE = 769;
+export const UNREG_CANDIDATE = 770;
+export const REFUND_DEPOSIT = 771;
+export const VOTE_CANDIDATE = 772;
 
-export const KICKED_CADIDATE = 773;
-export const EXIT_TAKEOVER = 774;
+export const ADD_CANDIDATE_BL = 1024;
+export const EXIT_TAKEOVER = 1025;
 
 export const WITHDRAW_TX_FEE = 1280;
 

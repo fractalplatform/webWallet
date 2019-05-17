@@ -29,7 +29,7 @@
     "ethereumjs-util": "^6.1.0",
     "ethers": "^4.0.27",
     "foundation-symbol": "^0.1.0",
-    "fractal-web3": "^1.0.48",
+    "fractal-web3": "^1.0.60",
     "fractal_solidity_js": "^1.0.0",
     "history": "^4.7.2",
     "hoist-non-react-statics": "^2.5.5",

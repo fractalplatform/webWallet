@@ -11,9 +11,7 @@ import BigNumber from 'bignumber.js';
 import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 
-import * as rpc from '../../api';
 import * as ACTION from '../../utils/constant';
-import { saveTxHash } from '../../utils/utils';
 
 const VOTER = 1;
 const PRODUCER = 2;
@@ -69,6 +67,8 @@ export default class ProducerList extends Component {
 
       myVoters2Producer: [],
       myRestVoters2Producer: [],
+
+      keystoreList: [],
     };
   }
 
@@ -78,6 +78,12 @@ export default class ProducerList extends Component {
     const myVoterAccounts = [];
     const myProducers = [];
     const otherAccounts = [];
+
+    this.state.keystoreList = utils.loadKeystoreFromLS();
+    utils.loadAccountsFromLS().then(accountInfos => { 
+      this.state.accounts = accountInfos;
+    });
+
     const response = await rpc.getBoundInfo([]);
     if (Object.prototype.hasOwnProperty.call(response.data, 'result') && response.data.result !== undefined) {
       const accounts = [];

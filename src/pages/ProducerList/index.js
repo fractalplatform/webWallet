@@ -1,3 +1,3 @@
-import ProducerList from './ProducerList';
+import CandidateList from './CandidateList';
 
-export default ProducerList;
+export default CandidateList;
