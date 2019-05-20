@@ -78,6 +78,8 @@ export default class AccountList extends Component {
       innerTxVisible: false,
       withdrawTxFeeVisible: false,
       txSendVisible: false,
+      contractInfoVisible: false,
+      originalABI: '',
       inputAssetName: false,
       accountInfos: [],
       authorList: [],
@@ -102,20 +104,24 @@ export default class AccountList extends Component {
   }
 
   componentDidMount = async () => {
-    fractal.dpos.getDposInfo().then(dposInfo => this.state.dposInfo = dposInfo);
-    fractal.ft.getChainConfig().then(chainConfig => this.state.chainConfig = chainConfig);
-    this.state.chainConfig.sysTokenID = 0;
-    this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
-    this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
-    fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => this.state.irreversibleInfo = irreversibleInfo);
-    const chainConfig = await fractal.ft.getChainConfig();
-    fractal.ft.setChainId(chainConfig.chainId);
+    try {
+      fractal.dpos.getDposInfo().then(dposInfo => this.state.dposInfo = dposInfo);
+      //fractal.ft.getChainConfig().then(chainConfig => this.state.chainConfig = chainConfig);
+      this.state.chainConfig = await fractal.ft.getChainConfig();
+      this.state.chainConfig.sysTokenID = 0;
+      this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
+      this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
+      fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => this.state.irreversibleInfo = irreversibleInfo);
+      fractal.ft.setChainId(this.state.chainConfig.chainId);
 
-    this.state.keystoreList = utils.loadKeystoreFromLS();
-    utils.loadAccountsFromLS().then(accountInfos => { 
-      this.setState({ accountInfos }); 
-    });
-    this.syncTxFromNode();
+      this.state.keystoreList = utils.loadKeystoreFromLS();
+      utils.loadAccountsFromLS().then(accountInfos => { 
+        this.setState({ accountInfos }); 
+      });
+      this.syncTxFromNode();
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
+    }
   }
   // 返回true表示区块被回滚
   checkBlockRollback = async (blockHash, blockNum) => {
@@ -127,6 +133,8 @@ export default class AccountList extends Component {
     this.state.accountInfos.map(item => accounts.push(item.accountName));
     utils.storeDataToFile(Constant.AccountFile, accounts);
   }
+
+
 
   onImportAccount = () => {
     this.setState({ importAccountVisible: true });
@@ -716,7 +724,20 @@ export default class AccountList extends Component {
   withdrawTxFee = (index) => {
     this.setState({ withdrawTxFeeVisible: true, curAccount: this.state.accountInfos[index] });
   }
+  addContractABI = (index) => {
+    this.state.curAccount = this.state.accountInfos[index];
+    const abiInfo = utils.getDataFromFile(Constant.ContractABIFile);
+    this.state.originalABI = '';
+    if (abiInfo != null && abiInfo[this.state.curAccount.accountName] != null) {
+      this.state.originalABI = JSON.stringify(abiInfo[this.state.curAccount.accountName]).replace(/\\"/g, '"');
+    }
+    this.setState({ contractInfoVisible: true });
+  }
   renderOperation = (value, index) => {
+    let abiBtn = '';
+    if (this.state.accountInfos[index].codeSize > 0) {
+      abiBtn = <Button type="primary" onClick={this.addContractABI.bind(this, index)}>设置ABI</Button>
+    }
     return (
       <view>
         <Button type="primary" onClick={this.deleteAccount.bind(this, index)}>
@@ -734,14 +755,12 @@ export default class AccountList extends Component {
         <Button type="primary" onClick={this.showAuthors.bind(this, index)}>
           权限列表
         </Button>
-        {/* &nbsp;&nbsp;
-        <Button type="primary" onClick={this.bindNewAuthor.bind(this, index)}>
-          绑定新权限
-        </Button> */}
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.withdrawTxFee.bind(this, index)}>
           手续费
         </Button>
+        &nbsp;&nbsp;
+        {abiBtn}
       </view>
     );
   };
@@ -1309,6 +1328,35 @@ export default class AccountList extends Component {
     });
   }
 
+  storeContractABI = (contractAccountName, abiInfo) => {
+    let storedABI = utils.getDataFromFile(Constant.ContractABIFile);
+    if (storedABI != null) {
+      storedABI[contractAccountName] = abiInfo;
+    } else {
+      storedABI = {};
+      storedABI[contractAccountName] = abiInfo;
+    }
+    utils.storeDataToFile(Constant.ContractABIFile, storedABI);
+  }
+
+  onAddContractABIOK = () => {
+    if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(this.state.contractABI)) {
+      Feedback.toast.error('ABI信息不符合规范，请检查后重新输入');
+      return;
+    }
+    this.storeContractABI(this.state.curAccount.accountName, this.state.contractABI);
+    Feedback.toast.success('添加成功');
+    this.setState({ contractInfoVisible: false });
+  }
+
+  onAddContractABIClose = () => {
+    this.setState({ contractInfoVisible: false });
+  }
+
+  handleContractABIChange = (value) => {
+    this.state.contractABI = value;
+  }
+
   render() {
     return (
       <div className="editable-table">
@@ -1665,6 +1713,25 @@ export default class AccountList extends Component {
             onPressEnter={this.onTransferOK.bind(this)}
             addonAfter={this.state.transferAssetSymbol}
             size="medium"
+            hasLimitHint
+          />
+        </Dialog>
+        <Dialog
+          visible={this.state.contractInfoVisible}
+          title="本地添加合约ABI信息"
+          footerActions="ok"
+          footerAlign="center"
+          closeable="true"
+          onOk={this.onAddContractABIOK.bind(this)}
+          onCancel={this.onAddContractABIClose.bind(this)}
+          onClose={this.onAddContractABIClose.bind(this)}
+        >
+          <Input hasClear multiple
+            onChange={this.handleContractABIChange.bind(this)}
+            style={{ width: 400 }}
+            addonBefore="ABI信息"
+            size="medium"
+            defaultValue={this.state.originalABI}
             hasLimitHint
           />
         </Dialog>

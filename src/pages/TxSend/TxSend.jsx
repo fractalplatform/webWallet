@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Input, Feedback, Dialog } from '@icedesign/base';
+import { Input, Feedback, Dialog, Select } from '@icedesign/base';
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import * as ethUtil from 'ethereumjs-util';
@@ -20,27 +20,51 @@ export default class TxSend extends Component {
       keystoreList: [],
       suggestionPrice: 1,
       chainConfig: {},
+      accounts: [],
+      accountSelector: [],
     };
   }
 
   componentDidMount = async () => {
     this.state.chainConfig = await fractal.ft.getChainConfig();
     this.state.chainConfig.sysTokenID = 0;
+    //this.state.accountSelector = [];
     fractal.ft.setChainId(this.state.chainConfig.chainId);
     this.state.keystoreList = utils.loadKeystoreFromLS();
     fractal.ft.getSuggestionGasPrice().then(gasPrice => {
       this.setState({ suggestionPrice: utils.getReadableNumber(gasPrice, 9, 9) });
     })
   }
+  onChangeAccount = (accountName) => {
+    this.state.accountName = accountName;
+    fractal.account.getAccountByName(accountName).then(account => this.state.curAccount = account);
+  }
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.accountName != '') {
+  async componentWillReceiveProps(nextProps) {
+    this.state.accountSelector = [];
+    this.state.accounts = [];
+    if (!utils.isEmptyObj(nextProps.accountName)) {
       fractal.account.getAccountByName(nextProps.accountName).then(account => this.state.curAccount = account);
+    } else {
+      //const self = this;
+      const accountInfos = await utils.loadAccountsFromLS();
+      for (let account of accountInfos) {
+        this.state.accounts.push(account.accountName);
+      }
+      this.state.accountSelector.push([
+        <Select
+          style={{ width: 400 }}
+          placeholder="选择需发起交易的账户"
+          onChange={this.onChangeAccount.bind(this)}
+          dataSource={this.state.accounts}
+        />, <br/>, <br/>]
+      );
     }
     this.state.originalTxInfo = utils.deepClone(nextProps.txInfo);
     this.setState({
       txInfo: nextProps.txInfo,
       txConfirmVisible: nextProps.visible,
+      accountSelector: this.state.accountSelector,
     })
   }
 
@@ -125,9 +149,9 @@ export default class TxSend extends Component {
       for (const ethersKSInfo of keystores) {
         promiseArr.push(ethers.Wallet.fromEncryptedJson(JSON.stringify(ethersKSInfo), this.state.password));
       }
-      utils.confuseInfo(this.state.password);
       const self = this;
       Promise.all(promiseArr).then(async (wallets) => {
+        utils.confuseInfo(this.state.password);
         for (let wallet of wallets) {
           const signInfo = await fractal.ft.signTx(txInfo, wallet.privateKey);
           multiSigInfos.push({signInfo, indexes: [index]});
@@ -284,6 +308,7 @@ export default class TxSend extends Component {
           onCancel={this.onTxConfirmClose.bind(this)}
           onClose={this.onTxConfirmClose.bind(this)}
         >
+          {this.state.accountSelector}
           <Input hasClear
             onChange={this.handleGasPriceChange.bind(this)}
             style={{ width: 400 }}

@@ -101,12 +101,12 @@ const asideMenuConfig = [
     ],
   },
   {
-    name: '开发者(待更新)',
+    name: '开发者',
     path: '/portlets',
     icon: 'code',
     children: [
       {
-        name: '合约开发',
+        name: '合约调用',
         path: '/contractManager',
       },
       {
