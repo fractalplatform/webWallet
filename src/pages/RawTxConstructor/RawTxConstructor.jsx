@@ -13,7 +13,7 @@ import { isEmptyObj, hex2Bytes } from '../../utils/utils'
 
 const txTypes = [{ value: actionTypes.TRANSFER, label: '转账'},{value: actionTypes.CREATE_CONTRACT,label: '创建合约'},
                 { value: actionTypes.CREATE_NEW_ACCOUNT, label: '创建账户' },{ value: actionTypes.UPDATE_ACCOUNT, label: '更新账户'},{ value: actionTypes.UPDATE_ACCOUNT_AUTHOR, label: '更新账户权限' },
-                { value: actionTypes.INCREASE_ASSET, label: '增发资产' },{ value: actionTypes.ISSUE_ASSET, label: '发行资产' },{ value: actionTypes.DESTORY_ASSET, label: '销毁资产' },
+                { value: actionTypes.ISSUE_ASSET, label: '发行资产' },{ value: actionTypes.INCREASE_ASSET, label: '增发资产' },{ value: actionTypes.DESTORY_ASSET, label: '销毁资产' },
                 { value: actionTypes.SET_ASSET_OWNER, label: '设置资产所有者' },{ value: actionTypes.SET_ASSET_FOUNDER, label: '设置资产创建者' },{ value: actionTypes.REG_CANDIDATE, label: '注册候选者' },
                 { value: actionTypes.UPDATE_CANDIDATE, label: '更新候选者' },{ value:  actionTypes.UNREG_CANDIDATE, label: '注销候选者' },{ value: actionTypes.VOTE_CANDIDATE, label: '给候选者投票' },
                 { value: actionTypes.REFUND_DEPOSIT, label: '取回抵押金' }];
@@ -33,7 +33,7 @@ export default class RawTxConstructor extends Component {
       receipt: '',
       txTypeInfos: txTypes,
       payloadInfos: [],
-      updateAuthorTypes: [{value:0, label:'添加权限'}, {value:1, label:'更新权限'}, {value:2, label:'删除权限'}]
+      updateAuthorTypes: [{value:0, label:'添加权限'}, {value:1, label:'更新权限'}, {value:2, label:'删除权限'}],
     };
   }
 
@@ -77,16 +77,16 @@ export default class RawTxConstructor extends Component {
     if (actionType == actionTypes.UPDATE_ACCOUNT_AUTHOR) {
       payloadElements = [this.getNumber(this.state[actionType + '-' + 0]), this.getNumber(this.state[actionType + '-' + 1]), [this.getNumber(this.state[actionType + '-' + 2]), [this.state[actionType + '-' + 3], this.getNumber(this.state[actionType + '-' + 4])]]];
     } else {
-      let actionValue = this.state[actionType + '-' + 0];
-      for (let i = 0; actionValue != null;) {
-        if (actionValue.isNumber) {
+      const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
+      for (let i = 0; i < payloadInfoNum; i++) {
+        let actionValue = this.state[actionType + '-' + i];
+        if (actionValue == null) {
+          payloadElements.push('');
+        } else if (actionValue.isNumber) {
           payloadElements.push(new BigNumber(actionValue.value).toNumber());
-        }
-        else {
+        } else {
           payloadElements.push(actionValue.value);
         }
-        i++;
-        actionValue = this.state[actionType + '-' + i];
       }
     }
 
@@ -145,7 +145,8 @@ export default class RawTxConstructor extends Component {
         });
        
       } catch (error) {
-        Feedback.toast.error(error.message);
+        Feedback.toast.error(error);
+        this.setState({ txResult: error });
       }
     } else {
       Feedback.toast.prompt('请输入合规的交易信息');
@@ -237,72 +238,72 @@ export default class RawTxConstructor extends Component {
             onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT_AUTHOR, 4, true)}/>
           );
         break;
-      case actionTypes.INCREASE_ASSET:
+      case actionTypes.ISSUE_ASSET:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产名:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 0, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="符号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 1, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="本次发行量:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 2, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="精度:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 3, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 3, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 4, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 4, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="管理者:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 5, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 5, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="发行上限:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 6, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 6, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="合约账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 7, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 7, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产描述:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 8, false)}/>
+            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 8, false)}/>
           );
         break;
-      case actionTypes.ISSUE_ASSET:
+      case actionTypes.INCREASE_ASSET:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 0, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="增发数量:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 1, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 1, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="接收资产账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 2, false)}/>
+            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 2, false)}/>
           );
         break;
       case actionTypes.DESTORY_ASSET:
