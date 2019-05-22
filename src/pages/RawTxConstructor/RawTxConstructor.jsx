@@ -106,11 +106,11 @@ export default class RawTxConstructor extends Component {
         remark: this.state['remark'], 
       }]
     };
-    this.setState({ txInfo: JSON.stringify(txInfo) })
+    this.setState({ txInfo: JSON.stringify(txInfo) });
   }
 
   handleTxInfoChange = (v) => {
-    this.state.txInfo = v;
+    this.setState({ txInfo: v });
   }
 
   showPrivateKey = () => {

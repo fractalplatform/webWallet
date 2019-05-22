@@ -62,6 +62,7 @@ export default class AccountList extends Component {
       payload: '',
       txVisible: false,
       txInfos: [],
+      accountIndex: 0,
       inputOtherPK: false,
       inputOtherPKStr: '输入其它公钥',
       dposInfo: {},
@@ -98,6 +99,10 @@ export default class AccountList extends Component {
                        </view>),
       authorListFooter: (<view>
                         <Button type='primary' onClick={this.bindNewAuthor.bind(this)}>绑定新权限</Button>
+                      </view>),
+      txListFooter: (<view>
+                        <Button type='primary' onClick={this.onUpdateTx.bind(this)}>刷新</Button>
+                        <Button type='normal' onClick={this.onTxClose.bind(this)}>取消</Button>
                       </view>),
       txFeeInfo: '',
     };
@@ -257,6 +262,7 @@ export default class AccountList extends Component {
   */
   showTxs = async (index) => {
     try {
+      this.state.accountIndex = index;
       this.state.curBlock = await fractal.ft.getCurrentBlock(false);
       this.state.curAccount = this.state.accountInfos[index];
       for (const balance of this.state.accountInfos[index].balances) {
@@ -1316,6 +1322,10 @@ export default class AccountList extends Component {
     });
   }
 
+  onUpdateTx = () => {
+    this.syncTxFromNode();
+    this.showTxs(this.state.accountIndex);
+  }
   onTxClose = () => {
     this.setState({
       txVisible: false,
@@ -1654,10 +1664,11 @@ export default class AccountList extends Component {
           onOk={this.onTxClose.bind(this)}
           onCancel={this.onTxClose.bind(this)}
           onClose={this.onTxClose.bind(this)}
+          footer={this.state.txListFooter}
         >
           <div className="editable-table">
             <IceContainer>
-              <Table primaryKey="date" dataSource={this.state.txInfos} hasBorder={false} resizable onSort={this.onSort.bind(this)} isZebra={true}>
+              <Table fixedHeader primaryKey="date" dataSource={this.state.txInfos} hasBorder={false} resizable onSort={this.onSort.bind(this)} isZebra={true}>
                 <Table.Column title="时间" dataIndex="date" width={65} cell={this.renderDate.bind(this)} sortable />
                 <Table.Column title="交易Hash" dataIndex="txHash" width={60} cell={this.renderHash.bind(this)} />
                 <Table.Column title="交易状态" dataIndex="txStatus" width={50} cell={this.renderTxStatus.bind(this)} />
