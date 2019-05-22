@@ -190,7 +190,12 @@ export default class TransactionList extends Component {
     let renderValue = new BigNumber(value);
     renderValue = renderValue.shiftedBy(assetInfo.decimals * -1);
 
-    BigNumber.config({ DECIMAL_PLACES: 6 });
+    let decimalPlaces = assetInfo.decimals > 6 ? 6 : assetInfo.decimals;
+    if (renderValue.comparedTo(new BigNumber(0.000001)) < 0) {
+      decimalPlaces = assetInfo.decimals;
+    }
+
+    BigNumber.config({ DECIMAL_PLACES: decimalPlaces });
     renderValue = renderValue.toString(10) + assetInfo.symbol;
     return renderValue;
   }

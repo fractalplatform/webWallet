@@ -142,7 +142,7 @@ export default class AccountList extends Component {
     this.setState({ importAccountVisible: true });
   }
   onApplyForAccount = () => {
-    Feedback.toast.success('请向 test@fractal.com 发送邮件申请测试账号');
+    Feedback.toast.success('请向 test@fractalproject.com 发送邮件申请测试账号');
   }
   onImportAccountOK = async () => {
     if (this.state.importAccountName == '') {
@@ -578,7 +578,12 @@ export default class AccountList extends Component {
     let renderValue = new BigNumber(value);
     renderValue = renderValue.shiftedBy(assetInfo.decimals * -1);
 
-    BigNumber.config({ DECIMAL_PLACES: 6 });
+    let decimalPlaces = assetInfo.decimals > 6 ? 6 : assetInfo.decimals;
+    if (renderValue.comparedTo(new BigNumber(0.000001)) < 0) {
+      decimalPlaces = assetInfo.decimals;
+    }
+
+    BigNumber.config({ DECIMAL_PLACES: decimalPlaces });
     renderValue = renderValue.toString(10) + assetInfo.symbol;
     return renderValue;
   }
@@ -1103,8 +1108,13 @@ export default class AccountList extends Component {
 
     let renderValue = new BigNumber(value);
     renderValue = renderValue.shiftedBy(decimals * -1);
+    
+    let decimalPlaces = decimals > 6 ? 6 : decimals;
+    if (renderValue.comparedTo(new BigNumber(0.000001)) < 0) {
+      decimalPlaces = decimals;
+    }
 
-    BigNumber.config({ DECIMAL_PLACES: 6 });
+    BigNumber.config({ DECIMAL_PLACES: decimalPlaces });
     renderValue = renderValue.toString(10);
     return renderValue;
   }

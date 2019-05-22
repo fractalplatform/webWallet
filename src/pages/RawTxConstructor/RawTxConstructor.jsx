@@ -9,7 +9,7 @@ import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
 import * as ethUtil from 'ethereumjs-util';
 import * as actionTypes from '../../utils/constant'
-import { isEmptyObj } from '../../utils/utils'
+import { isEmptyObj, hex2Bytes } from '../../utils/utils'
 
 const txTypes = [{ value: actionTypes.TRANSFER, label: '转账'},{value: actionTypes.CREATE_CONTRACT,label: '创建合约'},
                 { value: actionTypes.CREATE_NEW_ACCOUNT, label: '创建账户' },{ value: actionTypes.UPDATE_ACCOUNT, label: '更新账户'},{ value: actionTypes.UPDATE_ACCOUNT_AUTHOR, label: '更新账户权限' },
@@ -96,7 +96,7 @@ export default class RawTxConstructor extends Component {
       gasPrice: isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '000000000'),
       actions: [{
         actionType: this.getNumber(this.state['actionType']),
-        accountName: this.state['actionType'], 
+        accountName: this.state['accountName'], 
         nonce: this.getNumber(this.state['nonce']), 
         gasLimit: this.getNumber(this.state['gasLimit']), 
         toAccountName: this.state['toAccountName'], 
@@ -122,18 +122,18 @@ export default class RawTxConstructor extends Component {
     });
   }
   sendTransaction = () => {
-    if (!ethUtil.isValidPrivate(Buffer.from(hex2Bytes(this.state.privateKey)))) {
-      Feedback.toast.error('请输入合法的私钥');
-      return;
-    }
+    // if (!ethUtil.isValidPrivate(Buffer.from(hex2Bytes(this.state.privateKey)))) {
+    //   Feedback.toast.error('请输入合法的私钥');
+    //   return;
+    // }
     let txInfo = this.state.txInfo.trim();
     // const regex = /'/gi;
     // txInfo = txInfo.replace(regex, '"');
     if (txInfo.length > 130 && txInfo.charAt(0) === '{' && txInfo.charAt(txInfo.length - 1) === '}') {
       try {
         const txObj = JSON.parse(txInfo);
-        fractal.ft.signTx(txInfo, this.state.privateKey).then(signInfo => {
-          fractal.ft.sendSingleSigTransaction(txInfo, signInfo).then(txHash => {
+        fractal.ft.signTx(txObj, this.state.privateKey).then(signInfo => {
+          fractal.ft.sendSingleSigTransaction(txObj, signInfo).then(txHash => {
             this.setState({ txResult: txHash });
           });
         })
@@ -148,7 +148,7 @@ export default class RawTxConstructor extends Component {
   getReceipt = () => {
     if (this.state.txResult != null) {
       fractal.ft.getTransactionReceipt(this.state.txResult).then(resp => {
-        this.setState({ receipt: resp });
+        this.setState({ receipt: JSON.stringify(resp) });
       });
     } else {
       Feedback.toast.prompt('无法获取receipt');
@@ -382,7 +382,7 @@ export default class RawTxConstructor extends Component {
         <Input hasClear
           htmlType={this.state.htmlType}
           style={styles.otherElement}
-          maxLength={64}
+          maxLength={66}
           hasLimitHint
           addonBefore="私钥:"
           size="medium"
