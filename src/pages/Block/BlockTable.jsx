@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
 import { Search, Grid } from "@icedesign/base";
 import IceContainer from '@icedesign/container';
-import {getBlockByNum, getBlockByHash} from '../../api'
+import * as fractal from 'fractal-web3'
 
 import { Table, Pagination, Feedback } from '@icedesign/base';
 import BigNumber from "bignumber.js"
-import {getAssetInfoById, getTransactionReceipt} from '../../api'
+import TransactionList from '../../TransactionList';
+
 const { Row, Col } = Grid;
 
 export default class BlockTable extends Component {
@@ -30,66 +31,30 @@ export default class BlockTable extends Component {
         transactions: [],
         assetInfos: {},
         onePageNum: 10,
+        txFrom: {},
     };
   }
 
   componentDidMount = async () => {
-    var resp = await getBlockByNum([0, true]);
-    this.setState({blockInfo: resp.data.result});
+    var blockInfo = await fractal.ft.getBlockByNum(0, true);
+    this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number} });
   }
 
   onSearch = async (value) => {
-    var resp = {};
+    var blockInfo = {};
+    var blockInfo2 = {};
     if (value.key.indexOf("0x") == 0) {
-      resp = await getBlockByHash([value.key, true]);
-    } else {
-      resp = await getBlockByNum([value.key, true]);
-    }
-    if (resp.data.result != undefined) {
-      var curBlockInfo = resp.data.result;
-      var transactions = [];
-      for (let transaction of curBlockInfo.transactions) {
-        var actionInfo = transaction.actions[0];
-        if (this.state.assetInfos[actionInfo.assetID] == undefined) {
-          var resp = await getAssetInfoById([actionInfo.assetID]);
-          this.state.assetInfos[actionInfo.assetID] = resp.data.result;
-        }
-        switch(actionInfo.type) {
-          case 0:
-            transaction['actionType'] = '转账';
-            transaction['detailInfo'] = actionInfo.from + "向" + actionInfo.to + "转账" 
-                                + this.getReadableNumber(actionInfo.value, actionInfo.assetID) + this.state.assetInfos[actionInfo.assetID].symbol;
-            break;
-          case 256:
-            transaction['actionType'] = '创建账户';
-            transaction['detailInfo'] = actionInfo.from + "创建账户：" + actionInfo.to;
-            if (actionInfo.value > 0) {
-              transaction['detailInfo'] += "并转账" + this.getReadableNumber(actionInfo.value, actionInfo.assetID) + assetInfos[actionInfo.assetID].symbol;
-            }     
-            break;   
-          case 257:  
-            transaction['actionType'] = '更新账户';
-            transaction['detailInfo'] = "更新账户";
-        }
-
-        var receiptResp = await getTransactionReceipt([transaction.txHash]);
-        var actionResult = receiptResp.data.result.actionResults[0];
-        transaction['result'] = actionResult.status == 1 ? '成功' : '失败（' + actionResult.error + '）';
-        transaction['gasFee'] = actionResult.gasUsed + 'aft';
-        transactions.push(transaction);
-        if (transactions.length >= 20) {
-          break;
-        }
+      blockInfo = await fractal.ft.getBlockByHash(value.key, true);
+      blockInfo2 = await fractal.ft.getBlockByNum(blockInfo.number, false);
+      if (blockInfo.hash != blockInfo2.hash) {
+        Feedback.toast.prompt('注意：此区块已被回滚');
       }
+    } else {
+      blockInfo = await fractal.ft.getBlockByNum(value.key, true);
+    }
 
-      this.setState({
-        blockInfo: curBlockInfo,
-        txNum: transactions.length,
-        transactions: transactions,
-        transactionsOnePage: transactions.slice(0, this.state.onePageNum),
-      });
-    } else if (resp.data.error != undefined) {
-        Feedback.toast.error(resp.data.error.message);
+    if (blockInfo != null) {
+      this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number} });
     } else {
         Feedback.toast.prompt('区块不存在');
     }
@@ -152,6 +117,12 @@ export default class BlockTable extends Component {
                 </span>
               </li>
               <li style={styles.item}>
+                <span style={styles.label}>不可逆高度：</span>
+                <span style={styles.value}>
+                  {this.state.blockInfo.proposedIrreversible}
+                </span>
+              </li>
+              <li style={styles.item}>
                 <span style={styles.label}>时间戳：</span>
                 <span style={styles.value}>{this.getValidTime(this.state.blockInfo.timestamp)}</span>
               </li>
@@ -210,23 +181,7 @@ export default class BlockTable extends Component {
 
           <br/>
           <br/>
-          <IceContainer>
-            <h4 style={styles.title}>交易信息</h4>
-            <Table
-              getRowClassName={(record, index) => {
-                return `progress-table-tr progress-table-tr${index}`;
-              }}
-              dataSource={this.state.transactionsOnePage}
-            >
-              <Table.Column title="交易Hash" dataIndex="txHash" width={150} />
-              <Table.Column title="区块Hash" dataIndex="blockHash" width={150} />
-              <Table.Column title="类型" dataIndex="actionType" width={50} />
-              <Table.Column title="详情" dataIndex="detailInfo" width={180} />
-              <Table.Column title="结果" dataIndex="result" width={50} />
-              <Table.Column title="手续费" dataIndex="gasFee" width={80} />
-            </Table>
-            <Pagination onChange={this.onChange.bind(this)} className="page-demo" total={this.state.transactions.length}/>
-        </IceContainer>
+          <TransactionList txFrom={this.state.txFrom}/>
       </div>
     );
   }

@@ -45,66 +45,66 @@ class BlockTxLayout extends Component {
   updateBlockChainInfo = async () => {
     try {
       const curBlockInfo = await fractal.ft.getCurrentBlock(false);
-      // const irreversibleInfo = await fractal.dpos.getDposIrreversibleInfo();
-      // const latestEpchoInfo = await fractal.dpos.getValidCandidates();
-      // const candidates = await fractal.dpos.getCandidates(false);
-      // const dposInfo = await fractal.dpos.getDposInfo();
+      const irreversibleInfo = await fractal.dpos.getDposIrreversibleInfo();
+      const latestEpchoInfo = await fractal.dpos.getValidCandidates();
+      const candidates = await fractal.dpos.getCandidates(false);
+      const dposInfo = await fractal.dpos.getDposInfo();
       const self = this;
-      //const curHeight = curBlockInfo.number;
-      //eventProxy.trigger('curHeight', curHeight);
+      const curHeight = curBlockInfo.number;
+      eventProxy.trigger('curHeight', curHeight);
 
-      // const maxSpan = dposInfo.blockFrequency * dposInfo.candidateScheduleSize;
-      // const interval = 1;
+      const maxSpan = dposInfo.blockFrequency * dposInfo.candidateScheduleSize;
+      const interval = 1;
 
-      // if (self.state.txInfos.length > 12) {
-      //   self.state.txInfos = self.state.txInfos.slice(self.state.txInfos.length - 12);
-      // }
+      if (self.state.txInfos.length > 12) {
+        self.state.txInfos = self.state.txInfos.slice(self.state.txInfos.length - 12);
+      }
 
-      // let lastMaxHeight = 0;
-      // if (self.state.txInfos.length > 0) {
-      //   lastMaxHeight = self.state.txInfos[self.state.txInfos.length - 1].blockHeight;
-      // }
-      // let totalNum = self.state.totalTxNumInOneHour;
-      // let maxTxNum = self.state.maxTPS * dposInfo.blockInterval / 1000;
-      // if (curHeight - lastMaxHeight >= interval) {
-      //   totalNum = 0;
-      //   maxTxNum = 0;
-      //   let promiseArr = [];
-      //   let blockHeights = [];
-      //   for (let fromHeight = curHeight - maxSpan; fromHeight <= curHeight; fromHeight++) {
-      //     promiseArr.push(fractal.ft.getBlockByNum(fromHeight, false));
-      //     blockHeights.push(fromHeight);
-      //   }
-      //   Promise.all(promiseArr).then(blocks => {
-      //     for (let i = 0; i < blocks.length; i++) {
-      //       const block = blocks[i];
-      //       const txNumber = block.transactions.length;
-      //       self.state.txInfos.push({ blockHeight: blockHeights[i], txNum: txNumber });
-      //       totalNum += txNumber;
-      //       if (txNumber > maxTxNum) {
-      //         maxTxNum = txNumber;
-      //       }
-      //     }
-      //     eventProxy.trigger('txInfos', self.state.txInfos);
+      let lastMaxHeight = 0;
+      if (self.state.txInfos.length > 0) {
+        lastMaxHeight = self.state.txInfos[self.state.txInfos.length - 1].blockHeight;
+      }
+      let totalNum = self.state.totalTxNumInOneHour;
+      let maxTxNum = self.state.maxTPS * dposInfo.blockInterval / 1000;
+      if (curHeight - lastMaxHeight >= interval) {
+        totalNum = 0;
+        maxTxNum = 0;
+        let promiseArr = [];
+        let blockHeights = [];
+        for (let fromHeight = curHeight - maxSpan; fromHeight <= curHeight; fromHeight++) {
+          promiseArr.push(fractal.ft.getBlockByNum(fromHeight, false));
+          blockHeights.push(fromHeight);
+        }
+        Promise.all(promiseArr).then(blocks => {
+          for (let i = 0; i < blocks.length; i++) {
+            const block = blocks[i];
+            const txNumber = block.transactions.length;
+            self.state.txInfos.push({ blockHeight: blockHeights[i], txNum: txNumber });
+            totalNum += txNumber;
+            if (txNumber > maxTxNum) {
+              maxTxNum = txNumber;
+            }
+          }
+          eventProxy.trigger('txInfos', self.state.txInfos);
 
-      //     self.setState({
-      //       curBlockInfo,
-      //       irreversible: irreversibleInfo,
-      //       totalTxNumInOneHour: totalNum,
-      //       maxTPS: Math.round(maxTxNum * 1000 / dposInfo.blockInterval),
-      //       latestEpchoInfo,
-      //       curProducerList: candidates,
-      //       activeProducers: latestEpchoInfo.activatedCandidateSchedule,
-      //     });
+          self.setState({
+            curBlockInfo,
+            irreversible: irreversibleInfo,
+            totalTxNumInOneHour: totalNum,
+            maxTPS: Math.round(maxTxNum * 1000 / dposInfo.blockInterval),
+            latestEpchoInfo,
+            curProducerList: candidates,
+            activeProducers: latestEpchoInfo.activatedCandidateSchedule,
+          });
           
-      //   }).catch(error => {
-      //     console.log(error);
-      //     Feedback.toast.error(error);
-      //   });
-      // }
-      // setTimeout(() => { this.updateBlockChainInfo(); }, 3000);
+        }).catch(error => {
+          console.log(error);
+          Feedback.toast.error(error);
+        });
+      }
+      setTimeout(() => { this.updateBlockChainInfo(); }, 3000);
     } catch (error) {
-      Feedback.toast.error('发生错误，请检查同节点的连接情况');
+      Feedback.toast.error(error);
     }
   }
 

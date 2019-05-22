@@ -60,7 +60,7 @@ const asideMenuConfig = [
     ],
   },
   {
-    name: '区块 & 交易(待更新)',
+    name: '区块 & 交易查询',
     path: '/list',
     icon: 'search',
     children: [

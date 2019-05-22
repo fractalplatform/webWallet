@@ -338,7 +338,7 @@ function loadKeystoreFromLS() {
   if (keystoreInfoObj != null) {
     return keystoreInfoObj.keyList;
   }
-  return null;
+  return [];
 }
 async function loadAccountsFromLS() {
   const accountInfos = [];
@@ -368,7 +368,18 @@ function confuseInfo(originalInfo) {
   originalInfo = originalInfo.replace(/a-z0-9A-Z/g, '*');
 }
 
+function getGasEarned(gasPrice, gasUsed, assetInfo) {
+  var decimals = assetInfo.decimals;
+
+  var renderValue = new BigNumber(gasPrice).multipliedBy(new BigNumber(gasUsed));
+  renderValue = renderValue.shiftedBy(decimals * -1);
+  
+  BigNumber.config({ DECIMAL_PLACES: 6 });
+  renderValue = renderValue.toString(10);
+  return renderValue;
+}
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, 
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
-         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo };
+         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, getGasEarned };

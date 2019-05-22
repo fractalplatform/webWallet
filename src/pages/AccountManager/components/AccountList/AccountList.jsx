@@ -109,6 +109,8 @@ export default class AccountList extends Component {
       //fractal.ft.getChainConfig().then(chainConfig => this.state.chainConfig = chainConfig);
       this.state.chainConfig = await fractal.ft.getChainConfig();
       this.state.chainConfig.sysTokenID = 0;
+      const assetInfo = await fractal.account.getAssetInfoById(this.state.chainConfig.sysTokenID);
+      this.state.assetInfos[this.state.chainConfig.sysTokenID] = assetInfo;
       this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
       this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
       fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => this.state.irreversibleInfo = irreversibleInfo);
@@ -288,7 +290,7 @@ export default class AccountList extends Component {
             const parsedAction = txParser.parseAction(actionInfo, this.state.assetInfos[actionInfo.assetId], this.state.assetInfos, this.state.dposInfo);
             if (txInfo.txStatus != Constant.TxStatus.SendError && txInfo.txStatus != Constant.TxStatus.NotExecute) {
               parsedAction.result = actionInfo.status == 1 ? '成功' : `失败（${actionInfo.error}）`;
-              parsedAction.gasFee = `${actionInfo.gasUsed} aft`;
+              parsedAction.gasFee = actionInfo.gasUsed;
               parsedAction.gasAllot = actionInfo.gasAllot;
             } else {
               parsedAction.result = '';
@@ -694,8 +696,9 @@ export default class AccountList extends Component {
       if (utils.isEmptyObj(item.gasFee)) {
         return '';
       }
-      const defaultTrigger = <Tag type="normal" size="small">{item.gasFee}</Tag>;
-      return <Balloon trigger={defaultTrigger} closable={false}>{item.gasFee}</Balloon>;
+      const earnedGasFee = utils.getGasEarned(record.gasPrice, item.gasFee, this.state.assetInfos[record.gasAssetId]) + 'ft';
+      const defaultTrigger = <Tag type="normal" size="small">{earnedGasFee}</Tag>;
+      return <Balloon trigger={defaultTrigger} closable={false}>{earnedGasFee}</Balloon>;
     });
   }
 
@@ -711,8 +714,9 @@ export default class AccountList extends Component {
       } else if (gasAllot.typeId === 1) {
         reason = '合约的发行者';
       }
-      const defaultTrigger = <Tag type="normal" size="small">{gasAllot.name}{reason}分到 {gasAllot.gas}aft</Tag>;
-      return <Balloon trigger={defaultTrigger} closable={false}>{gasAllot.name}{reason}分到 {gasAllot.gas}aft</Balloon>;
+      const earnedGasFee = utils.getGasEarned(record.gasPrice, gasAllot.gas, this.state.assetInfos[record.gasAssetId]) + 'ft';
+      const defaultTrigger = <Tag type="normal" size="small">{gasAllot.name}{reason}分到 {earnedGasFee}</Tag>;
+      return <Balloon trigger={defaultTrigger} closable={false}>{gasAllot.name}{reason}分到 {earnedGasFee}</Balloon>;
     });
   }
   showAuthors = (index) => {
@@ -1448,7 +1452,7 @@ export default class AccountList extends Component {
                 {keystore.publicKey}
               </Select.Option>
             ))
-          }
+            }
           </Select>
           <br />
           (如无公钥，请前往“账户管理”->“密钥”页面创建公私钥)

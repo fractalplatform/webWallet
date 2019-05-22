@@ -81,21 +81,24 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       //console.log(actionInfo.payload);
       payloadInfo = decode(actionInfo.payload);
     }
+    const actionType = actionInfo.type != null ? actionInfo.type : actionInfo.actionType;
+    const fromAccount = actionInfo.accountName != null ? actionInfo.accountName : actionInfo.from;
+    const toAccount = actionInfo.toAccountName != null ? actionInfo.toAccountName : actionInfo.to;
+    const amount = actionInfo.amount != null ? actionInfo.amount : actionInfo.value;
     let readableNum = 0;
     if (assetInfo != null) {
-      readableNum = getReadableNumber(actionInfo.amount, assetInfo.decimals);
+      readableNum = getReadableNumber(amount, assetInfo.decimals);
     }
-    const actionType = actionInfo.type != null ? actionInfo.type : actionInfo.actionType;
     switch (actionType) {
       case actionTypes.TRANSFER:
         actionParseInfo.actionType = '转账';
-        actionParseInfo.detailInfo = `${actionInfo.accountName}向${actionInfo.toAccountName}转账${readableNum}${assetInfo.symbol}`;
-        actionParseInfo.detailObj = { accountName: actionInfo.accountName, toAccountName: actionInfo.toAccountName, amount: readableNum, symbol: assetInfo.symbol };
+        actionParseInfo.detailInfo = `${fromAccount}向${toAccount}转账${readableNum}${assetInfo.symbol}`;
+        actionParseInfo.detailObj = { accountName: fromAccount, toAccountName: toAccount, amount: readableNum, symbol: assetInfo.symbol };
         break;
       case actionTypes.CREATE_CONTRACT:
         actionParseInfo.actionType = '创建合约';
-        actionParseInfo.detailInfo = '创建者:' + actionInfo.accountName;
-        actionParseInfo.detailObj = { accountName: actionInfo.accountName };
+        actionParseInfo.detailInfo = '创建者:' + fromAccount;
+        actionParseInfo.detailObj = { accountName: fromAccount };
         break;
       case actionTypes.CALL_CONTRACT:
         actionParseInfo.actionType = '调用合约';
@@ -115,7 +118,6 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         } else {
           actionParseInfo.detailInfo = '未知错误';
         }
-        //actionParseInfo.detailObj = { from: actionInfo.from, to: actionInfo.to, value: readableNum, symbol: assetInfo != null ? assetInfo.symbol : '' };
         break;
       case actionTypes.UPDATE_ACCOUNT:
         actionParseInfo.actionType = '更新账户';
@@ -217,7 +219,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       case actionTypes.DESTORY_ASSET:
         actionParseInfo.actionType = '销毁资产';
         actionParseInfo.detailInfo = `资产ID:${actionInfo.assetId},数量:${readableNum}`;
-        actionParseInfo.detailObj = { accountName: actionInfo.accountName, amount: readableNum, assetId: actionInfo.assetId };
+        actionParseInfo.detailObj = { accountName: fromAccount, amount: readableNum, assetId: actionInfo.assetId };
         break;
       case actionTypes.SET_ASSET_OWNER: {
         actionParseInfo.actionType = '设置资产所有者';
@@ -255,14 +257,14 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           actionParseInfo.detailInfo = 'URL更新为空';
         }
 
-        const stake = getReadableNumber(actionInfo.amount, assetInfo.decimals);
+        const stake = getReadableNumber(amount, assetInfo.decimals);
         actionParseInfo.detailInfo += ', 增加抵押票数:' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
         actionParseInfo.detailObj = {};
         break;
       }
       case actionTypes.UNREG_CANDIDATE:
         actionParseInfo.actionType = '注销候选者';
-        actionParseInfo.detailInfo = '候选者:' + actionInfo.accountName;
+        actionParseInfo.detailInfo = '候选者:' + fromAccount;
         actionParseInfo.detailObj = {};
         break;
       case actionTypes.VOTE_CANDIDATE: {
@@ -276,17 +278,13 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       }
       case actionTypes.REFUND_DEPOSIT:
         actionParseInfo.actionType = '取回抵押金';
-        actionParseInfo.detailInfo = '候选者:' + actionInfo.accountName;
+        actionParseInfo.detailInfo = '候选者:' + fromAccount;
         actionParseInfo.detailObj = {};
-        break;
-      
-      case actionTypes.WITHDRAW_TX_FEE:
-        actionParseInfo.actionType = '提取手续费';
         break;
       default:
         console.log('error action type:' + actionInfo.actionType);
     }
-    if (actionInfo.amount > 0 && actionInfo.actionType !== actionTypes.TRANSFER && actionInfo.actionType !== actionTypes.DESTORY_ASSET && actionInfo.actionType !== actionTypes.UPDATE_CANDIDATE) {
+    if (amount > 0 && actionInfo.actionType !== actionTypes.TRANSFER && actionInfo.actionType !== actionTypes.DESTORY_ASSET && actionInfo.actionType !== actionTypes.UPDATE_CANDIDATE) {
       actionParseInfo.detailInfo += ',新账号收到转账:' + readableNum + assetInfo.symbol;
     }
     return actionParseInfo;
