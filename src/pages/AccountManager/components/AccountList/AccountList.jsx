@@ -457,7 +457,7 @@ export default class AccountList extends Component {
           }
           // console.log('accountExistTxs:' + JSON.stringify(accountExistTxs));
           let promiseArr = [];
-          let accountTxs = [];
+          let accountInternalTxPromiseArr = [];
           const step = self.state.maxRollbackBlockNum * 10;
           let blockNum = curBlockNum;
           for (; blockNum > startSyncBlockNum; blockNum -= step) {
@@ -466,13 +466,20 @@ export default class AccountList extends Component {
               lookBack = blockNum - startSyncBlockNum;
             }
             promiseArr.push(fractal.ft.getTxsByAccount(accountName, blockNum, lookBack));
-            // TODO 内部交易
-            //accountTxs.push(fractal.ft.getInternalTxsByAccount(accountName, blockNum, lookBack));
+            // 内部交易
+            accountInternalTxPromiseArr.push(fractal.ft.getInternalTxsByAccount(accountName, blockNum, lookBack));
           }
 
+          let accountTxs = [];
           const allTxs = await Promise.all(promiseArr);   // 获取所有交易的hash
+          const allInternalTxs = await Promise.all(accountInternalTxPromiseArr);   // 获取所有内部交易信息，里面包含了txhash
           for (const txs of allTxs) {
             accountTxs.push(...txs);
+          }
+          for (const internalTxs of allInternalTxs) {
+            internalTxs.map(internalTx => {
+              accountTxs.push(internalTx.txhash);
+            });
           }
           promiseArr = [];
           let blockCache = {};
