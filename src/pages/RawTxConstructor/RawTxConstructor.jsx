@@ -161,6 +161,15 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.prompt('无法获取receipt');
     }
   }
+  getTxInfo = () => {
+    if (this.state.txResult != null) {
+      fractal.ft.getTransactionByHash(this.state.txResult).then(resp => {
+        this.setState({ receipt: JSON.stringify(resp) });
+      });
+    } else {
+      Feedback.toast.prompt('无法获取交易信息');
+    }
+  }
   onChangeTxType = (txType) => {
     this.state.actionType = txType;
     this.state.payloadInfos = [];
@@ -518,12 +527,14 @@ export default class RawTxConstructor extends Component {
         <br />
         <br />
         <Button type="primary" onClick={this.getReceipt.bind(this)}>获取Receipt</Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.getTxInfo.bind(this)}>获取交易</Button>
         <br />
         <br />
         <Input multiple
           rows="10"
           style={styles.otherElement}
-          addonBefore="Receipt:"
+          addonBefore="Receipt/交易"
           size="medium"
           value={this.state.receipt}
         />
