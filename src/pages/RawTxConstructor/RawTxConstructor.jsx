@@ -135,8 +135,14 @@ export default class RawTxConstructor extends Component {
         fractal.ft.signTx(txObj, this.state.privateKey).then(signInfo => {
           fractal.ft.sendSingleSigTransaction(txObj, signInfo).then(txHash => {
             this.setState({ txResult: txHash });
+          }).catch(error => {
+            Feedback.toast.error(error);
+            this.setState({ txResult: error });
           });
-        })
+        }).catch(error => {
+          Feedback.toast.error(error);
+          this.setState({ txResult: error });
+        });
        
       } catch (error) {
         Feedback.toast.error(error.message);
@@ -373,7 +379,7 @@ export default class RawTxConstructor extends Component {
   handleElementChange = (actionType, index, isNumber, v) => {
     this.state[actionType + '-' + index] = { value: v, isNumber };
   }
-  handleActionElementChange = (actionElement,v ) => {
+  handleActionElementChange = (actionElement, v) => {
     this.state[actionElement] = v;
   }
   render() {
