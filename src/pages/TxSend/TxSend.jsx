@@ -155,6 +155,7 @@ export default class TxSend extends Component {
       const self = this;
       Promise.all(promiseArr).then(async (wallets) => {
         utils.confuseInfo(this.state.password);
+        console.log(txInfo);
         for (let wallet of wallets) {
           const signInfo = await fractal.ft.signTx(txInfo, wallet.privateKey);
           multiSigInfos.push({signInfo, indexes: [index]});

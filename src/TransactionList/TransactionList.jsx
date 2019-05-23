@@ -113,8 +113,12 @@ export default class TransactionList extends Component {
   renderFromAccount = (value, index, record) => {
     var parseActions = record.actions;
     return parseActions.map((item)=>{
-      var defaultTrigger = <Tag type="normal" size="small">{item.fromAccount}</Tag>;
-      return <Balloon  trigger={defaultTrigger} closable={false}>{item.fromAccount}</Balloon>;
+      let accountName = item.fromAccount;
+      if (utils.isEmptyObj(accountName)) {
+        accountName = '无';
+      }
+      var defaultTrigger = <Tag type="normal" size="small">{accountName}</Tag>;
+      return <Balloon  trigger={defaultTrigger} closable={false}>{accountName}</Balloon>;
     });
   }
 

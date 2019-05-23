@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Input, Feedback, Card } from '@icedesign/base';
+import { Input, Feedback, Card, Select } from '@icedesign/base';
 import { Button } from '@alifd/next';
 import * as fractal from 'fractal-web3';
 import cookie from 'react-cookies';
@@ -22,6 +22,7 @@ export default class ContractManager extends Component {
     const abiContractName = cookie.load('abiContractName');
 
     this.state = {
+      accounts: [],
       contractFuncInfo: [],
       abiInfo: abiInfoStr,
       paraValue: {},
@@ -33,10 +34,16 @@ export default class ContractManager extends Component {
       txSendVisible: false,
       contractName: abiContractName,
       contractAccount: abiContractName,
+      selectedAccountName: '',
     };
   }
 
-  componentDidMount = () => {
+  componentDidMount = async () => {
+    const accounts = await utils.loadAccountsFromLS();
+    for (let account of accounts) {
+      this.state.accounts.push(account.accountName);
+    }
+
     const abiInfo = cookie.load('abiInfo');
     if (abiInfo != null) {
       const abiInfoStr = JSON.stringify(abiInfo).replace(/\\"/g, '"');
@@ -58,7 +65,8 @@ export default class ContractManager extends Component {
   }
 
   parseABI = () => {
-    if (!utils.isEmptyObj(this.state.abiInfo) && !fractal.utils.isValidABI(this.state.abiInfo)) {
+    if (utils.isEmptyObj(this.state.abiInfo) 
+    || (!utils.isEmptyObj(this.state.abiInfo) && !fractal.utils.isValidABI(this.state.abiInfo))) {
       Feedback.toast.error('ABI信息不符合规范，请检查后重新输入');
       return;
     }
@@ -89,7 +97,16 @@ export default class ContractManager extends Component {
     this.state.paraValue[funcName + '-' + paraName] = value;
   }
 
+  onChangeAccount = async (accountName) => {
+    this.setState({ selectedAccountName: accountName });
+  }
+
   callContractFunc = async (funcName) => {
+    if (utils.isEmptyObj(this.state.selectedAccountName)) {
+      Feedback.toast.error('请选择发起合约调用的账号');
+      return;
+    }
+
     if (utils.isEmptyObj(this.state.contractAccount)) {
       Feedback.toast.error('请输入合约账号名');
       return;
@@ -109,9 +126,9 @@ export default class ContractManager extends Component {
       }
       values.push(value);
     }
-    const payload = fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[funcName], values);
+    const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[funcName], values);
     if (this.state.funcParaConstant[funcName]) {
-      const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:100000, gasPrice:10000000000, value:0, data:payload, remark:''};
+      const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(result => {
         this.state.result[resultName] = result;
         this.setState({ result: this.state.result });
@@ -154,6 +171,14 @@ export default class ContractManager extends Component {
     return (
       <div style={{width:800}}>
         {/* <ContractEditor style={{height:800, width:800}}/> */}
+        <Select
+            style={{ width: 800 }}
+            placeholder="选择发起合约调用的账户"
+            onChange={this.onChangeAccount.bind(this)}
+            dataSource={this.state.accounts}
+          />
+          <br />
+          <br />
         <Input hasClear
           htmlType={this.state.htmlType}
           style={{ width: 800 }}
@@ -182,7 +207,7 @@ export default class ContractManager extends Component {
         <br />
         {this.state.contractFuncInfo}
 
-        <TxSend visible={this.state.txSendVisible} txInfo={this.state.txInfo}/>
+        <TxSend visible={this.state.txSendVisible} txInfo={this.state.txInfo} accountName={this.state.selectedAccountName}/>
       </div>
     );
   }

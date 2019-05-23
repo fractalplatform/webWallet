@@ -2,10 +2,10 @@
 import { decode } from 'rlp';
 import BigNumber from 'bignumber.js';
 import { Feedback } from '@icedesign/base';
+import * as fractal from 'fractal-web3'
 
 import * as actionTypes from './constant';
-import { bytes2Hex, bytes2Number, utf8ByteToUnicodeStr, getReadableNumber } from './utils';
-import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from 'constants';
+import { bytes2Hex, bytes2Number, utf8ByteToUnicodeStr, getReadableNumber, getDataFromFile } from './utils';
 
 
 function needParsePayload(actionType) {
@@ -102,6 +102,15 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         break;
       case actionTypes.CALL_CONTRACT:
         actionParseInfo.actionType = '调用合约';
+        const abiInfo = getDataFromFile(actionTypes.ContractABIFile);
+        if (abiInfo != null && abiInfo[toAccount] != null) {
+          const callFuncInfo = fractal.utils.parseContractTxPayload(abiInfo[toAccount], payloadInfo);
+          payloadInfo = '调用方法：' + callFuncInfo.funcName + '，参数信息：';
+          callFuncInfo.parameterInfos.map(parameterInfo => {
+            payloadInfo += parameterInfo.name + '[' + parameterInfo.type + ']=' + parameterInfo.value + ',';
+          })
+        }
+
         actionParseInfo.detailInfo = payloadInfo; // 无
         actionParseInfo.detailObj = {};
         break;
