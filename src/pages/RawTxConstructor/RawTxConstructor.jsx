@@ -94,6 +94,10 @@ export default class RawTxConstructor extends Component {
     }
 
     const payload = '0x' + (this.state.payloadElements.length > 0 ? encode(this.state.payloadElements).toString('hex') : '');
+    let zeros = '';
+    if (this.state.zeroNum != null && this.state.zeroNum > 0) {
+      zeros = '0'.repeat(this.state.zeroNum);
+    }
     const txInfo = {
       gasAssetId: this.getNumber(this.state['gasAssetId']),
       gasPrice: isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '000000000'),
@@ -104,7 +108,7 @@ export default class RawTxConstructor extends Component {
         gasLimit: this.getNumber(this.state['gasLimit']), 
         toAccountName: this.state['toAccountName'], 
         assetId: this.getNumber(this.state['assetId']), 
-        amount: this.getNumber(this.state['amount']), 
+        amount: this.getNumber(this.state['amount'] + zeros), 
         payload, 
         remark: this.state['remark'], 
       }]
@@ -395,6 +399,9 @@ export default class RawTxConstructor extends Component {
   handleActionElementChange = (actionElement, v) => {
     this.state[actionElement] = v;
   }
+  onChangeZeroNumType = (v) => {
+    this.state.zeroNum = v;
+  }
   render() {
     return (
       <div>
@@ -455,10 +462,17 @@ export default class RawTxConstructor extends Component {
           <br />
           <br />
           <Input hasClear
-            style={styles.commonElement}
+            style={{width:500}}
             addonBefore="资产数量:"
             size="medium"
             onChange={this.handleActionElementChange.bind(this, 'amount')}
+          />
+          &nbsp;&nbsp;
+          <Select
+            style={{width:150}}
+            placeholder="补足0️个数"
+            onChange={this.onChangeZeroNumType.bind(this)}
+            dataSource={[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]}
           />
           <br />
           <br />
