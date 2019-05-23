@@ -78,7 +78,8 @@ export default class RawTxConstructor extends Component {
     const actionType = this.state['actionType'];
     this.state.payloadElements = [];
     if (actionType == actionTypes.UPDATE_ACCOUNT_AUTHOR) {
-      this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0]), this.getNumber(this.state[actionType + '-' + 1]), [this.getNumber(this.state[actionType + '-' + 2]), [this.state[actionType + '-' + 3], this.getNumber(this.state[actionType + '-' + 4])]]];
+      this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
+                                   [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
     } else {
       const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
       for (let i = 0; i < payloadInfoNum; i++) {
@@ -100,7 +101,7 @@ export default class RawTxConstructor extends Component {
     }
     const txInfo = {
       gasAssetId: this.getNumber(this.state['gasAssetId']),
-      gasPrice: isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '000000000'),
+      gasPrice: isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
       actions: [{
         actionType: this.getNumber(this.state['actionType']),
         accountName: this.state['accountName'], 
@@ -557,15 +558,7 @@ export default class RawTxConstructor extends Component {
         />
         <br />
         <br />
-        <Button type="primary" onClick={this.checkResult.bind(this)}>校验结果</Button>
-        <br />
-        <br />
-        <Select
-          style={styles.otherElement}
-          placeholder="选择预期结果"
-          onChange={this.onChangeResultType.bind(this)}
-          dataSource={this.state.resultTypes}
-        />
+        <Button type="primary" onClick={this.checkResult.bind(this)}>校验链上相关状态</Button>
         <br />
         <br />
         <Input multiple
@@ -578,63 +571,125 @@ export default class RawTxConstructor extends Component {
       </div>
     );
   }
+  getAseetBalance = (account, assetId) => {
+    for (const balanceInfo of account.balances) {
+      if (balanceInfo.assetID == assetId) {
+        return balanceInfo.balance;
+      }
+    }
+    return 0;
+  }
   checkResult = async () => {
     this.setState({ checkProcedure: '' });
-    let fromAccount = null;
-    let toAccount = null;
+    let checkInfo = '';
+    let newFromAccount = null;
+    let newToAccount = null;
     if (!isEmptyObj(this.state['accountName'])) {
-      fromAccount = await fractal.account.getAccountByName(this.state['accountName']);
+      newFromAccount = await fractal.account.getAccountByName(this.state['accountName']);
     }
     if (!isEmptyObj(this.state['toAccountName'])) {
-      toAccount = await fractal.account.getAccountByName(this.state['toAccountName']);
+      newToAccount = await fractal.account.getAccountByName(this.state['toAccountName']);
     }
-    const predictResult = this.state.resultType == 1;
-
+    const historyTxInfo = this.state.historyInfo.txInfo;
+    const oldFromAccount = this.state.historyInfo.fromAccount;
+    const oldToAccount = this.state.historyInfo.toAccount;
     if (!isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
       fractal.ft.getTransactionReceipt(this.state.txResult).then(receipt => {
+        const resultStatus = receipt.actionResults[0].status == 1;
+        // 1：先计算手续费
+        const totalGasFee = new BigNumber(receipt.totalGasUsed).multipliedBy(new BigNumber(historyTxInfo.gasPrice));
+        const transferAssetId = historyTxInfo.actions[0].assetId;
+        // 2：根据各交易类型分别校验数据
+        // 2.2: 先校验结果是成功的情况
+        if (resultStatus) {
+          switch (this.state.actionType) {
+            case actionTypes.TRANSFER:
+
+              const oldFromFTBalance = this.getAssetBalance(oldFromAccount, transferAssetId);
+              const newFromFTBalance = this.getAssetBalance(newFromAccount, transferAssetId);
+              const oldToFTBalance = this.getAssetBalance(oldToAccount, transferAssetId);
+              const newToFTBalance = this.getAssetBalance(newToAccount, transferAssetId);
+              const transferValue = new BigNumber(historyTxInfo.txInfo.actions[0].amount);
+              if (transferAssetId == 0) {
+                if (new BigNumber(oldFromFTBalance).minus(new BigNumber(newFromFTBalance)).comparedTo(totalGasFee.add(transferValue)) == 0) {
+                  checkInfo += '发送账户金额变化正常，减少的FT总金额为：' + new BigNumber(oldFromFTBalance).minus(new BigNumber(newFromFTBalance)).toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                } else {
+                  checkInfo += '发送账户金额变化异常，实际减少的FT总金额为：' + new BigNumber(oldFromFTBalance).minus(new BigNumber(newFromFTBalance)).toNumber();
+                  checkInfo += '\n应该减少的总金额为：' + totalGasFee.add(transferValue).toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                }
+                if (new BigNumber(newToFTBalance).minus(new BigNumber(oldToFTBalance)).comparedTo(transferValue) == 0) {
+                  checkInfo += '\n接收账户金额变化正常，增加的FT总金额为：' + new BigNumber(newToFTBalance).minus(new BigNumber(oldToFTBalance)).toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                }
+                else {
+                  checkInfo += '\n接收账户金额变化异常，增加的FT总金额为：' + new BigNumber(newToFTBalance).minus(new BigNumber(oldToFTBalance)).toNumber();
+                  checkInfo += '\n应该增加的总金额为：' + transferValue.toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                }
+              } else {
+                if (new BigNumber(oldFromFTBalance).minus(new BigNumber(newFromFTBalance)).comparedTo(totalGasFee) == 0) {
+                  checkInfo += '发送账户FT资产金额变化正常，减少的FT总金额为：' + totalGasFee.toNumber();
+                  checkInfo += '发送账户ID为[' + transferAssetId + ']的资产金额变化正常，减少的FT总金额为：' + totalGasFee.toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                } else {
+                  checkInfo += '发送账户金额变化异常，实际减少的FT总金额为：' + new BigNumber(oldFromFTBalance).minus(new BigNumber(newFromFTBalance)).toNumber();
+                  checkInfo += '，应该减少的总金额为：' + totalGasFee.add(transferValue).toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                }
+                if (new BigNumber(newToFTBalance).minus(new BigNumber(oldToFTBalance)).comparedTo(transferValue) == 0) {
+                  checkInfo += '，接收账户金额变化正常，增加的FT总金额为：' + new BigNumber(newToFTBalance).minus(new BigNumber(oldToFTBalance)).toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                }
+                else {
+                  checkInfo += '，接收账户金额变化异常，增加的FT总金额为：' + new BigNumber(newToFTBalance).minus(new BigNumber(oldToFTBalance)).toNumber();
+                  checkInfo += '，应该增加的总金额为：' + transferValue.toNumber();
+                  this.setState({ checkProcedure: checkInfo });
+                }
+              }
+              break;
+            case actionTypes.CREATE_CONTRACT:
+              break;    
+            case actionTypes.CREATE_NEW_ACCOUNT:
+              break;
+            case actionTypes.UPDATE_ACCOUNT:
+              break;
+            case actionTypes.UPDATE_ACCOUNT_AUTHOR:
+              break;
+            case actionTypes.ISSUE_ASSET:
+              break;
+            case actionTypes.INCREASE_ASSET:
+              break;
+            case actionTypes.DESTORY_ASSET:
+              break;
+            case actionTypes.SET_ASSET_OWNER:
+              break;
+            case actionTypes.SET_ASSET_FOUNDER:
+              break;
+            case actionTypes.REG_CANDIDATE:
+              break;
+            case actionTypes.UPDATE_CANDIDATE:
+              break;
+            case actionTypes.UNREG_CANDIDATE:
+              break;
+            case actionTypes.VOTE_CANDIDATE:
+              break;
+            case actionTypes.REFUND_DEPOSIT:
+              break;
+            default:
+              console.log('error action type:' + actionInfo.type);
+          }
+        }
         
       });
     } else {
       Feedback.toast.prompt('因无法获取receipt，故无法确认交易执行状态');
     }
 
-    // 1：先检查from账号消耗的手续费是否正常
-
-    switch (this.state.actionType) {
-      case actionTypes.TRANSFER:
-        break;
-      case actionTypes.CREATE_CONTRACT:
-        break;    
-      case actionTypes.CREATE_NEW_ACCOUNT:
-        break;
-      case actionTypes.UPDATE_ACCOUNT:
-        break;
-      case actionTypes.UPDATE_ACCOUNT_AUTHOR:
-        break;
-      case actionTypes.ISSUE_ASSET:
-        break;
-      case actionTypes.INCREASE_ASSET:
-        break;
-      case actionTypes.DESTORY_ASSET:
-        break;
-      case actionTypes.SET_ASSET_OWNER:
-        break;
-      case actionTypes.SET_ASSET_FOUNDER:
-        break;
-      case actionTypes.REG_CANDIDATE:
-        break;
-      case actionTypes.UPDATE_CANDIDATE:
-        break;
-      case actionTypes.UNREG_CANDIDATE:
-        break;
-      case actionTypes.VOTE_CANDIDATE:
-        break;
-      case actionTypes.REFUND_DEPOSIT:
-        break;
-      default:
-        console.log('error action type:' + actionInfo.type);
-    }
+    
   }
+
   recordHistory = async () => {
     const txInfo = JSON.parse(this.state.txInfo);
     txInfo.payloadElements = this.state.payloadElements;
