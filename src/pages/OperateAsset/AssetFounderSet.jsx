@@ -78,7 +78,7 @@ export default class AssetFounderSet extends Component {
     }
 
     const txInfo = {};
-    txInfo.actionType = Constant.UPDATE_ASSET;
+    txInfo.actionType = Constant.SET_ASSET_FOUNDER;
     txInfo.accountName = curAccountName;
     txInfo.toAccountName = 'fractal.asset';
     txInfo.assetId = 0;

@@ -229,7 +229,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         actionParseInfo.detailObj = {};
         break;
       }
-      case actionTypes.UPDATE_ASSET: {
+      case actionTypes.SET_ASSET_FOUNDER: {
         actionParseInfo.actionType = '设置资产创办者';
         const assetId = payloadInfo[0][0];
         const founder = String.fromCharCode.apply(null, payloadInfo[1]);
