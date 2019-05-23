@@ -76,15 +76,15 @@ function getActionTypeStr(actionTypeNum) {
 function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
   try {
     const actionParseInfo = { ...actionInfo };
-    let payloadInfo = actionInfo.payload;
-    if (actionInfo.payload.length > 2 && needParsePayload(actionInfo.actionType)) {
-      //console.log(actionInfo.payload);
-      payloadInfo = decode(actionInfo.payload);
-    }
     const actionType = actionInfo.type != null ? actionInfo.type : actionInfo.actionType;
     const fromAccount = actionInfo.accountName != null ? actionInfo.accountName : actionInfo.from;
     const toAccount = actionInfo.toAccountName != null ? actionInfo.toAccountName : actionInfo.to;
     const amount = actionInfo.amount != null ? actionInfo.amount : actionInfo.value;
+    let payloadInfo = actionInfo.payload;
+    if (actionInfo.payload.length > 2 && needParsePayload(actionType)) {
+      //console.log(actionInfo.payload);
+      payloadInfo = decode(actionInfo.payload);
+    }
     let readableNum = 0;
     if (assetInfo != null) {
       readableNum = getReadableNumber(amount, assetInfo.decimals);

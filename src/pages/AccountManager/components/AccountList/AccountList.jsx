@@ -169,7 +169,7 @@ export default class AccountList extends Component {
       fractal.account.getAccountByName(this.state.importAccountName).then(account => {
         if (account != null) {
           const accountInfos = [...self.state.accountInfos, account];
-          self.setState({ accountInfos });
+          self.setState({ accountInfos, importAccountVisible: false });
           self.saveAccountsToLS();
         } else {
           Feedback.toast.error('账户不存在');
@@ -1393,6 +1393,11 @@ export default class AccountList extends Component {
       <div className="editable-table">
         <IceContainer>
           <Table primaryKey="accountName" dataSource={this.state.accountInfos} hasBorder={false} isLoading={this.state.isLoading}>
+            <Table.Column
+              width={80}
+              title="ID"
+              dataIndex="accountID"
+            />
             <Table.Column
               width={80}
               title="账号"

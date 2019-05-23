@@ -32,6 +32,7 @@ export default class ContractManager extends Component {
       txInfo: {},
       txSendVisible: false,
       contractName: abiContractName,
+      contractAccount: abiContractName,
     };
   }
 

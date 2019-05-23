@@ -127,6 +127,9 @@ export default class TxSend extends Component {
 
     let txInfo = {};
     let actionInfo = this.state.txInfo;
+    if (actionInfo.accountName == null) {
+      actionInfo.accountName = this.state.curAccount.accountName;
+    }
     actionInfo.gasLimit = new BigNumber(this.state.gasLimit).toNumber();
     actionInfo.remark = this.state.remark;
 
