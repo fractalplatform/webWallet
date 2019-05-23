@@ -7,7 +7,6 @@ import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
-import * as ethUtil from 'ethereumjs-util';
 import * as actionTypes from '../../utils/constant'
 import { isEmptyObj, hex2Bytes } from '../../utils/utils'
 
@@ -33,7 +32,11 @@ export default class RawTxConstructor extends Component {
       receipt: '',
       txTypeInfos: txTypes,
       payloadInfos: [],
+      payloadElements: [],
       updateAuthorTypes: [{value:0, label:'添加权限'}, {value:1, label:'更新权限'}, {value:2, label:'删除权限'}],
+      resultTypes: [{value:0, label:'失败'}, {value:1, label:'成功'}],
+      checkProcedure: '',
+      historyInfo: {},
     };
   }
 
@@ -73,24 +76,24 @@ export default class RawTxConstructor extends Component {
   // const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [owner, weight]]]).toString('hex');
   generateTxInfo = () => {
     const actionType = this.state['actionType'];
-    const payloadElements = [];
+    this.state.payloadElements = [];
     if (actionType == actionTypes.UPDATE_ACCOUNT_AUTHOR) {
-      payloadElements = [this.getNumber(this.state[actionType + '-' + 0]), this.getNumber(this.state[actionType + '-' + 1]), [this.getNumber(this.state[actionType + '-' + 2]), [this.state[actionType + '-' + 3], this.getNumber(this.state[actionType + '-' + 4])]]];
+      this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0]), this.getNumber(this.state[actionType + '-' + 1]), [this.getNumber(this.state[actionType + '-' + 2]), [this.state[actionType + '-' + 3], this.getNumber(this.state[actionType + '-' + 4])]]];
     } else {
       const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
       for (let i = 0; i < payloadInfoNum; i++) {
         let actionValue = this.state[actionType + '-' + i];
         if (actionValue == null) {
-          payloadElements.push('');
+          this.state.payloadElements.push('');
         } else if (actionValue.isNumber) {
-          payloadElements.push(new BigNumber(actionValue.value).toNumber());
+          this.state.payloadElements.push(new BigNumber(actionValue.value).toNumber());
         } else {
-          payloadElements.push(actionValue.value);
+          this.state.payloadElements.push(actionValue.value);
         }
       }
     }
 
-    const payload = '0x' + (payloadElements.length > 0 ? encode(payloadElements).toString('hex') : '');
+    const payload = '0x' + (this.state.payloadElements.length > 0 ? encode(this.state.payloadElements).toString('hex') : '');
     const txInfo = {
       gasAssetId: this.getNumber(this.state['gasAssetId']),
       gasPrice: isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '000000000'),
@@ -153,7 +156,7 @@ export default class RawTxConstructor extends Component {
     }
   }
   getReceipt = () => {
-    if (this.state.txResult != null) {
+    if (!isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
       fractal.ft.getTransactionReceipt(this.state.txResult).then(resp => {
         this.setState({ receipt: JSON.stringify(resp) });
       });
@@ -538,8 +541,107 @@ export default class RawTxConstructor extends Component {
           size="medium"
           value={this.state.receipt}
         />
+        <br />
+        <br />
+        <Button type="primary" onClick={this.checkResult.bind(this)}>校验结果</Button>
+        <br />
+        <br />
+        <Select
+          style={styles.otherElement}
+          placeholder="选择预期结果"
+          onChange={this.onChangeResultType.bind(this)}
+          dataSource={this.state.resultTypes}
+        />
+        <br />
+        <br />
+        <Input multiple
+          rows="10"
+          style={styles.otherElement}
+          addonBefore="校验过程"
+          size="medium"
+          value={this.state.checkProcedure}
+        />
       </div>
     );
+  }
+  checkResult = async () => {
+    this.setState({ checkProcedure: '' });
+    let fromAccount = null;
+    let toAccount = null;
+    if (!isEmptyObj(this.state['accountName'])) {
+      fromAccount = await fractal.account.getAccountByName(this.state['accountName']);
+    }
+    if (!isEmptyObj(this.state['toAccountName'])) {
+      toAccount = await fractal.account.getAccountByName(this.state['toAccountName']);
+    }
+    const predictResult = this.state.resultType == 1;
+
+    if (!isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
+      fractal.ft.getTransactionReceipt(this.state.txResult).then(receipt => {
+        
+      });
+    } else {
+      Feedback.toast.prompt('因无法获取receipt，故无法确认交易执行状态');
+    }
+
+    // 1：先检查from账号消耗的手续费是否正常
+
+    switch (this.state.actionType) {
+      case actionTypes.TRANSFER:
+        break;
+      case actionTypes.CREATE_CONTRACT:
+        break;    
+      case actionTypes.CREATE_NEW_ACCOUNT:
+        break;
+      case actionTypes.UPDATE_ACCOUNT:
+        break;
+      case actionTypes.UPDATE_ACCOUNT_AUTHOR:
+        break;
+      case actionTypes.ISSUE_ASSET:
+        break;
+      case actionTypes.INCREASE_ASSET:
+        break;
+      case actionTypes.DESTORY_ASSET:
+        break;
+      case actionTypes.SET_ASSET_OWNER:
+        break;
+      case actionTypes.SET_ASSET_FOUNDER:
+        break;
+      case actionTypes.REG_CANDIDATE:
+        break;
+      case actionTypes.UPDATE_CANDIDATE:
+        break;
+      case actionTypes.UNREG_CANDIDATE:
+        break;
+      case actionTypes.VOTE_CANDIDATE:
+        break;
+      case actionTypes.REFUND_DEPOSIT:
+        break;
+      default:
+        console.log('error action type:' + actionInfo.type);
+    }
+  }
+  recordHistory = async () => {
+    const txInfo = JSON.parse(this.state.txInfo);
+    txInfo.payloadElements = this.state.payloadElements;
+    this.state.historyInfo['txInfo'] = txInfo;
+
+    let fromAccount = null;
+    let toAccount = null;
+    if (!isEmptyObj(this.state['accountName'])) {
+      fromAccount = await fractal.account.getAccountByName(this.state['accountName']);
+    }
+    if (!isEmptyObj(this.state['toAccountName'])) {
+      toAccount = await fractal.account.getAccountByName(this.state['toAccountName']);
+    }
+
+    this.state.historyInfo['fromAccount'] = fromAccount;
+    this.state.historyInfo['toAccount'] = toAccount;
+
+  }
+
+  onChangeResultType = (v) => {
+    this.state.resultType = v;
   }
 }
 

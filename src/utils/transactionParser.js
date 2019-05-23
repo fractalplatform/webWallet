@@ -187,7 +187,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         break;
       case actionTypes.INCREASE_ASSET: {
         actionParseInfo.actionType = '增发资产';
-        const assetId = payloadInfo[0][0];
+        const assetId = payloadInfo[0][0] == null ? 0 : payloadInfo[0][0];
         let amount = bytes2Number(payloadInfo[1]).toNumber();
         const addedAssetInfo = allAssetInfos[assetId];
         amount = getReadableNumber(amount, addedAssetInfo.decimals);
