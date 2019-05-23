@@ -26,7 +26,9 @@ export default class TransactionList extends Component {
   }
 
   componentDidMount() {
-
+    fractal.account.getAssetInfoById(0).then(assetInfo => {
+      this.state.assetInfos[0] = assetInfo;
+    });
   }
   getTxInfoByBlock(blockHeight) {
     fractal.ft.getBlockByNum(blockHeight, true).then(async(curBlockInfo) => {
@@ -73,7 +75,7 @@ export default class TransactionList extends Component {
             }
             var parsedAction = txParser.parseAction(actionInfo, _this.state.assetInfos[actionInfo.assetID], _this.state.assetInfos, dposInfo);
             parsedAction['result'] = actionResults[i].status == 1 ? '成功' : '失败（' + actionResults[i].error + '）';
-            parsedAction['gasFee'] = utils.getGasEarned(transaction.gasPrice, actionResults[i].gasUsed, this.state.assetInfos[transaction.gasAssetID]) + 'ft';
+            parsedAction['gasFee'] = utils.getGasEarned(transaction.gasPrice, actionResults[i].gasUsed, _this.state.assetInfos[transaction.gasAssetID]) + ' ft';
             parsedAction['fromAccount'] = actionInfo.from;
             parsedAction['gasAllot'] = actionResults[i].gasAllot;
             parsedActions.push(parsedAction);
