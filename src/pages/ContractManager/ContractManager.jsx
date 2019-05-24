@@ -135,10 +135,12 @@ export default class ContractManager extends Component {
         self.setState({ result: { funcName: resp } });
       });
     } else {
+      const assetId = parseInt(this.state.paraValue[funcName + '-transferAssetId']);
+      const amount = parseInt(this.state.paraValue[funcName + '-transferAssetValue']);
       this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
         toAccountName: this.state.contractAccount,
-        assetId: 0,
-        amount: 0,
+        assetId,
+        amount,
         payload };
       this.setState({ txSendVisible: true });
     }
@@ -156,6 +158,20 @@ export default class ContractManager extends Component {
         placeholder={parameterTypes[index++]}
       />, <br />, <br />)
     });
+    if (!this.state.funcParaConstant[funcName]) {
+      inputElements.push(<Input hasClear
+        onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetId')}
+        style={{ width: 600 }}
+        addonBefore='转账资产ID'
+        size="medium"
+      />, <br />, <br />,
+      <Input hasClear
+        onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetValue')}
+        style={{ width: 600 }}
+        addonBefore='转账资产金额'
+        size="medium"
+      />, <br />, <br />,)
+    }
     const oneElement = <Card style={{ width: 800 }} bodyHeight="auto" title={funcName}>
                         {inputElements}
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>发起调用</Button>
