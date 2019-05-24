@@ -4,8 +4,9 @@ import IceContainer from '@icedesign/container';
 import * as fractal from 'fractal-web3'
 
 import { Table, Pagination, Feedback } from '@icedesign/base';
-import BigNumber from "bignumber.js"
+import BigNumber from "bignumber.js";
 import TransactionList from '../../TransactionList';
+import * as utils from '../../utils/utils';
 
 const { Row, Col } = Grid;
 
@@ -27,7 +28,7 @@ export default class BlockTable extends Component {
         ],
         value: "",
         blockInfo: {},
-        txNum: 1,
+        txNum: '',
         transactions: [],
         assetInfos: {},
         onePageNum: 10,
@@ -36,8 +37,8 @@ export default class BlockTable extends Component {
   }
 
   componentDidMount = async () => {
-    var blockInfo = await fractal.ft.getBlockByNum(0, true);
-    this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number} });
+    //var blockInfo = await fractal.ft.getBlockByNum(0, true);
+    //this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number} });
   }
 
   onSearch = async (value) => {
@@ -84,12 +85,7 @@ export default class BlockTable extends Component {
       transactionsOnePage: transactions,
     });
   }
-  getValidTime = (timestamp) => {
-    var renderTime = new BigNumber(timestamp);
-    renderTime = renderTime.shiftedBy(6 * -1);
 
-    return new Date(renderTime.toNumber()).toLocaleString()
-  }
   render() {
     return (
       <div>
@@ -124,7 +120,8 @@ export default class BlockTable extends Component {
               </li>
               <li style={styles.item}>
                 <span style={styles.label}>时间戳：</span>
-                <span style={styles.value}>{this.getValidTime(this.state.blockInfo.timestamp)}</span>
+                <span style={styles.value}>{this.state.blockInfo.timestamp != null ? 
+                                            utils.getValidTime(this.state.blockInfo.timestamp) : ''}</span>
               </li>
               <li style={styles.item}>
                 <span style={styles.label}>交易数：</span>

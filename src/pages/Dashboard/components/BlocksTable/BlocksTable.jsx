@@ -4,7 +4,7 @@ import { Table, Progress, Pagination } from '@icedesign/base';
 import IceContainer from '@icedesign/container';
 import copy from 'copy-to-clipboard';
 
-import eventProxy from '../../../../utils/eventProxy';
+import * as utils from '../../../../utils/utils';
 import * as fractal from 'fractal-web3';
 
 export default class BlocksTable extends Component {
@@ -19,22 +19,23 @@ export default class BlocksTable extends Component {
   }
 
   componentDidMount() {
-  	
-    eventProxy.on('curHeight', async (msg) => {
+  	this.updateBlockInfo();
+  }
+
+  updateBlockInfo = () => {
+    fractal.ft.getCurrentBlock().then(async(block) => {
       this.state.dataSource = [];
-      var curHeight = msg;
-      console.log('curHeight = ' + curHeight);
+      var curHeight = block.number;
       for (var i = curHeight; i > curHeight - 18 && i >= 0; i--) {
         var curBlockInfo = await fractal.ft.getBlockByNum(i, false);
         curBlockInfo['txn'] = curBlockInfo.transactions.length;
         this.state.dataSource.push(curBlockInfo);
       }
-      console.log('dataSource length = ' + this.state.dataSource.length);
-      
       this.setState({
         dataSource: this.state.dataSource,
       });
-    });
+      setTimeout(() => { this.updateBlockInfo(); }, 3000);
+    })
   }
 
   renderCellProgress = value => (
@@ -54,6 +55,10 @@ export default class BlocksTable extends Component {
     return <address title={'点击可复制'} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
   }
 
+  renderTimeStamp = (value) => {
+    return utils.getValidTime(value);
+  }
+
   render() {
     return (
       <div className="progress-table">
@@ -62,13 +67,13 @@ export default class BlocksTable extends Component {
             dataSource={this.state.dataSource}
             primaryKey="number"
           >
+            <Table.Column title="时间" dataIndex="timestamp" width={100} cell={this.renderTimeStamp.bind(this)}/>
             <Table.Column title="高度" dataIndex="number" width={100} />
             <Table.Column title="Hash" dataIndex="hash" width={150} cell={this.renderHash.bind(this)}/>
             <Table.Column title="交易数" dataIndex="txn" width={100} />
             <Table.Column title="Gas消耗" dataIndex="gasUsed" width={100} />
             <Table.Column title="区块大小(B)" dataIndex="size" width={100}/>
             <Table.Column title="生产者" dataIndex="miner" width={100} />
-            
           </Table>
         </IceContainer>
       </div>

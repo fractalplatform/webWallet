@@ -374,6 +374,9 @@ function confuseInfo(originalInfo) {
 }
 
 function getGasEarned(gasPrice, gasUsed, assetInfo) {
+  if (assetInfo == null) {
+    return new BigNumber(gasPrice).multipliedBy(new BigNumber(gasUsed)).toNumber();
+  }
   var decimals = assetInfo.decimals;
 
   var renderValue = new BigNumber(gasPrice).multipliedBy(new BigNumber(gasUsed));
@@ -384,7 +387,15 @@ function getGasEarned(gasPrice, gasUsed, assetInfo) {
   return renderValue;
 }
 
+function getValidTime(timestamp) {
+  var renderTime = new BigNumber(timestamp);
+  renderTime = renderTime.shiftedBy(6 * -1);
+
+  return new Date(renderTime.toNumber()).toLocaleString()
+}
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, 
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
-         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, getGasEarned };
+         removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, 
+         getGasEarned, getValidTime };
