@@ -8,7 +8,7 @@ import * as fractal from 'fractal-web3';
 import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
 import * as actionTypes from '../../utils/constant'
-import { isEmptyObj, hex2Bytes } from '../../utils/utils'
+import * as utils from '../../utils/utils'
 
 const txTypes = [{ value: actionTypes.TRANSFER, label: '转账'},{value: actionTypes.CREATE_CONTRACT,label: '创建合约'},
                 { value: actionTypes.CREATE_NEW_ACCOUNT, label: '创建账户' },{ value: actionTypes.UPDATE_ACCOUNT, label: '更新账户'},{ value: actionTypes.UPDATE_ACCOUNT_AUTHOR, label: '更新账户权限' },
@@ -67,7 +67,7 @@ export default class RawTxConstructor extends Component {
     this.state.privateKey = v;
   }
   getNumber = (numberStr) => {
-    if (isEmptyObj(numberStr)) {
+    if (utils.isEmptyObj(numberStr)) {
       return '';
     }
     return new BigNumber(numberStr).toNumber();
@@ -106,7 +106,7 @@ export default class RawTxConstructor extends Component {
     }
     const txInfo = {
       gasAssetId: this.getNumber(this.state['gasAssetId']),
-      gasPrice: isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
+      gasPrice: utils.isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
       actions: [{
         actionType: this.getNumber(this.state['actionType']),
         accountName: this.state['accountName'], 
@@ -134,8 +134,39 @@ export default class RawTxConstructor extends Component {
       showPrivateKeyTip,
     });
   }
+  addSendErrorTxToFile = (txInfo) => {
+    txInfo.isInnerTx = 0;
+    txInfo.txStatus = Constant.TxStatus.SendError;
+    txInfo.date = new Date().getTime() * 1000000;
+    txInfo.txHash = '0x';
+    txInfo.blockHash = '0x';
+    txInfo.blockNumber = '';
+    txInfo.blockStatus = Constant.BlockStatus.Unknown;
+    txInfo.actions[0].status = 0;
+    txInfo.actions[0].actionIndex = 0;
+    txInfo.actions[0].gasUsed = 0;
+    txInfo.actions[0].gasAllot = [];
+
+    let allTxInfoSet = utils.getDataFromFile(Constant.TxInfoFile);
+    if (allTxInfoSet != null) {
+      let accountTxInfoSet = allTxInfoSet[txInfo.accountName];
+      if (accountTxInfoSet == null) {
+        accountTxInfoSet = {};
+        accountTxInfoSet.txInfos = [txInfo];
+        allTxInfoSet[txInfo.accountName] = accountTxInfoSet;
+      } else {
+        accountTxInfoSet.txInfos.push(txInfo);
+      }
+    } else {
+      allTxInfoSet = {};
+      allTxInfoSet[txInfo.accountName] = {};
+      allTxInfoSet[txInfo.accountName].txInfos = [txInfo];
+    }
+    utils.storeDataToFile(Constant.TxInfoFile, allTxInfoSet);
+  }
+
   sendTransaction = () => {
-    // if (!ethUtil.isValidPrivate(Buffer.from(hex2Bytes(this.state.privateKey)))) {
+    // if (!ethUtil.isValidPrivate(Buffer.from(utils.hex2Bytes(this.state.privateKey)))) {
     //   Feedback.toast.error('请输入合法的私钥');
     //   return;
     // }
@@ -150,6 +181,7 @@ export default class RawTxConstructor extends Component {
             this.setState({ txResult: txHash });
           }).catch(error => {
             Feedback.toast.error(error);
+            this.addSendErrorTxToFile(txObj);
             this.setState({ txResult: error });
           });
         }).catch(error => {
@@ -166,7 +198,7 @@ export default class RawTxConstructor extends Component {
     }
   }
   getReceipt = () => {
-    if (!isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
+    if (!utils.isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
       fractal.ft.getTransactionReceipt(this.state.txResult).then(resp => {
         this.setState({ receipt: JSON.stringify(resp) });
       });
@@ -589,16 +621,16 @@ export default class RawTxConstructor extends Component {
     let checkInfo = '';
     let newFromAccount = null;
     let newToAccount = null;
-    if (!isEmptyObj(this.state['accountName'])) {
+    if (!utils.isEmptyObj(this.state['accountName'])) {
       newFromAccount = await fractal.account.getAccountByName(this.state['accountName']);
     }
-    if (!isEmptyObj(this.state['toAccountName'])) {
+    if (!utils.isEmptyObj(this.state['toAccountName'])) {
       newToAccount = await fractal.account.getAccountByName(this.state['toAccountName']);
     }
     const historyTxInfo = this.state.historyInfo.txInfo;
     const oldFromAccount = this.state.historyInfo.fromAccount;
     const oldToAccount = this.state.historyInfo.toAccount;
-    if (!isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
+    if (!utils.isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
       fractal.ft.getTransactionReceipt(this.state.txResult).then(receipt => {
         const resultStatus = receipt.actionResults[0].status == 1;
         // 1：先计算手续费
@@ -812,10 +844,10 @@ export default class RawTxConstructor extends Component {
 
     let fromAccount = null;
     let toAccount = null;
-    if (!isEmptyObj(this.state['accountName'])) {
+    if (!utils.isEmptyObj(this.state['accountName'])) {
       fromAccount = await fractal.account.getAccountByName(this.state['accountName']);
     }
-    if (!isEmptyObj(this.state['toAccountName'])) {
+    if (!utils.isEmptyObj(this.state['toAccountName'])) {
       toAccount = await fractal.account.getAccountByName(this.state['toAccountName']);
     }
 

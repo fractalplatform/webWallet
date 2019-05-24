@@ -27,7 +27,7 @@ export default class TransactionsTable extends Component {
   updateTxInfo = () => {
     fractal.ft.getCurrentBlock().then(async(block) => {
       var curHeight = block.number;
-      var maxLookbackNum = 200;
+      var maxLookbackNum = 1000;
       var maxTxNum = 20;
       var txNum = 0;
       
