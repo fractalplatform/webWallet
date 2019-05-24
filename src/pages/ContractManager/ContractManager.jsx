@@ -61,7 +61,7 @@ export default class ContractManager extends Component {
   }
 
   handleABIInfoChange = (value) => {
-    this.state.abiInfo = value;
+    this.setState({ abiInfo: value });
   }
 
   parseABI = () => {
@@ -131,8 +131,8 @@ export default class ContractManager extends Component {
     if (this.state.funcParaConstant[funcName]) {
       const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
-        self.state.result[funcName] = resp;
-        self.setState({ result: self.state.result });
+        console.log(funcName + '=>' + resp);
+        self.setState({ result: { funcName: resp } });
       });
     } else {
       this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
@@ -161,7 +161,7 @@ export default class ContractManager extends Component {
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>发起调用</Button>
                         <br />
                         <br />
-                        <Input readOnly style={{ width: 600 }} addonBefore='结果' size="medium" value={this.state.result[funcName]}/>
+                        <Input style={{ width: 600 }} addonBefore='结果' size="medium" value={this.state.result[funcName]}/>
                       </Card>;
   return oneElement;
   }
