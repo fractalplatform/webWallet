@@ -164,6 +164,7 @@ export default class TxSend extends Component {
         }
 
         fractal.ft.sendMultiSigTransaction(txInfo, multiSigInfos).then(txHash => {
+          console.log('tx hash=>' + txHash);
           this.processTxSendResult(txInfo, txHash);
           this.onTxConfirmClose();
         }).catch(error => {
