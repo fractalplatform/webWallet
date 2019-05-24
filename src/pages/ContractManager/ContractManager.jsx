@@ -5,7 +5,7 @@ import * as fractal from 'fractal-web3';
 import cookie from 'react-cookies';
 
 import * as utils from '../../utils/utils'
-import ContractEditor from './components/Editor';
+import copy from 'copy-to-clipboard';
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 
@@ -154,12 +154,10 @@ export default class ContractManager extends Component {
         addonBefore={paraName}
         size="medium"
         placeholder={parameterTypes[index++]}
-      />)
+      />, <br />, <br />)
     });
     const oneElement = <Card style={{ width: 800 }} bodyHeight="auto" title={funcName}>
                         {inputElements}
-                        <br />
-                        <br />
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>发起调用</Button>
                         <br />
                         <br />
@@ -168,9 +166,25 @@ export default class ContractManager extends Component {
   return oneElement;
   }
 
+  importABI = () => {
+    if (utils.isEmptyObj(this.state.contractAccount)) {
+      Feedback.toast.error('请输入合约账号名');
+      return;
+    }
+
+    const abiInfoObj = utils.getDataFromFile(Constant.ContractABIFile);
+    if (abiInfoObj != null && abiInfoObj[this.state.contractAccount] != null) {
+      let abiInfoStr = JSON.stringify(abiInfoObj[this.state.contractAccount]).replace(/\\"/g, '"');
+      abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
+      this.setState({ abiInfo: abiInfoStr });
+    } else {
+      Feedback.toast.prompt('账号未保存ABI信息，无法导入');
+    }
+  }
+
   render() {
     return (
-      <div style={{width:800}}>
+      <div style={{width:900}}>
         {/* <ContractEditor style={{height:800, width:800}}/> */}
         <Select
             style={{ width: 800 }}
@@ -191,13 +205,15 @@ export default class ContractManager extends Component {
           onChange={this.handleContractAccountChange.bind(this)}
           onBlur={this.saveContractName.bind(this)}
         />
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.importABI.bind(this)}>导入ABI</Button>
         <br />
         <br />
         <Input multiple
           rows="13"
           style={{ width: 800 }}
           addonBefore="ABI信息:"
-          defaultValue={this.state.abiInfo}
+          value={this.state.abiInfo}
           size="medium"
           onChange={this.handleABIInfoChange.bind(this)}
         />

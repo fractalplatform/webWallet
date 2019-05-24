@@ -7,15 +7,15 @@ import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
-import * as actionTypes from '../../utils/constant'
-import * as utils from '../../utils/utils'
+import * as Constant from '../../utils/constant';
+import * as utils from '../../utils/utils';
 
-const txTypes = [{ value: actionTypes.TRANSFER, label: '转账'},{value: actionTypes.CREATE_CONTRACT,label: '创建合约'},
-                { value: actionTypes.CREATE_NEW_ACCOUNT, label: '创建账户' },{ value: actionTypes.UPDATE_ACCOUNT, label: '更新账户'},{ value: actionTypes.UPDATE_ACCOUNT_AUTHOR, label: '更新账户权限' },
-                { value: actionTypes.ISSUE_ASSET, label: '发行资产' },{ value: actionTypes.INCREASE_ASSET, label: '增发资产' },{ value: actionTypes.DESTORY_ASSET, label: '销毁资产' },
-                { value: actionTypes.SET_ASSET_OWNER, label: '设置资产所有者' },{ value: actionTypes.SET_ASSET_FOUNDER, label: '设置资产创办者' },{ value: actionTypes.REG_CANDIDATE, label: '注册候选者' },
-                { value: actionTypes.UPDATE_CANDIDATE, label: '更新候选者' },{ value:  actionTypes.UNREG_CANDIDATE, label: '注销候选者' },{ value: actionTypes.VOTE_CANDIDATE, label: '给候选者投票' },
-                { value: actionTypes.REFUND_DEPOSIT, label: '取回抵押金' }];
+const txTypes = [{ value: Constant.TRANSFER, label: '转账'},{value: Constant.CREATE_CONTRACT,label: '创建合约'},
+                { value: Constant.CREATE_NEW_ACCOUNT, label: '创建账户' },{ value: Constant.UPDATE_ACCOUNT, label: '更新账户'},{ value: Constant.UPDATE_ACCOUNT_AUTHOR, label: '更新账户权限' },
+                { value: Constant.ISSUE_ASSET, label: '发行资产' },{ value: Constant.INCREASE_ASSET, label: '增发资产' },{ value: Constant.DESTORY_ASSET, label: '销毁资产' },
+                { value: Constant.SET_ASSET_OWNER, label: '设置资产所有者' },{ value: Constant.SET_ASSET_FOUNDER, label: '设置资产创办者' },{ value: Constant.REG_CANDIDATE, label: '注册候选者' },
+                { value: Constant.UPDATE_CANDIDATE, label: '更新候选者' },{ value:  Constant.UNREG_CANDIDATE, label: '注销候选者' },{ value: Constant.VOTE_CANDIDATE, label: '给候选者投票' },
+                { value: Constant.REFUND_DEPOSIT, label: '取回抵押金' }];
 
 export default class RawTxConstructor extends Component {
   static displayName = 'RawTxConstructor';
@@ -37,6 +37,7 @@ export default class RawTxConstructor extends Component {
       resultTypes: [{value:0, label:'失败'}, {value:1, label:'成功'}],
       checkProcedure: '',
       historyInfo: {},
+      testScene: {},
     };
   }
 
@@ -77,27 +78,35 @@ export default class RawTxConstructor extends Component {
   generateTxInfo = () => {
     const actionType = this.state['actionType'];
     this.state.payloadElements = [];
-    if (actionType == actionTypes.UPDATE_ACCOUNT_AUTHOR) {
+    let payloadDetailInfo = {};
+    if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {
       this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
                                    [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
-    } else if (actionType != actionTypes.CREATE_CONTRACT) {
+    } else if (actionType != Constant.CREATE_CONTRACT) {
       const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
       for (let i = 0; i < payloadInfoNum; i++) {
         let actionValue = this.state[actionType + '-' + i];
+        let value = '';
         if (actionValue == null) {
           this.state.payloadElements.push('');
         } else if (actionValue.isNumber) {
-          this.state.payloadElements.push(new BigNumber(actionValue.value).toNumber());
+          value = new BigNumber(actionValue.value).toNumber();
+          this.state.payloadElements.push(value);
         } else {
+          value = actionValue.value;
           this.state.payloadElements.push(actionValue.value);
         }
+        payloadDetailInfo[actionValue.payloadName] = value;
       }
     }
     let payload = '';
-    if (actionType != actionTypes.CREATE_CONTRACT) {
+    if (actionType != Constant.CREATE_CONTRACT) {
       payload = '0x' + (this.state.payloadElements.length > 0 ? encode(this.state.payloadElements).toString('hex') : '');
     } else {
       payload = this.state[actionType + '-' + 0].value;
+      if (payload.indexOf('0x') < 0) {
+        payload = '0x' + payload;
+      }
     }
     
     let zeros = '';
@@ -116,6 +125,7 @@ export default class RawTxConstructor extends Component {
         assetId: this.getNumber(this.state['assetId']), 
         amount: this.getNumber(this.state['amount'] + zeros), 
         payload, 
+        payloadDetailInfo,
         remark: this.state['remark'], 
       }]
     };
@@ -170,6 +180,10 @@ export default class RawTxConstructor extends Component {
     //   Feedback.toast.error('请输入合法的私钥');
     //   return;
     // }
+    if (utils.isEmptyObj(this.state.txInfo)) {
+      Feedback.toast.error('请先生成交易内容');
+      return;
+    }
     let txInfo = this.state.txInfo.trim();
     // const regex = /'/gi;
     // txInfo = txInfo.replace(regex, '"');
@@ -219,220 +233,220 @@ export default class RawTxConstructor extends Component {
     this.state.actionType = txType;
     this.state.payloadInfos = [];
     switch (txType) {
-      case actionTypes.TRANSFER:
+      case Constant.TRANSFER:
         break;
-      case actionTypes.CREATE_CONTRACT:
+      case Constant.CREATE_CONTRACT:
         this.state.payloadInfos.push(
             <Input hasClear
             style={styles.commonElement}
             addonBefore="合约byteCode:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.CREATE_CONTRACT, 0, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.CREATE_CONTRACT, 'byteCode', 0, false)}/>
             );
         break;    
-      case actionTypes.CREATE_NEW_ACCOUNT:
+      case Constant.CREATE_NEW_ACCOUNT:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新账户名:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.CREATE_NEW_ACCOUNT, 0, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'newAccountName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.CREATE_NEW_ACCOUNT, 1, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'founder', 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="公钥:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.CREATE_NEW_ACCOUNT, 2, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'publicKey', 2, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="描述:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.CREATE_NEW_ACCOUNT, 3, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'desc', 3, false)}/>
           );
         break;
-      case actionTypes.UPDATE_ACCOUNT:
+      case Constant.UPDATE_ACCOUNT:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT, 0, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT, 'founder', 0, false)}/>
           );
         break;
-      case actionTypes.UPDATE_ACCOUNT_AUTHOR:
+      case Constant.UPDATE_ACCOUNT_AUTHOR:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="执行交易阈值:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT_AUTHOR, 0, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'threshold', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="更新权限所需阈值:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT_AUTHOR, 1, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'updateThreshold', 1, true)}/>,<br/>,<br/>,
           <Select hasClear
             style={styles.commonElement}
             placeholder="选择操作类型"
             dataSource={this.state.updateAuthorTypes}
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT_AUTHOR, 2, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opType', 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="用户名/地址/公钥:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT_AUTHOR, 3, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opContent', 3, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="权重:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_ACCOUNT_AUTHOR, 4, true)}/>
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'weight', 4, true)}/>
           );
         break;
-      case actionTypes.ISSUE_ASSET:
+      case Constant.ISSUE_ASSET:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产名:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 0, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'assetName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="符号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 1, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'symbol', 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="本次发行量:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 2, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'amount', 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="精度:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 3, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'decimals', 3, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 4, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'founder', 4, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="管理者:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 5, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'manager', 5, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="发行上限:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 6, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'upperLimit', 6, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="合约账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 7, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'contractName', 7, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产描述:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.ISSUE_ASSET, 8, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'desc', 8, false)}/>
           );
         break;
-      case actionTypes.INCREASE_ASSET:
+      case Constant.INCREASE_ASSET:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 0, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="增发数量:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 1, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'amount', 1, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="接收资产账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.INCREASE_ASSET, 2, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'accountName', 2, false)}/>
           );
         break;
-      case actionTypes.DESTORY_ASSET:
+      case Constant.DESTORY_ASSET:
         break;
-      case actionTypes.SET_ASSET_OWNER:
+      case Constant.SET_ASSET_OWNER:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.SET_ASSET_OWNER, 0, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新管理者账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.SET_ASSET_OWNER, 1, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'accountName', 1, false)}/>
           );
         break;
-      case actionTypes.SET_ASSET_FOUNDER:
+      case Constant.SET_ASSET_FOUNDER:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.SET_ASSET_FOUNDER, 0, true)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新创办者账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.SET_ASSET_FOUNDER, 1, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'accountName', 1, false)}/>
           );
         break;
-      case actionTypes.REG_CANDIDATE:
+      case Constant.REG_CANDIDATE:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="URL:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.REG_CANDIDATE, 0, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.REG_CANDIDATE, 'url', 0, false)}/>
           );
         break;
-      case actionTypes.UPDATE_CANDIDATE:
+      case Constant.UPDATE_CANDIDATE:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="URL:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.UPDATE_CANDIDATE, 0, false)}/>
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_CANDIDATE, 'url', 0, false)}/>
           );
         break;
-      case actionTypes.UNREG_CANDIDATE:
+      case Constant.UNREG_CANDIDATE:
         break;
-      case actionTypes.VOTE_CANDIDATE:
+      case Constant.VOTE_CANDIDATE:
         this.state.payloadInfos.push(
           <Input hasClear
             style={styles.commonElement}
             addonBefore="候选者账号:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.VOTE_CANDIDATE, 0, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'accountName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="投票数:"
             size="medium"
-            onChange={this.handleElementChange.bind(this, actionTypes.VOTE_CANDIDATE, 1, true)}/>
+            onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'voteNumber', 1, true)}/>
           );
         break;
-      case actionTypes.REFUND_DEPOSIT:
+      case Constant.REFUND_DEPOSIT:
         break;
       default:
         console.log('error action type:' + actionInfo.type);
     }
     this.setState({ payloadInfos: this.state.payloadInfos });
   }
-  handleElementChange = (actionType, index, isNumber, v) => {
-    this.state[actionType + '-' + index] = { value: v, isNumber };
+  handleElementChange = (actionType, payloadName, index, isNumber, v) => {
+    this.state[actionType + '-' + index] = { value: v, isNumber, payloadName };
   }
   handleActionElementChange = (actionElement, v) => {
     this.state[actionElement] = v;
@@ -595,7 +609,39 @@ export default class RawTxConstructor extends Component {
         />
         <br />
         <br />
-        <Button type="primary" onClick={this.checkResult.bind(this)}>校验链上相关状态</Button>
+        <Button type="primary" onClick={this.addTestCase.bind(this)}>向测试场景中添加以上原始交易信息</Button>
+        <br />
+        <br />
+        <Input multiple
+          rows="10"
+          style={styles.otherElement}
+          addonBefore="测试场景"
+          size="medium"
+          value={this.state.testScene}
+        />
+        <br />
+        <br />
+        <Select
+            style={styles.otherElement}
+            placeholder="选择预期结果"
+            onChange={this.onChangeResultType.bind(this)}
+            dataSource={this.state.resultTypes}
+          />
+        <br />
+        <br />
+        <Input 
+          style={styles.otherElement}
+          addonBefore="场景名称"
+          size="medium"
+          placeholder="注意：如名称重复，会覆盖之前的测试场景"
+          onChange={this.handleTestSceneNameChange.bind(this)}
+        />
+        <br />
+        <br />
+        <Button type="primary" onClick={this.saveTestScene.bind(this)}>保存此测试场景</Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.exportTestScene.bind(this)}>导出所有测试场景</Button>
+        {/* <Button type="primary" onClick={this.checkResult.bind(this)}>校验链上相关状态</Button>
         <br />
         <br />
         <Input multiple
@@ -604,9 +650,54 @@ export default class RawTxConstructor extends Component {
           addonBefore="校验过程"
           size="medium"
           value={this.state.checkProcedure}
-        />
+        /> */}
       </div>
     );
+  }
+  addTestCase = () => {
+    if (utils.isEmptyObj(this.state.txInfo)) {
+      Feedback.toast.error('请先生成交易内容');
+      return;
+    }
+    
+    let txInfoArr = [];
+    if (!utils.isEmptyObj(this.state.testScene)) {
+      txInfoArr = JSON.parse(this.state.testScene);
+    }
+
+    txInfoArr.push(JSON.parse(this.state.txInfo.trim()));
+    this.setState({ testScene: JSON.stringify(txInfoArr) });
+  }
+  saveTestScene = () => {
+    if (utils.isEmptyObj(this.state.testScene) || !Array.isArray(JSON.parse(this.state.testScene))) {
+      Feedback.toast.error('测试数据有误，请检查');
+      return;
+    }
+    if (utils.isEmptyObj(this.state.resultType)) {
+      Feedback.toast.error('请选择对此测试场景的预期结果');
+      return;
+    }
+    if (utils.isEmptyObj(this.state.sceneName)) {
+      Feedback.toast.error('请对此测试场景命名');
+      return;
+    }
+    let oneTestScene = {};
+    oneTestScene.predictResult = this.state.resultType;
+    oneTestScene.testCases = JSON.parse(this.state.testScene);
+
+    let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
+    if (testSceneFile == null) {
+      testSceneFile = {};
+    }
+    testSceneFile.sceneName = oneTestScene;
+    utils.storeDataToFile(Constant.TestSceneFile, JSON.stringify(testSceneFile));
+  }
+  exportTestScene = () => {
+    copy(value);
+    Feedback.toast.success('测试用例已复制到粘贴板');
+  }
+  handleTestSceneNameChange = (v) => {
+    this.state.sceneName = v;
   }
   getAseetBalance = (account, assetId) => {
     for (const balanceInfo of account.balances) {
@@ -641,7 +732,7 @@ export default class RawTxConstructor extends Component {
         if (resultStatus) {
           let result = true;
           switch (this.state.actionType) {
-            case actionTypes.TRANSFER:
+            case Constant.TRANSFER:
               const oldFromFTBalance = this.getAssetBalance(oldFromAccount, 0);
               const newFromFTBalance = this.getAssetBalance(newFromAccount, 0);
               const oldFromBalance = this.getAssetBalance(oldFromAccount, transferAssetId);
@@ -703,33 +794,33 @@ export default class RawTxConstructor extends Component {
                 }
               }
               break;
-            case actionTypes.CREATE_CONTRACT:
+            case Constant.CREATE_CONTRACT:
               break;    
-            case actionTypes.CREATE_NEW_ACCOUNT:
+            case Constant.CREATE_NEW_ACCOUNT:
               break;
-            case actionTypes.UPDATE_ACCOUNT:
+            case Constant.UPDATE_ACCOUNT:
               break;
-            case actionTypes.UPDATE_ACCOUNT_AUTHOR:
+            case Constant.UPDATE_ACCOUNT_AUTHOR:
               break;
-            case actionTypes.ISSUE_ASSET:
+            case Constant.ISSUE_ASSET:
               break;
-            case actionTypes.INCREASE_ASSET:
+            case Constant.INCREASE_ASSET:
               break;
-            case actionTypes.DESTORY_ASSET:
+            case Constant.DESTORY_ASSET:
               break;
-            case actionTypes.SET_ASSET_OWNER:
+            case Constant.SET_ASSET_OWNER:
               break;
-            case actionTypes.SET_ASSET_FOUNDER:
+            case Constant.SET_ASSET_FOUNDER:
               break;
-            case actionTypes.REG_CANDIDATE:
+            case Constant.REG_CANDIDATE:
               break;
-            case actionTypes.UPDATE_CANDIDATE:
+            case Constant.UPDATE_CANDIDATE:
               break;
-            case actionTypes.UNREG_CANDIDATE:
+            case Constant.UNREG_CANDIDATE:
               break;
-            case actionTypes.VOTE_CANDIDATE:
+            case Constant.VOTE_CANDIDATE:
               break;
-            case actionTypes.REFUND_DEPOSIT:
+            case Constant.REFUND_DEPOSIT:
               break;
             default:
               console.log('error action type:' + actionInfo.type);
@@ -737,7 +828,7 @@ export default class RawTxConstructor extends Component {
         } else {
           let result = true;
           switch (this.state.actionType) {
-            case actionTypes.TRANSFER:
+            case Constant.TRANSFER:
               const oldFromFTBalance = this.getAssetBalance(oldFromAccount, 0);
               const newFromFTBalance = this.getAssetBalance(newFromAccount, 0);
               const oldFromBalance = this.getAssetBalance(oldFromAccount, transferAssetId);
@@ -799,33 +890,33 @@ export default class RawTxConstructor extends Component {
                 }
               }
               break;
-            case actionTypes.CREATE_CONTRACT:
+            case Constant.CREATE_CONTRACT:
               break;    
-            case actionTypes.CREATE_NEW_ACCOUNT:
+            case Constant.CREATE_NEW_ACCOUNT:
               break;
-            case actionTypes.UPDATE_ACCOUNT:
+            case Constant.UPDATE_ACCOUNT:
               break;
-            case actionTypes.UPDATE_ACCOUNT_AUTHOR:
+            case Constant.UPDATE_ACCOUNT_AUTHOR:
               break;
-            case actionTypes.ISSUE_ASSET:
+            case Constant.ISSUE_ASSET:
               break;
-            case actionTypes.INCREASE_ASSET:
+            case Constant.INCREASE_ASSET:
               break;
-            case actionTypes.DESTORY_ASSET:
+            case Constant.DESTORY_ASSET:
               break;
-            case actionTypes.SET_ASSET_OWNER:
+            case Constant.SET_ASSET_OWNER:
               break;
-            case actionTypes.SET_ASSET_FOUNDER:
+            case Constant.SET_ASSET_FOUNDER:
               break;
-            case actionTypes.REG_CANDIDATE:
+            case Constant.REG_CANDIDATE:
               break;
-            case actionTypes.UPDATE_CANDIDATE:
+            case Constant.UPDATE_CANDIDATE:
               break;
-            case actionTypes.UNREG_CANDIDATE:
+            case Constant.UNREG_CANDIDATE:
               break;
-            case actionTypes.VOTE_CANDIDATE:
+            case Constant.VOTE_CANDIDATE:
               break;
-            case actionTypes.REFUND_DEPOSIT:
+            case Constant.REFUND_DEPOSIT:
               break;
         }
       }

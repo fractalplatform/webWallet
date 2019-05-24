@@ -752,6 +752,7 @@ export default class AccountList extends Component {
     this.state.originalABI = '';
     if (abiInfo != null && abiInfo[this.state.curAccount.accountName] != null) {
       this.state.originalABI = JSON.stringify(abiInfo[this.state.curAccount.accountName]).replace(/\\"/g, '"');
+      this.state.originalABI = this.state.originalABI.substring(1, this.state.originalABI.length - 1);
     }
     this.setState({ contractInfoVisible: true });
   }
