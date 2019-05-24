@@ -130,8 +130,8 @@ export default class ContractManager extends Component {
     const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[funcName], values);
     if (this.state.funcParaConstant[funcName]) {
       const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
-      fractal.ft.call(callInfo, 'latest').then(result => {
-        self.state.result[funcName] = result;
+      fractal.ft.call(callInfo, 'latest').then(resp => {
+        self.state.result[funcName] = resp;
         self.setState({ result: self.state.result });
       });
     } else {
