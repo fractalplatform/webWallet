@@ -192,7 +192,7 @@ export default class RawTxConstructor extends Component {
     this.setState({ testResult: testResultInfo });
     for (const testCase of testCases) {
       try {
-        const txTypeName = TxParser.getActionTypeStr(testCase.actionType);
+        const txTypeName = TxParser.getActionTypeStr(testCase.actions[0].actionType);
         const originalInfo = JSON.stringify(testCase);
         testResultInfo += '\n\n交易类型：' + txTypeName;
         testResultInfo += '\n交易原始信息：' + originalInfo;
@@ -211,7 +211,7 @@ export default class RawTxConstructor extends Component {
             gotReceipt = true;
             const status = receipt.actionResults[0].status;
             const error = receipt.actionResults[0].error;
-            testResultInfo += '\nreceipt已获取，表面此交易执行结果为' + (status == 1 ? '成功' : ('失败，原因：' + error));
+            testResultInfo += '\n通过receipt表明此交易执行结果为:' + (status == 1 ? '成功' : ('失败，原因：' + error));
             result = result && (status == 1);
           }
         }
