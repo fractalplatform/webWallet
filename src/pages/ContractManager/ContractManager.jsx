@@ -43,6 +43,9 @@ export default class ContractManager extends Component {
   }
 
   componentDidMount = async () => {
+    const chainConfig = await fractal.ft.getChainConfig();
+    fractal.ft.setChainId(chainConfig.chainId);
+    
     const accounts = await utils.loadAccountsFromLS();
     for (let account of accounts) {
       this.state.accounts.push(account.accountName);

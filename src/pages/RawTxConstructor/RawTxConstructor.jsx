@@ -40,7 +40,10 @@ export default class RawTxConstructor extends Component {
       testScene: '',
     };
   }
-
+  componentDidMount = async () => {
+    const chainConfig = await fractal.ft.getChainConfig();
+    fractal.ft.setChainId(chainConfig.chainId);
+  }
   rlpEncode = () => {
     const payloadInfos = this.state.payload.split(',');
     const encodeInfos = [];

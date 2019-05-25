@@ -46,10 +46,13 @@ export default class RawTxConstructor extends Component {
     };
   }
   componentDidMount = () => {
-    const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
-    if (testCases != null) {
-      this.setState({ sceneTestCase: JSON.stringify(testCases) });
-    }
+    fractal.ft.getChainConfig().then(chainConfig => {
+      fractal.ft.setChainId(chainConfig.chainId);
+      const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+      if (testCases != null) {
+        this.setState({ sceneTestCase: JSON.stringify(testCases) });
+      }
+    });
   }
   rlpEncode = () => {
     const payloadInfos = this.state.payload.split(',');
@@ -185,7 +188,7 @@ export default class RawTxConstructor extends Component {
     const predictResult = sceneTestCase.predictResult == 1;
     let result = true;
     const testCases = sceneTestCase.testCases;
-    let testResultInfo = '测试场景：' + testSceneName + ', 此场景包含测试用例数：' + testCases.length + ', 预期结果为:' + (predictResult ? '成功' : '失败');
+    let testResultInfo = '测试场景：' + testSceneName + '\n此场景包含测试用例数：' + testCases.length + ', 预期结果为:' + (predictResult ? '成功' : '失败');
     this.setState({ testResult: testResultInfo });
     for (const testCase of testCases) {
       try {
@@ -218,7 +221,7 @@ export default class RawTxConstructor extends Component {
       }
       this.setState({ testResult: testResultInfo });
     }
-    testResultInfo += '\n本测试场景与预期:' + (predictResult != result ? '相符' : '不符') + '\n\n';
+    testResultInfo += '\n本测试场景与预期:' + (predictResult == result ? '相符' : '不符') + '\n\n';
     this.setState({ testResult: testResultInfo });
     return predictResult != result;
   }
@@ -258,7 +261,7 @@ export default class RawTxConstructor extends Component {
         />
         <br />
         <br />       
-        <Button type="primary" onClick={this.parseSceneTestCase.bind(this)}>解析测试用例</Button>
+        <Button type="primary" onClick={this.parseSceneTestCase.bind(this)}>解析以上场景测试用例</Button>
         <br />
         <br />
         <Select

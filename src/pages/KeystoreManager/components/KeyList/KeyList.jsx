@@ -9,6 +9,7 @@ import EthCrypto from 'eth-crypto';
 import EccCrypto from 'eccrypto';
 import * as ethUtil from 'ethereumjs-util';
 import copy from 'copy-to-clipboard';
+import * as fractal from 'fractal-web3';
 
 import CellEditor from './CellEditor';
 import * as utils from '../../../../utils/utils'; 
@@ -79,7 +80,9 @@ export default class KeyList extends Component {
     })
   }
 
-  componentDidMount() {
+  componentDidMount = async () => {
+    const chainConfig = await fractal.ft.getChainConfig();
+    fractal.ft.setChainId(chainConfig.chainId);
     const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
     if (keystoreInfoObj == null) {
       return;

@@ -113,13 +113,13 @@ export default class AccountList extends Component {
       fractal.dpos.getDposInfo().then(dposInfo => this.state.dposInfo = dposInfo);
       //fractal.ft.getChainConfig().then(chainConfig => this.state.chainConfig = chainConfig);
       this.state.chainConfig = await fractal.ft.getChainConfig();
+      fractal.ft.setChainId(this.state.chainConfig.chainId);
       this.state.chainConfig.sysTokenID = 0;
       const assetInfo = await fractal.account.getAssetInfoById(this.state.chainConfig.sysTokenID);
       this.state.assetInfos[this.state.chainConfig.sysTokenID] = assetInfo;
       this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
       this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
       fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => this.state.irreversibleInfo = irreversibleInfo);
-      fractal.ft.setChainId(this.state.chainConfig.chainId);
 
       this.state.keystoreList = utils.loadKeystoreFromLS();
       utils.loadAccountsFromLS().then(accountInfos => { 
@@ -314,11 +314,11 @@ export default class AccountList extends Component {
           let transaction = txInfo;
           
           for (const actionInfo of txInfo.actions) {
-            if (this.state.assetInfos[actionInfo.assetId] === undefined) {
-              const asset = await fractal.account.getAssetInfoById(actionInfo.assetId);
-              this.state.assetInfos[actionInfo.assetId] = asset;
+            if (this.state.assetInfos[actionInfo.assetID] === undefined) {
+              const asset = await fractal.account.getAssetInfoById(actionInfo.assetID);
+              this.state.assetInfos[actionInfo.assetID] = asset;
             }
-            const parsedAction = txParser.parseAction(actionInfo, this.state.assetInfos[actionInfo.assetId], this.state.assetInfos, this.state.dposInfo);
+            const parsedAction = txParser.parseAction(actionInfo, this.state.assetInfos[actionInfo.assetID], this.state.assetInfos, this.state.dposInfo);
             if (txInfo.txStatus != Constant.TxStatus.SendError && txInfo.txStatus != Constant.TxStatus.NotExecute) {
               parsedAction.result = actionInfo.status == 1 ? '成功' : `失败（${actionInfo.error}）`;
               parsedAction.gasFee = actionInfo.gasUsed;

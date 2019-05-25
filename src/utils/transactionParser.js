@@ -199,7 +199,13 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         const assetId = payloadInfo[0][0] == null ? 0 : payloadInfo[0][0];
         let amount = bytes2Number(payloadInfo[1]).toNumber();
         const addedAssetInfo = allAssetInfos[assetId];
-        amount = getReadableNumber(amount, addedAssetInfo.decimals);
+        if (addedAssetInfo != null) {
+          amount = getReadableNumber(amount, addedAssetInfo.decimals);
+        } else {
+          fractal.account.getAssetInfoById(assetId).then(asset => {
+            allAssetInfos[assetId] = asset;
+          });
+        }
         const toAccount = String.fromCharCode.apply(null, payloadInfo[2]);
         actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId},资产名称:${addedAssetInfo.assetName}, 增发数量=${amount}${addedAssetInfo.symbol}`;
         actionParseInfo.detailObj = { assetId, assetName: assetInfo.assetname, amount, toAccount };

@@ -26,6 +26,7 @@ if (nodeInfo != null && nodeInfo !== '') {
   axios.defaults.baseURL = nodeInfo;
   fractal.utils.setProvider(nodeInfo);
 }
+
 if (!window.localStorage) {
   Feedback.toast.warn('请升级浏览器，当前浏览器无法保存交易结果');
 }
