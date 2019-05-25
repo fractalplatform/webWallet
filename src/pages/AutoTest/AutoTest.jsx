@@ -223,7 +223,7 @@ export default class RawTxConstructor extends Component {
     }
     testResultInfo += '\n本测试场景与预期:' + (predictResult == result ? '相符' : '不符') + '\n\n';
     this.setState({ testResult: testResultInfo });
-    return predictResult != result;
+    return predictResult == result;
   }
 
   testOneScene = async () => {
@@ -231,7 +231,10 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.error('请先选其中一个测试场景');
       return;
     }
-    this.execTest(this.state.testSceneName);
+    const bMatchPredictResult = await this.execTest(this.state.testSceneName);
+    if (!bMatchPredictResult) {
+      this.setState({ nonPredictTestScenes: [this.state.testSceneName] });
+    }
   }
   
   testAllScene = async () => {
@@ -241,7 +244,7 @@ export default class RawTxConstructor extends Component {
     }
     const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
     for (const testSceneName of Object.keys(sceneTestCaseObj)) {
-      const bMatchPredictResult = this.execTest(testSceneName);
+      const bMatchPredictResult = await this.execTest(testSceneName);
       if (!bMatchPredictResult) {
         nonPredictTestScenes.push(testSceneName);
       }
