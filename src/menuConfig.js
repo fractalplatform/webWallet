@@ -113,6 +113,10 @@ const asideMenuConfig = [
         name: '交易构造',
         path: '/rawTxConstructor',
       },
+      {
+        name: '自动化测试',
+        path: '/autoTest',
+      },
     ],
   },
 ];

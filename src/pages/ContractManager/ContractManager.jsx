@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
-import { Input, Feedback, Card, Select } from '@icedesign/base';
+import { Input, Feedback, Card, Select, Checkbox } from '@icedesign/base';
+import Container from '@icedesign/container';
 import { Button } from '@alifd/next';
 import * as fractal from 'fractal-web3';
 import cookie from 'react-cookies';
@@ -15,9 +16,10 @@ export default class ContractManager extends Component {
   constructor(props) {
     super(props);
     let abiInfoStr = '';
-    const abiInfo = cookie.load('abiInfo');
+    const abiInfo = global.localStorage.getItem('abiInfo');
     if (abiInfo != null) {
       abiInfoStr = JSON.stringify(abiInfo).replace(/\\"/g, '"');
+      abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
     }
     const abiContractName = cookie.load('abiContractName');
 
@@ -35,6 +37,8 @@ export default class ContractManager extends Component {
       contractName: abiContractName,
       contractAccount: abiContractName,
       selectedAccountName: '',
+      transferTogether: {},
+      visibilityValue: {},
     };
   }
 
@@ -44,12 +48,19 @@ export default class ContractManager extends Component {
       this.state.accounts.push(account.accountName);
     }
 
-    const abiInfo = cookie.load('abiInfo');
+    const abiInfo = global.localStorage.getItem('abiInfo');
     if (abiInfo != null) {
-      const abiInfoStr = JSON.stringify(abiInfo).replace(/\\"/g, '"');
+      let abiInfoStr = JSON.stringify(abiInfo).replace(/\\"/g, '"');
+      abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
       this.setState({ storedAbiInfo: abiInfoStr });
     }
   }
+
+  // shouldComponentUpdate(nextProps, nextState){
+  //   console.log(this.state.visibilityValue);
+  //   console.log(nextState.visibilityValue);
+  //   return true;
+  // }
 
   handleContractAccountChange = (value) => {
     this.state.contractAccount = value;
@@ -89,7 +100,7 @@ export default class ContractManager extends Component {
         this.state.contractFuncInfo.push(<br />);
       }
     }
-    cookie.save('abiInfo', this.state.abiInfo);
+    global.localStorage.setItem('abiInfo', this.state.abiInfo);
     this.setState({ contractFuncInfo: this.state.contractFuncInfo, txSendVisible: false });
   }
 
@@ -132,11 +143,13 @@ export default class ContractManager extends Component {
       const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
         console.log(funcName + '=>' + resp);
-        self.setState({ result: { funcName: resp } });
+        var obj = document.getElementById(funcName + 'Result');
+        obj.value= resp;
+        self.setState({ result: { funcName: resp }, txSendVisible: false });
       });
     } else {
-      const assetId = parseInt(this.state.paraValue[funcName + '-transferAssetId']);
-      const amount = parseInt(this.state.paraValue[funcName + '-transferAssetValue']);
+      const assetId = this.state.transferTogether[funcName] ? parseInt(this.state.paraValue[funcName + '-transferAssetId']) : 0;
+      const amount = this.state.transferTogether[funcName] ? parseInt(this.state.paraValue[funcName + '-transferAssetValue']) : 0;
       this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
         toAccountName: this.state.contractAccount,
         assetId,
@@ -149,6 +162,7 @@ export default class ContractManager extends Component {
   generateOneFunc = (funcName, parameterTypes, parameterNames) => {
     let index = 0;
     let inputElements = [];
+    const self = this;
     parameterNames.forEach(paraName => {
       inputElements.push(<Input hasClear
         onChange={this.handleParaValueChange.bind(this, funcName, paraName)}
@@ -156,30 +170,47 @@ export default class ContractManager extends Component {
         addonBefore={paraName}
         size="medium"
         placeholder={parameterTypes[index++]}
-      />, <br />, <br />)
+      />, <br />, <br />,
+      )
     });
     if (!this.state.funcParaConstant[funcName]) {
-      inputElements.push(<Input hasClear
-        onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetId')}
-        style={{ width: 600 }}
-        addonBefore='转账资产ID'
-        size="medium"
-      />, <br />, <br />,
-      <Input hasClear
-        onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetValue')}
-        style={{ width: 600 }}
-        addonBefore='转账资产金额'
-        size="medium"
-      />, <br />, <br />,)
+      const transferTogether = this.state.transferTogether[funcName];
+      this.state.visibilityValue[funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
+      inputElements.push(
+      <Checkbox
+        onChange={checked => {
+          let transferTogether = utils.deepClone(self.state.transferTogether);
+          transferTogether[funcName] = checked;
+          let visibilityValue = utils.deepClone(self.state.visibilityValue);
+          visibilityValue[funcName] = checked ? 'block' : 'none';
+          // self.state.visibilityValue[funcName] = checked ? 'block' : 'none';
+          self.setState({ transferTogether, visibilityValue });
+          var obj = document.getElementById(funcName + 'Container');
+          obj.style.display= visibilityValue[funcName];
+        }}>附带转账</Checkbox>,<br />,<br />,
+      <Container id={funcName + 'Container'} style={{display: self.state.visibilityValue[funcName], height:'50'}}>
+        <Input hasClear
+          onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetId')}
+          style={{ width: 600 }}
+          addonBefore='转账资产ID'
+          size="medium"
+        /><br /><br />
+        <Input hasClear
+          onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetValue')}
+          style={{ width: 600 }}
+          addonBefore='转账资产金额'
+          size="medium"
+        />
+      </Container>,)
     }
     const oneElement = <Card style={{ width: 800 }} bodyHeight="auto" title={funcName}>
                         {inputElements}
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>发起调用</Button>
                         <br />
                         <br />
-                        <Input style={{ width: 600 }} addonBefore='结果' size="medium" value={this.state.result[funcName]}/>
+                        <Input id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium" value={this.state.result[funcName]}/>
                       </Card>;
-  return oneElement;
+    return oneElement;
   }
 
   importABI = () => {
@@ -238,7 +269,7 @@ export default class ContractManager extends Component {
         <Button type="primary" onClick={this.parseABI.bind(this)}>解析ABI</Button>
         <br />
         <br />
-        {this.state.contractFuncInfo}
+        {this.state.contractFuncInfo.map(item => item)}
 
         <TxSend visible={this.state.txSendVisible} txInfo={this.state.txInfo} accountName={this.state.selectedAccountName}/>
       </div>

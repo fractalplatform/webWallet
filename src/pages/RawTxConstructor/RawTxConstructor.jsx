@@ -37,7 +37,7 @@ export default class RawTxConstructor extends Component {
       resultTypes: [{value:0, label:'失败'}, {value:1, label:'成功'}],
       checkProcedure: '',
       historyInfo: {},
-      testScene: {},
+      testScene: '',
     };
   }
 
@@ -74,62 +74,74 @@ export default class RawTxConstructor extends Component {
     return new BigNumber(numberStr).toNumber();
   }
 
+  hasPayloadTx = (actionType) => {
+    return actionType != Constant.TRANSFER && actionType != Constant.UNREG_CANDIDATE 
+        && actionType != Constant.REFUND_DEPOSIT && actionType != Constant.DESTORY_ASSET;
+  }
   // const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [owner, weight]]]).toString('hex');
   generateTxInfo = () => {
-    const actionType = this.state['actionType'];
-    this.state.payloadElements = [];
-    let payloadDetailInfo = {};
-    if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {
-      this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
-                                   [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
-    } else if (actionType != Constant.CREATE_CONTRACT) {
-      const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
-      for (let i = 0; i < payloadInfoNum; i++) {
-        let actionValue = this.state[actionType + '-' + i];
-        let value = '';
-        if (actionValue == null) {
-          this.state.payloadElements.push('');
-        } else if (actionValue.isNumber) {
-          value = new BigNumber(actionValue.value).toNumber();
-          this.state.payloadElements.push(value);
-        } else {
-          value = actionValue.value;
-          this.state.payloadElements.push(actionValue.value);
+    try {
+      const actionType = this.state['actionType'];
+      this.state.payloadElements = [];
+      let payloadDetailInfo = {};
+      if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {
+        this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
+                                    [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
+        for (let i = 0; i < 5; i++) {
+          payloadDetailInfo[this.state[actionType + '-' + 0].payloadName] = this.state[actionType + '-' + 0].value;
         }
-        payloadDetailInfo[actionValue.payloadName] = value;
+      } else if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {
+        const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
+        for (let i = 0; i < payloadInfoNum; i++) {
+          let actionValue = this.state[actionType + '-' + i];
+          let value = '';
+          if (actionValue == null) {
+            this.state.payloadElements.push('');
+          } else if (actionValue.isNumber) {
+            value = new BigNumber(actionValue.value).toNumber();
+            this.state.payloadElements.push(value);
+          } else {
+            value = actionValue.value;
+            this.state.payloadElements.push(actionValue.value);
+          }
+          payloadDetailInfo[actionValue.payloadName] = value;
+        }
       }
-    }
-    let payload = '';
-    if (actionType != Constant.CREATE_CONTRACT) {
-      payload = '0x' + (this.state.payloadElements.length > 0 ? encode(this.state.payloadElements).toString('hex') : '');
-    } else {
-      payload = this.state[actionType + '-' + 0].value;
-      if (payload.indexOf('0x') < 0) {
-        payload = '0x' + payload;
+      let payload = '';
+      if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {
+        payload = '0x' + (this.state.payloadElements.length > 0 ? encode(this.state.payloadElements).toString('hex') : '');
+      } else if (this.hasPayloadTx(actionType)) {
+        payload = this.state[actionType + '-' + 0].value;
+        if (payload.indexOf('0x') < 0) {
+          payload = '0x' + payload;
+        }
+        payloadDetailInfo[this.state[actionType + '-' + 0].payloadName] = payload;
       }
+      
+      let zeros = '';
+      if (this.state.zeroNum != null && this.state.zeroNum > 0) {
+        zeros = '0'.repeat(this.state.zeroNum);
+      }
+      const txInfo = {
+        gasAssetId: this.getNumber(this.state['gasAssetId']),
+        gasPrice: utils.isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
+        actions: [{
+          actionType: this.getNumber(this.state['actionType']),
+          accountName: this.state['accountName'], 
+          nonce: this.getNumber(this.state['nonce']), 
+          gasLimit: this.getNumber(this.state['gasLimit']), 
+          toAccountName: this.state['toAccountName'], 
+          assetId: this.getNumber(this.state['assetId']), 
+          amount: this.getNumber(this.state['amount'] + zeros), 
+          payload, 
+          payloadDetailInfo,
+          remark: this.state['remark'], 
+        }]
+      };
+      this.setState({ txInfo: JSON.stringify(txInfo) });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
-    
-    let zeros = '';
-    if (this.state.zeroNum != null && this.state.zeroNum > 0) {
-      zeros = '0'.repeat(this.state.zeroNum);
-    }
-    const txInfo = {
-      gasAssetId: this.getNumber(this.state['gasAssetId']),
-      gasPrice: utils.isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
-      actions: [{
-        actionType: this.getNumber(this.state['actionType']),
-        accountName: this.state['accountName'], 
-        nonce: this.getNumber(this.state['nonce']), 
-        gasLimit: this.getNumber(this.state['gasLimit']), 
-        toAccountName: this.state['toAccountName'], 
-        assetId: this.getNumber(this.state['assetId']), 
-        amount: this.getNumber(this.state['amount'] + zeros), 
-        payload, 
-        payloadDetailInfo,
-        remark: this.state['remark'], 
-      }]
-    };
-    this.setState({ txInfo: JSON.stringify(txInfo) });
   }
 
   handleTxInfoChange = (v) => {
@@ -176,10 +188,10 @@ export default class RawTxConstructor extends Component {
   }
 
   sendTransaction = () => {
-    // if (!ethUtil.isValidPrivate(Buffer.from(utils.hex2Bytes(this.state.privateKey)))) {
-    //   Feedback.toast.error('请输入合法的私钥');
-    //   return;
-    // }
+    if (utils.isEmptyObj(this.state.privateKey)) {
+      Feedback.toast.error('请输入私钥');
+      return;
+    }
     if (utils.isEmptyObj(this.state.txInfo)) {
       Feedback.toast.error('请先生成交易内容');
       return;
@@ -241,30 +253,35 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="合约byteCode:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_CONTRACT, 'byteCode', 0, false)}/>
             );
         break;    
       case Constant.CREATE_NEW_ACCOUNT:
         this.state.payloadInfos.push(
-          <Input hasClear
+          <Input id={Constant.CREATE_NEW_ACCOUNT + '-newAccountName'} hasClear
             style={styles.commonElement}
             addonBefore="新账户名:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'newAccountName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'founder', 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="公钥:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'publicKey', 2, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="描述:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'desc', 3, false)}/>
           );
         break;
@@ -274,6 +291,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT, 'founder', 0, false)}/>
           );
         break;
@@ -283,11 +301,13 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="执行交易阈值:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'threshold', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="更新权限所需阈值:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'updateThreshold', 1, true)}/>,<br/>,<br/>,
           <Select hasClear
             style={styles.commonElement}
@@ -298,11 +318,13 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="用户名/地址/公钥:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opContent', 3, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="权重:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'weight', 4, true)}/>
           );
         break;
@@ -312,46 +334,55 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="资产名:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'assetName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="符号:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'symbol', 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="本次发行量:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'amount', 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="精度:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'decimals', 3, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'founder', 4, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="管理者:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'manager', 5, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="发行上限:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'upperLimit', 6, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="合约账号:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'contractName', 7, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产描述:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'desc', 8, false)}/>
           );
         break;
@@ -361,16 +392,19 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="增发数量:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'amount', 1, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="接收资产账号:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'accountName', 2, false)}/>
           );
         break;
@@ -382,11 +416,13 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新管理者账号:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'accountName', 1, false)}/>
           );
         break;
@@ -396,11 +432,13 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新创办者账号:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'accountName', 1, false)}/>
           );
         break;
@@ -410,6 +448,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="URL:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.REG_CANDIDATE, 'url', 0, false)}/>
           );
         break;
@@ -419,6 +458,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="URL:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_CANDIDATE, 'url', 0, false)}/>
           );
         break;
@@ -430,11 +470,13 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="候选者账号:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'accountName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="投票数:"
             size="medium"
+            defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'voteNumber', 1, true)}/>
           );
         break;
@@ -570,77 +612,83 @@ export default class RawTxConstructor extends Component {
         </IceContainer>
         <br />
         <br />
-        <Button type="primary" onClick={this.generateTxInfo.bind(this)}>生成交易内容</Button>
-        <br />
-        <br />
-        <Input multiple
-          rows="13"
-          style={styles.otherElement}
-          addonBefore="交易内容:"
-          size="medium"
-          value={this.state.txInfo}
-          onChange={this.handleTxInfoChange.bind(this)}
-        />
-        <br />
-        <br />       
-        <Button type="primary" onClick={this.sendTransaction.bind(this)}>发送交易</Button>
-        <br />
-        <br />
-        <Input multiple
-          rows="2"
-          style={styles.otherElement}
-          addonBefore="交易结果:"
-          size="medium"
-          value={this.state.txResult}
-        />
-        <br />
-        <br />
-        <Button type="primary" onClick={this.getReceipt.bind(this)}>获取Receipt</Button>
-        &nbsp;&nbsp;
-        <Button type="primary" onClick={this.getTxInfo.bind(this)}>获取交易</Button>
-        <br />
-        <br />
-        <Input multiple
-          rows="10"
-          style={styles.otherElement}
-          addonBefore="Receipt/交易"
-          size="medium"
-          value={this.state.receipt}
-        />
-        <br />
-        <br />
-        <Button type="primary" onClick={this.addTestCase.bind(this)}>向测试场景中添加以上原始交易信息</Button>
-        <br />
-        <br />
-        <Input multiple
-          rows="10"
-          style={styles.otherElement}
-          addonBefore="测试场景"
-          size="medium"
-          value={this.state.testScene}
-        />
-        <br />
-        <br />
-        <Select
-            style={styles.otherElement}
-            placeholder="选择预期结果"
-            onChange={this.onChangeResultType.bind(this)}
-            dataSource={this.state.resultTypes}
+        <IceContainer style={styles.container} title='执行交易'>
+          <Button type="primary" onClick={this.generateTxInfo.bind(this)}>生成交易内容</Button>
+          <br />
+          <br />
+          <Input multiple
+            rows="13"
+            style={styles.commonElement}
+            addonBefore="交易内容:"
+            size="medium"
+            value={this.state.txInfo}
+            onChange={this.handleTxInfoChange.bind(this)}
           />
+          <br />
+          <br />       
+          <Button type="primary" onClick={this.sendTransaction.bind(this)}>发送交易</Button>
+          <br />
+          <br />
+          <Input multiple
+            rows="2"
+            style={styles.commonElement}
+            addonBefore="交易结果:"
+            size="medium"
+            value={this.state.txResult}
+          />
+          <br />
+          <br />
+          <Button type="primary" onClick={this.getReceipt.bind(this)}>获取Receipt</Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.getTxInfo.bind(this)}>获取交易</Button>
+          <br />
+          <br />
+          <Input multiple
+            rows="10"
+            style={styles.commonElement}
+            addonBefore="Receipt/交易"
+            size="medium"
+            value={this.state.receipt}
+          />
+        </IceContainer>
         <br />
         <br />
-        <Input 
-          style={styles.otherElement}
-          addonBefore="场景名称"
-          size="medium"
-          placeholder="注意：如名称重复，会覆盖之前的测试场景"
-          onChange={this.handleTestSceneNameChange.bind(this)}
-        />
-        <br />
-        <br />
-        <Button type="primary" onClick={this.saveTestScene.bind(this)}>保存此测试场景</Button>
-        &nbsp;&nbsp;
-        <Button type="primary" onClick={this.exportTestScene.bind(this)}>导出所有测试场景</Button>
+        <IceContainer style={styles.container} title='测试场景'>
+          <Button type="primary" onClick={this.addTestCase.bind(this)}>将生成的交易内容添加到测试场景中</Button>
+          <br />
+          <br />
+          <Input multiple
+            rows="10"
+            style={styles.commonElement}
+            addonBefore="测试场景"
+            size="medium"
+            value={this.state.testScene}
+            onChange={this.onChangeTestScene.bind(this)}
+          />
+          <br />
+          <br />
+          <Select
+              style={styles.commonElement}
+              placeholder="选择预期结果"
+              onChange={this.onChangeResultType.bind(this)}
+              dataSource={this.state.resultTypes}
+            />
+          <br />
+          <br />
+          <Input 
+            style={styles.commonElement}
+            addonBefore="场景名称"
+            size="medium"
+            placeholder="注意：会覆盖之前同名的测试场景"
+            onChange={this.handleTestSceneNameChange.bind(this)}
+          />
+          <br />
+          <br />
+          <Button type="primary" onClick={this.saveTestScene.bind(this)}>保存此测试场景</Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.exportTestScene.bind(this)}>导出所有测试场景</Button>
+        </IceContainer>
+        
         {/* <Button type="primary" onClick={this.checkResult.bind(this)}>校验链上相关状态</Button>
         <br />
         <br />
@@ -655,6 +703,11 @@ export default class RawTxConstructor extends Component {
     );
   }
   addTestCase = () => {
+    if (utils.isEmptyObj(this.state.privateKey)) {
+      Feedback.toast.error('请输入私钥');
+      return;
+    }
+
     if (utils.isEmptyObj(this.state.txInfo)) {
       Feedback.toast.error('请先生成交易内容');
       return;
@@ -664,16 +717,20 @@ export default class RawTxConstructor extends Component {
     if (!utils.isEmptyObj(this.state.testScene)) {
       txInfoArr = JSON.parse(this.state.testScene);
     }
-
-    txInfoArr.push(JSON.parse(this.state.txInfo.trim()));
+    const txInfo = JSON.parse(this.state.txInfo.trim());
+    txInfo.privateKey = this.state.privateKey;
+    txInfoArr.push(txInfo);
     this.setState({ testScene: JSON.stringify(txInfoArr) });
+  }
+  onChangeTestScene = (v) => {
+    this.setState({ testScene: v });
   }
   saveTestScene = () => {
     if (utils.isEmptyObj(this.state.testScene) || !Array.isArray(JSON.parse(this.state.testScene))) {
       Feedback.toast.error('测试数据有误，请检查');
       return;
     }
-    if (utils.isEmptyObj(this.state.resultType)) {
+    if (this.state.resultType != 1 && this.state.resultType != 0) {
       Feedback.toast.error('请选择对此测试场景的预期结果');
       return;
     }
@@ -689,11 +746,12 @@ export default class RawTxConstructor extends Component {
     if (testSceneFile == null) {
       testSceneFile = {};
     }
-    testSceneFile.sceneName = oneTestScene;
-    utils.storeDataToFile(Constant.TestSceneFile, JSON.stringify(testSceneFile));
+    testSceneFile[this.state.sceneName] = oneTestScene;
+    utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
   }
   exportTestScene = () => {
-    copy(value);
+    let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
+    copy(JSON.stringify(testSceneFile));
     Feedback.toast.success('测试用例已复制到粘贴板');
   }
   handleTestSceneNameChange = (v) => {

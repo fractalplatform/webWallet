@@ -34,6 +34,7 @@ import OperateAsset from './pages/OperateAsset';
 import Transaction from './pages/Transaction';
 import ProducerList from './pages/ProducerList';
 import RawTxConstructor from './pages/RawTxConstructor';
+import AutoTest from './pages/AutoTest';
 
 const routerConfig = [
   {
@@ -155,6 +156,11 @@ const routerConfig = [
     path: '/rawTxConstructor',
     layout: BasicLayout,
     component: RawTxConstructor,
+  },
+  {
+    path: '/autoTest',
+    layout: BasicLayout,
+    component: AutoTest,
   },
   {
     path: '/producerList',

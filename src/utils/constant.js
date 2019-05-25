@@ -32,6 +32,7 @@ export const KeyStoreFile = 'keystoreInfo';
 export const TxInfoFile = 'txInfo';
 export const ContractABIFile = 'contractABI';
 export const TestSceneFile = 'testScene';
+export const CurTestSceneCases = 'curTestSceneCases';
 
 export const PublicKeyPrefix = '0x04';
 export const ChainIdPrefix = 'ChainId-';
