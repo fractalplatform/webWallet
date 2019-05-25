@@ -37,7 +37,7 @@ export default class AccountList extends Component {
       selfAccount: '',
       accountReg: new RegExp('^[a-z0-9]{7,16}(\\.[a-z0-9]{1,8}){0,1}$'),
       numberReg: new RegExp('^[1-9][0-9]*(\\.[0-9]*){0,1}$'),
-      gasReg: new RegExp('^[1-9][0-9]*'),
+      idReg: new RegExp('^[1-9][0-9]*'),
       fractalPublicKey: '',
       selfPublicKey: '',
       otherPublicKey: '',
@@ -154,29 +154,54 @@ export default class AccountList extends Component {
       Feedback.toast.error('请输入账号');
       return;
     }
-    if (!this.state.accountReg.test(this.state.importAccountName)) {
+    if (!this.state.accountReg.test(this.state.importAccountName) && !this.state.idReg.test(this.state.importAccountName)) {
       Feedback.toast.error('账号格式错误');
       return;
     }
-    for (const account of this.state.accountInfos) {
-      if (account.accountName == this.state.importAccountName) {
-        Feedback.toast.error('账号已存在，不可重复导入!');
-        return;
-      }
-    }
-    try {
-      const self = this;
-      fractal.account.getAccountByName(this.state.importAccountName).then(account => {
-        if (account != null) {
-          const accountInfos = [...self.state.accountInfos, account];
-          self.setState({ accountInfos, importAccountVisible: false });
-          self.saveAccountsToLS();
-        } else {
-          Feedback.toast.error('账户不存在');
+    const self = this;
+    if (this.state.idReg.test(this.state.importAccountName)) {
+      const accountId = parseInt(this.state.importAccountName);
+      for (const account of this.state.accountInfos) {
+        if (account.accountID == accountId) {
+          Feedback.toast.error('账号已存在，不可重复导入!');
+          return;
         }
-      });
-    } catch (error) {
-      Feedback.toast.error(error);
+      }
+  
+      try {
+        fractal.account.getAccountById(accountId).then(account => {
+          if (account != null) {
+            const accountInfos = [...self.state.accountInfos, account];
+            self.setState({ accountInfos, importAccountVisible: false });
+            self.saveAccountsToLS();
+          } else {
+            Feedback.toast.error('账户不存在');
+          }
+        });
+      } catch (error) {
+        Feedback.toast.error(error);
+      }
+    } else {
+      for (const account of this.state.accountInfos) {
+        if (account.accountName == this.state.importAccountName) {
+          Feedback.toast.error('账号已存在，不可重复导入!');
+          return;
+        }
+      }
+  
+      try {
+        fractal.account.getAccountByName(this.state.importAccountName).then(account => {
+          if (account != null) {
+            const accountInfos = [...self.state.accountInfos, account];
+            self.setState({ accountInfos, importAccountVisible: false });
+            self.saveAccountsToLS();
+          } else {
+            Feedback.toast.error('账户不存在');
+          }
+        });
+      } catch (error) {
+        Feedback.toast.error(error);
+      }
     }
   };
 
@@ -1613,7 +1638,7 @@ export default class AccountList extends Component {
           <Input hasClear
             onChange={this.handleImportAccountChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="账号"
+            addonBefore="账号名/ID"
             size="medium"
             defaultValue=""
             maxLength={16}
