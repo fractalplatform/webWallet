@@ -41,6 +41,8 @@ export default class ContractManager extends Component {
       transferTogether: {},
       visibilityValue: {},
       curCallFuncName: '',
+      curTxResult: {},
+      resultDetailInfo: '',
     };
   }
 
@@ -167,6 +169,8 @@ export default class ContractManager extends Component {
   generateOneFunc = (funcName, parameterTypes, parameterNames) => {
     let index = 0;
     let inputElements = [];
+    let txReceiptBtns = [];
+    let callBtnName = '查询结果';
     const self = this;
     parameterNames.forEach(paraName => {
       inputElements.push(<Input hasClear
@@ -179,6 +183,7 @@ export default class ContractManager extends Component {
       )
     });
     if (!this.state.funcParaConstant[funcName]) {
+      callBtnName = '发起合约交易';
       const transferTogether = this.state.transferTogether[funcName];
       this.state.visibilityValue[funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
       inputElements.push(
@@ -206,16 +211,60 @@ export default class ContractManager extends Component {
           addonBefore='转账资产金额'
           size="medium"
         />
-      </Container>,)
+      </Container>,);
+
+      txReceiptBtns.push(<br />,<br />,
+        <Button type="primary" onClick={this.getTxInfo.bind(this, funcName)} style={{marginRight: '20px'}}>查询交易</Button>,
+        <Button type="primary" onClick={this.getReceiptInfo.bind(this, funcName)}>查询Receipt</Button>,<br />,<br />,
+        <Input id={funcName + 'TxReceipt'} 
+          multiple
+          rows="5"
+          style={{ width: 600 }}
+          addonBefore="交易/Receipt信息:"
+          size="medium"
+        />
+      );
     }
     const oneElement = <Card style={{ width: 800 }} bodyHeight="auto" title={funcName}>
                         {inputElements}
-                        <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>发起调用</Button>
+                        <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>{callBtnName}</Button>
                         <br />
                         <br />
-                        <Input id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium"/>
+                        <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium"/>
+                        {txReceiptBtns}
                       </Card>;
     return oneElement;
+  }
+
+  getTxInfo = (funcName) => {
+    const result = this.state.curTxResult[funcName];
+    if (result != null) {
+      if (result.indexOf('0x') != 0) {
+        Feedback.toast.error('非交易hash，无法查询');
+        return;
+      }
+      fractal.ft.getTransactionByHash(result).then(txInfo => {
+        var obj = document.getElementById(funcName + 'TxReceipt');
+        obj.value= txInfo;
+      });
+    }
+  }
+
+  getReceiptInfo = (funcName) => {
+    if (this.state.curTxResult[funcName] != null) {
+      if (result.indexOf('0x') != 0) {
+        Feedback.toast.error('非交易hash，无法查询');
+        return;
+      }
+      fractal.ft.getTransactionReceipt(result).then(receipt => {
+        var obj = document.getElementById(funcName + 'TxReceipt');
+        obj.value= receipt;
+        const actionResults = receipt.actionResults;
+        if (actionResults[0].status == 0) {
+          Feedback.toast.error('Receipt表明本次交易执行失败，原因：' + actionResults[0].error);
+        }
+      });
+    }
   }
 
   importABI = () => {
@@ -236,6 +285,7 @@ export default class ContractManager extends Component {
   getTxResult = (result) => {
     var obj = document.getElementById(this.state.curCallFuncName + 'Result');
     obj.value= result;
+    this.state.curTxResult[this.state.curCallFuncName] = result;
   }
   render() {
     return (

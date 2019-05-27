@@ -25,7 +25,7 @@ export default class TransactionsTable extends Component {
   }
 
   updateTxInfo = () => {
-    fractal.ft.getCurrentBlock().then(async(block) => {
+    fractal.ft.getCurrentBlock().then(async (block) => {
       var curHeight = block.number;
       var maxLookbackNum = 1000;
       var maxTxNum = 20;
@@ -36,15 +36,15 @@ export default class TransactionsTable extends Component {
         if (txNum >= maxTxNum) {
           break;
         }
-        fractal.ft.getBlockByNum(height, false).then(curBlockInfo => {
-          for (let transaction of curBlockInfo.transactions) {
-            txHashArr.push(transaction.txHash);
-            txNum++;
-            if (txNum >= maxTxNum) {
-              break;
-            }
+        const blockInfo = await fractal.ft.getBlockByNum(height, false);
+
+        for (let txHash of blockInfo.transactions) {
+          txHashArr.push(txHash);
+          txNum++;
+          if (txNum >= maxTxNum) {
+            break;
           }
-        });
+        }
       }
       this.setState({txFrom: { txHashArr }});
       setTimeout(() => { this.updateTxInfo(); }, 3000);

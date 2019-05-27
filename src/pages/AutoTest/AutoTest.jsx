@@ -173,7 +173,7 @@ export default class RawTxConstructor extends Component {
       utils.storeDataToFile(Constant.CurTestSceneCases, sceneTestCaseObj);
       this.setState({sceneTestCaseNames: Object.keys(sceneTestCaseObj)});
     } catch (error) {
-      Feedback.toast.prompt('测试用例解析失败');
+      Feedback.toast.error('测试用例解析失败');
     }
   }
   onChangeTestScene  = (v) => {
