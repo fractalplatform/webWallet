@@ -167,10 +167,16 @@ export default class TxSend extends Component {
           console.log('tx hash=>' + txHash);
           this.processTxSendResult(txInfo, txHash);
           this.onTxConfirmClose();
+          if (this.props.sendResult != null) {
+            this.props.sendResult(txHash);
+          }
         }).catch(error => {
           Feedback.toast.error('交易发送失败：' + error);
           this.addSendErrorTxToFile(txInfo);
           self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
+          if (this.props.sendResult != null) {
+            this.props.sendResult(error);
+          }
         });
       }).catch(error => {
         console.log(error);

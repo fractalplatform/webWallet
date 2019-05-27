@@ -48,7 +48,7 @@ export default class TransactionsTable extends Component {
       }
       this.setState({txFrom: { txHashArr }});
       setTimeout(() => { this.updateTxInfo(); }, 3000);
-    })
+    });
   }
 
 

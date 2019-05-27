@@ -182,6 +182,96 @@ export default class RawTxConstructor extends Component {
       continue;
     }
   }
+  getTxCorrespondingInfo = async (testCase) => {
+    let statusInfo = {};
+    const actionInfo = testCase.actions[0];
+    const actionType = testCase.actions[0].actionType;
+    const fromAccount = await fractal.account.getAccountByName(actionInfo.accountName);
+    statusInfo.fromAccount = fromAccount;
+    const toAccount = await fractal.account.getAccountByName(actionInfo.toAccountName);
+    statusInfo.toAccount = toAccount;
+    switch (actionType) {
+      case Constant.TRANSFER:
+        break;
+      case Constant.CREATE_CONTRACT:
+        break;    
+      case Constant.CREATE_NEW_ACCOUNT:
+        const newAccount = await fractal.account.getAccountByName(actionInfo.payloadDetailInfo.newAccountName);
+        statusInfo.newAccount = newAccount;
+        break;
+      case Constant.UPDATE_ACCOUNT:
+        break;
+      case Constant.UPDATE_ACCOUNT_AUTHOR:
+        break;
+      case Constant.ISSUE_ASSET:
+        const owner = await fractal.account.getAccountByName(actionInfo.payloadDetailInfo.owner);
+        statusInfo.owner = owner;
+        break;
+      case Constant.INCREASE_ASSET:
+        const increaseAccount = await fractal.account.getAccountByName(actionInfo.payloadDetailInfo.accountName);
+        statusInfo.increaseAccount = increaseAccount;
+        break;
+      case Constant.DESTORY_ASSET:
+      case Constant.SET_ASSET_OWNER:
+      case Constant.SET_ASSET_FOUNDER:
+        // 先向fractal.asset转账，然后fractal.asset减去这笔钱，最后修改资产信息
+        const asset = await fractal.account.getAssetInfoById(actionInfo.assetId);
+        statusInfo.asset = asset;
+        break;
+      case Constant.REG_CANDIDATE:
+        break;
+      case Constant.UPDATE_CANDIDATE:
+        break;
+      case Constant.UNREG_CANDIDATE:
+        break;
+      case Constant.VOTE_CANDIDATE:
+        const candidate = await fractal.dpos.getCandidateByName(actionInfo.payloadDetailInfo.accountName);
+        statusInfo.candidate = candidate;
+        break;
+      case Constant.REFUND_DEPOSIT:
+        break;
+      default:
+        console.log('error action type:' + actionInfo.type);
+    }
+    return statusInfo;
+  }
+
+  compareStatusInfo = (testCase, receipt, historyStatusInfo, curStatusInfo, bSuccess) => {
+    const actionType = testCase.actions[0].actionType;
+    switch (actionType) {
+      case Constant.TRANSFER:
+        break;
+      case Constant.CREATE_CONTRACT:
+        break;    
+      case Constant.CREATE_NEW_ACCOUNT:
+        break;
+      case Constant.UPDATE_ACCOUNT:
+        break;
+      case Constant.UPDATE_ACCOUNT_AUTHOR:
+        break;
+      case Constant.ISSUE_ASSET:
+        break;
+      case Constant.INCREASE_ASSET:
+        break;
+      case Constant.DESTORY_ASSET:
+      case Constant.SET_ASSET_OWNER:
+      case Constant.SET_ASSET_FOUNDER:
+        break;
+      case Constant.REG_CANDIDATE:
+        break;
+      case Constant.UPDATE_CANDIDATE:
+        break;
+      case Constant.UNREG_CANDIDATE:
+        break;
+      case Constant.VOTE_CANDIDATE:
+        break;
+      case Constant.REFUND_DEPOSIT:
+        break;
+      default:
+        console.log('error action type:' + actionInfo.type);
+    }
+  }
+
   execTest = async (testSceneName) => {
     const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
     const sceneTestCase = sceneTestCaseObj[testSceneName];
@@ -192,6 +282,8 @@ export default class RawTxConstructor extends Component {
     this.setState({ testResult: testResultInfo });
     for (const testCase of testCases) {
       try {
+        const historyStatusInfo = await this.getTxCorrespondingInfo(testCase);
+
         const txTypeName = TxParser.getActionTypeStr(testCase.actions[0].actionType);
         const originalInfo = JSON.stringify(testCase);
         testResultInfo += '\n\n交易类型：' + txTypeName;
@@ -213,6 +305,8 @@ export default class RawTxConstructor extends Component {
             const error = receipt.actionResults[0].error;
             testResultInfo += '\n通过receipt表明此交易执行结果为:' + (status == 1 ? '成功' : ('失败，原因：' + error));
             result = result && (status == 1);
+
+            const curStatusInfo = await this.getTxCorrespondingInfo(testCase);
           }
         }
       } catch (error) {

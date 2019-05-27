@@ -23,7 +23,7 @@ export default class AssetOperator extends Component {
     this.state = {
       accounts: [],
       selectedAccountName: '',
-      cardHeight: 150,
+      cardHeight: 180,
       dposInfo: {},
       assetInfoSet: [],
     };

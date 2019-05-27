@@ -154,7 +154,7 @@ class BlockTxLayout extends Component {
               </span>
             </div>
             <div className="count" style={styles.smallCount}>
-              {this.state.irreversible.proposedIrreversible}
+              {this.state.irreversible.bftIrreversible}
               <span style={styles.extraIcon}>
                 <Balloon
                   trigger={

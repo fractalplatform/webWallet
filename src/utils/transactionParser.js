@@ -125,7 +125,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           actionParseInfo.detailInfo = `新账号:${newAccount}, 创建者:${founder}, 公钥:${publicKey}, 描述:${accountDesc}`;
           actionParseInfo.detailObj = { newAccount, founder, publicKey, accountDesc };
         } else {
-          actionParseInfo.detailInfo = '未知错误';
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
         }
         break;
       case actionTypes.UPDATE_ACCOUNT:
@@ -137,10 +137,11 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           actionParseInfo.detailInfo = `创建者：${founder}, 手续费收取比例:${chargeRatio}%, 公钥:${publicKey}`;
           actionParseInfo.detailObj = { founder, chargeRatio, publicKey };
         } else {
-          actionParseInfo.detailInfo = '未知错误';
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
         }
         break;
       case actionTypes.UPDATE_ACCOUNT_AUTHOR:
+        actionParseInfo.actionType = '账户权限操作';
         if (payloadInfo.length >= 3) {  // const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [Owner, weight]]]).toString('hex');
           const threshold = bytes2Number(payloadInfo[0]).toNumber();
           const updateAuthorThreshold = bytes2Number(payloadInfo[1]).toNumber();
@@ -191,44 +192,56 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           actionParseInfo.detailInfo = detailInfo;
           actionParseInfo.detailObj = { threshold, updateAuthorThreshold, updateAuthorType, owner, weight };
         } else {
-          actionParseInfo.detailInfo = '未知错误';
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
         }
         break;
-      case actionTypes.INCREASE_ASSET: {
+      case actionTypes.INCREASE_ASSET: 
         actionParseInfo.actionType = '增发资产';
-        const assetId = payloadInfo[0][0] == null ? 0 : payloadInfo[0][0];
-        let amount = bytes2Number(payloadInfo[1]).toNumber();
-        const addedAssetInfo = allAssetInfos[assetId];
-        if (addedAssetInfo != null) {
-          amount = getReadableNumber(amount, addedAssetInfo.decimals);
+        if (payloadInfo.length >= 3) {
+          const assetId = payloadInfo[0][0] == null ? 0 : payloadInfo[0][0];
+          let amount = bytes2Number(payloadInfo[1]).toNumber();
+          const addedAssetInfo = allAssetInfos[assetId];
+          if (addedAssetInfo != null) {
+            amount = getReadableNumber(amount, addedAssetInfo.decimals);
+          } else {
+            fractal.account.getAssetInfoById(assetId).then(asset => {
+              allAssetInfos[assetId] = asset;
+            });
+          }
+          const toAccount = String.fromCharCode.apply(null, payloadInfo[2]);
+          if (addedAssetInfo != null) {
+            actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId},资产名称:${addedAssetInfo.assetName}, 增发数量=${amount}${addedAssetInfo.symbol}`;
+          } else {
+            actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId}, 增发数量=${amount}`;
+          }
+          actionParseInfo.detailObj = { assetId, assetName: assetInfo.assetname, amount, toAccount };
         } else {
-          fractal.account.getAssetInfoById(assetId).then(asset => {
-            allAssetInfos[assetId] = asset;
-          });
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
         }
-        const toAccount = String.fromCharCode.apply(null, payloadInfo[2]);
-        actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId},资产名称:${addedAssetInfo.assetName}, 增发数量=${amount}${addedAssetInfo.symbol}`;
-        actionParseInfo.detailObj = { assetId, assetName: assetInfo.assetname, amount, toAccount };
         break;
-      }
       case actionTypes.ISSUE_ASSET: {
         actionParseInfo.actionType = '发行资产';
-        const assetName = String.fromCharCode.apply(null, payloadInfo[0]);
-        const symbol = String.fromCharCode.apply(null, payloadInfo[1]);
-        let amount = bytes2Number(payloadInfo[2]).toNumber();
-        const decimals = payloadInfo[3][0] === undefined ? 0 : payloadInfo[3][0];
-        const founder = String.fromCharCode.apply(null, payloadInfo[4]);
-        const owner = String.fromCharCode.apply(null, payloadInfo[5]);
-        let upperLimit = bytes2Number(payloadInfo[6]).toNumber();
-        const contract = String.fromCharCode.apply(null, payloadInfo[7]);
-        const desc = String.fromCharCode.apply(null, payloadInfo[8]);
-
-        actionParseInfo.detailObj = { assetName, symbol, amount, decimals, founder, owner, upperLimit };
-
-        amount = getReadableNumber(amount, decimals);
-        upperLimit = getReadableNumber(upperLimit, decimals);
-
-        actionParseInfo.detailInfo = `资产名:${assetName},符号:${symbol},初始发行金额:${amount}${symbol},发行上限:${upperLimit}${symbol},精度:${decimals}位,创办者账号:${founder},管理者账号:${owner},合约账号:${contract},资产描述:${desc}`;
+        if (payloadInfo.length >= 9) {
+          const assetName = String.fromCharCode.apply(null, payloadInfo[0]);
+          const symbol = String.fromCharCode.apply(null, payloadInfo[1]);
+          let amount = bytes2Number(payloadInfo[2]).toNumber();
+          const decimals = payloadInfo[3][0] === undefined ? 0 : payloadInfo[3][0];
+          const founder = String.fromCharCode.apply(null, payloadInfo[4]);
+          const owner = String.fromCharCode.apply(null, payloadInfo[5]);
+          let upperLimit = bytes2Number(payloadInfo[6]).toNumber();
+          const contract = String.fromCharCode.apply(null, payloadInfo[7]);
+          const desc = String.fromCharCode.apply(null, payloadInfo[8]);
+  
+          actionParseInfo.detailObj = { assetName, symbol, amount, decimals, founder, owner, upperLimit };
+  
+          amount = getReadableNumber(amount, decimals);
+          upperLimit = getReadableNumber(upperLimit, decimals);
+  
+          actionParseInfo.detailInfo = `资产名:${assetName},符号:${symbol},初始发行金额:${amount}${symbol},发行上限:${upperLimit}${symbol},精度:${decimals}位,创办者账号:${founder},管理者账号:${owner},合约账号:${contract},资产描述:${desc}`;
+        } else {
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+        }
+        
         break;
       }
       case actionTypes.DESTORY_ASSET:
@@ -236,67 +249,83 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         actionParseInfo.detailInfo = `资产ID:${actionInfo.assetId},数量:${readableNum}`;
         actionParseInfo.detailObj = { accountName: fromAccount, amount: readableNum, assetId: actionInfo.assetId };
         break;
-      case actionTypes.SET_ASSET_OWNER: {
+      case actionTypes.SET_ASSET_OWNER: 
         actionParseInfo.actionType = '设置资产所有者';
-        const assetId = payloadInfo[0][0];
-        const owner = String.fromCharCode.apply(null, payloadInfo[1]);
-        actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的管理者:' + owner;
-        actionParseInfo.detailObj = {};
+        if (payloadInfo.length >= 2) {
+          const assetId = payloadInfo[0][0];
+          const owner = String.fromCharCode.apply(null, payloadInfo[1]);
+          actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的管理者:' + owner;
+          actionParseInfo.detailObj = {};
+        } else {
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+        }
         break;
-      }
-      case actionTypes.SET_ASSET_FOUNDER: {
+      case actionTypes.SET_ASSET_FOUNDER: 
         actionParseInfo.actionType = '设置资产创办者';
-        const assetId = payloadInfo[0][0];
-        const founder = String.fromCharCode.apply(null, payloadInfo[1]);
-        actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的创办者:' + founder;
-        actionParseInfo.detailObj = {};
+        if (payloadInfo.length >= 2) {
+          const assetId = payloadInfo[0][0];
+          const founder = String.fromCharCode.apply(null, payloadInfo[1]);
+          actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的创办者:' + founder;
+          actionParseInfo.detailObj = {};
+        } else {
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+        }
         break;
-      }
-      case actionTypes.REG_CANDIDATE: {
+      case actionTypes.REG_CANDIDATE:
         actionParseInfo.actionType = '注册候选者';
-        if (Array.isArray(payloadInfo)) {
-          const url = String.fromCharCode.apply(null, payloadInfo[0]);
-          actionParseInfo.detailInfo = 'URL:' + url;
+        if (payloadInfo.length >= 1) {
+          if (Array.isArray(payloadInfo)) {
+            const url = String.fromCharCode.apply(null, payloadInfo[0]);
+            actionParseInfo.detailInfo = 'URL:' + url;
+          } else {
+            actionParseInfo.detailInfo = 'URL为空';
+          }
+          actionParseInfo.detailObj = {};
+        } else {
+          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+        }
+        break;
+      case actionTypes.UPDATE_CANDIDATE:
+        actionParseInfo.actionType = '更新候选者';
+        if (payloadInfo.length >= 1) {
+          if (Array.isArray(payloadInfo)) {
+            const url = String.fromCharCode.apply(null, payloadInfo[0]);
+            actionParseInfo.detailInfo = 'URL更新为:' + url;
+          } else {
+            actionParseInfo.detailInfo = 'URL更新为空';
+          }
+  
+          const stake = getReadableNumber(amount, assetInfo.decimals);
+          actionParseInfo.detailInfo += ', 增加抵押票数:' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
+          actionParseInfo.detailObj = {};
         } else {
           actionParseInfo.detailInfo = 'URL为空';
         }
-        actionParseInfo.detailObj = {};
         break;
-      }
-      case actionTypes.UPDATE_CANDIDATE: {
-        actionParseInfo.actionType = '更新候选者';
-        if (Array.isArray(payloadInfo)) {
-          const url = String.fromCharCode.apply(null, payloadInfo[0]);
-          actionParseInfo.detailInfo = 'URL更新为:' + url;
-        } else {
-          actionParseInfo.detailInfo = 'URL更新为空';
-        }
-
-        const stake = getReadableNumber(amount, assetInfo.decimals);
-        actionParseInfo.detailInfo += ', 增加抵押票数:' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
-        actionParseInfo.detailObj = {};
-        break;
-      }
       case actionTypes.UNREG_CANDIDATE:
         actionParseInfo.actionType = '注销候选者';
         actionParseInfo.detailInfo = '候选者:' + fromAccount;
         actionParseInfo.detailObj = {};
         break;
-      case actionTypes.VOTE_CANDIDATE: {
+      case actionTypes.VOTE_CANDIDATE: 
         actionParseInfo.actionType = '给候选者投票';
-        const producerName = String.fromCharCode.apply(null, payloadInfo[0]);
-        let stake = bytes2Number(payloadInfo[1]).dividedBy(new BigNumber(dposInfo.unitStake)).toNumber();
-        stake = getReadableNumber(stake, actionTypes.FT_DECIMALS);
-        actionParseInfo.detailInfo = '候选者:' + producerName + ', 投票数:' + stake;
-        actionParseInfo.detailObj = {};
+        if (payloadInfo.length >= 1) {
+          const producerName = String.fromCharCode.apply(null, payloadInfo[0]);
+          let stake = bytes2Number(payloadInfo[1]).dividedBy(new BigNumber(dposInfo.unitStake)).toNumber();
+          stake = getReadableNumber(stake, actionTypes.FT_DECIMALS);
+          actionParseInfo.detailInfo = '候选者:' + producerName + ', 投票数:' + stake;
+          actionParseInfo.detailObj = {};
+        } else {
+          actionParseInfo.detailInfo = 'URL为空';
+        }
         break;
-      }
       case actionTypes.REFUND_DEPOSIT:
         actionParseInfo.actionType = '取回抵押金';
         actionParseInfo.detailInfo = '候选者:' + fromAccount;
         actionParseInfo.detailObj = {};
         break;
       default:
+        actionParseInfo.actionType = '未知类型：' + actionType;
         console.log('error action type:' + actionInfo.actionType);
     }
     if (amount > 0 && actionInfo.actionType !== actionTypes.TRANSFER && actionInfo.actionType !== actionTypes.DESTORY_ASSET && actionInfo.actionType !== actionTypes.UPDATE_CANDIDATE) {

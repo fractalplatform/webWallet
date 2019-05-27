@@ -318,6 +318,9 @@ export default class AccountList extends Component {
               const asset = await fractal.account.getAssetInfoById(actionInfo.assetID);
               this.state.assetInfos[actionInfo.assetID] = asset;
             }
+            if (actionInfo.error != '') {
+              console.log(actionInfo);
+            }
             const parsedAction = txParser.parseAction(actionInfo, this.state.assetInfos[actionInfo.assetID], this.state.assetInfos, this.state.dposInfo);
             if (txInfo.txStatus != Constant.TxStatus.SendError && txInfo.txStatus != Constant.TxStatus.NotExecute) {
               parsedAction.result = actionInfo.status == 1 ? '成功' : `失败（${actionInfo.error}）`;
@@ -439,7 +442,7 @@ export default class AccountList extends Component {
       fractal.ft.getCurrentBlock(false).then(async (curBlock) => {
         self.state.curBlock = curBlock;
         const curBlockNum = self.state.curBlock.number;
-        const lastIrreveribleBlockNum = self.state.irreversibleInfo.proposedIrreversible;
+        const lastIrreveribleBlockNum = self.state.irreversibleInfo.bftIrreversible;
         self.state.blockRollbackCache = {};
         // 遍历所有本地账户，从文件中获取其已有交易信息，跟链进行状态同步，并将链上新的交易写入文件
         for (const account of self.state.accountInfos) {
@@ -553,7 +556,7 @@ export default class AccountList extends Component {
     let promiseArr = [];
     let accountTxs = [];
     let accountExistTxs = {};
-    const lastIrreveribleBlockNum = self.state.irreversibleInfo.proposedIrreversible;
+    const lastIrreveribleBlockNum = self.state.irreversibleInfo.bftIrreversible;
     const step = self.state.maxRollbackBlockNum * 10;
     let blockNum = curBlockNum;
     for (; blockNum >= account.number; blockNum -= step) {

@@ -9,6 +9,7 @@ import * as utils from '../../utils/utils'
 import copy from 'copy-to-clipboard';
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
+import ContractEditor from './components/Editor';
 
 export default class ContractManager extends Component {
   static displayName = 'ContractManager';
@@ -39,13 +40,14 @@ export default class ContractManager extends Component {
       selectedAccountName: '',
       transferTogether: {},
       visibilityValue: {},
+      curCallFuncName: '',
     };
   }
 
   componentDidMount = async () => {
     const chainConfig = await fractal.ft.getChainConfig();
     fractal.ft.setChainId(chainConfig.chainId);
-    
+
     const accounts = await utils.loadAccountsFromLS();
     for (let account of accounts) {
       this.state.accounts.push(account.accountName);
@@ -158,7 +160,7 @@ export default class ContractManager extends Component {
         assetId,
         amount,
         payload };
-      this.setState({ txSendVisible: true });
+      this.setState({ txSendVisible: true, curCallFuncName: funcName });
     }
   }
 
@@ -231,11 +233,16 @@ export default class ContractManager extends Component {
       Feedback.toast.prompt('账号未保存ABI信息，无法导入');
     }
   }
-
+  getTxResult = (result) => {
+    var obj = document.getElementById(this.state.curCallFuncName + 'Result');
+    obj.value= result;
+  }
   render() {
     return (
       <div style={{width:900}}>
-        {/* <ContractEditor style={{height:800, width:800}}/> */}
+        <ContractEditor style={{height:800, width:800}}/>
+        <br />
+        <br />
         <Select
             style={{ width: 800 }}
             placeholder="选择发起合约调用的账户"
@@ -274,7 +281,7 @@ export default class ContractManager extends Component {
         <br />
         {this.state.contractFuncInfo.map(item => item)}
 
-        <TxSend visible={this.state.txSendVisible} txInfo={this.state.txInfo} accountName={this.state.selectedAccountName}/>
+        <TxSend visible={this.state.txSendVisible} txInfo={this.state.txInfo} accountName={this.state.selectedAccountName} sendResult={this.getTxResult.bind(this)}/>
       </div>
     );
   }

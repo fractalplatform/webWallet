@@ -368,7 +368,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="管理者:"
             size="medium"
             defaultValue=''
-            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'manager', 5, false)}/>,<br/>,<br/>,
+            onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'owner', 5, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="发行上限:"

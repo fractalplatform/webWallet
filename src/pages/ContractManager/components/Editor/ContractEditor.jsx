@@ -65,16 +65,17 @@ export default class ContractEditor extends Component {
   render() {
     return (
       <div>
-        <p>
+        <p style={{display: 'none'}}>
           <Button type="primary" onClick={this.compile.bind(this)}>
                       编译
           </Button>
-                      &nbsp;&nbsp;
+          &nbsp;&nbsp;
           <Button type="primary" onClick={this.sendToChain.bind(this)}>
                       发布
           </Button>
         </p>
-        <div ref="editorContainer" style={{ height: 800, width: 1000 }} />
+        合约编辑器
+        <div ref="editorContainer" style={{ height: 800, width: 800 }} />
       </div>
     );
   }

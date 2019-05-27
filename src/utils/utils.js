@@ -318,7 +318,9 @@ function storeDataToFile(fileName, toSaveObj, chainId) {
     dataObj = JSON.parse(data);
   }
   dataObj[Constant.ChainIdPrefix + chainId] = toSaveObj;
-  global.localStorage.setItem(fileName, JSON.stringify(dataObj));
+  const dataStr = JSON.stringify(dataObj);
+  console.log(fileName + '->' + dataStr.length);
+  global.localStorage.setItem(fileName, dataStr);
 }
 
 function removeDataFromFile(fileName) {
