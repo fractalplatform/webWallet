@@ -168,10 +168,13 @@ export default class RawTxConstructor extends Component {
     this.setState({ sceneTestCase: v });
   }
   parseSceneTestCase = () => {
-    const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
-    utils.storeDataToFile(Constant.CurTestSceneCases, sceneTestCaseObj);
-    this.setState({sceneTestCaseNames: Object.keys(sceneTestCaseObj)});
-    
+    try {
+      const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
+      utils.storeDataToFile(Constant.CurTestSceneCases, sceneTestCaseObj);
+      this.setState({sceneTestCaseNames: Object.keys(sceneTestCaseObj)});
+    } catch (error) {
+      Feedback.toast.prompt('测试用例解析失败');
+    }
   }
   onChangeTestScene  = (v) => {
     this.state.testSceneName = v;

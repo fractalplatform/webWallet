@@ -213,7 +213,7 @@ export default class ContractManager extends Component {
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>发起调用</Button>
                         <br />
                         <br />
-                        <Input id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium" value={this.state.result[funcName]}/>
+                        <Input id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium"/>
                       </Card>;
     return oneElement;
   }
