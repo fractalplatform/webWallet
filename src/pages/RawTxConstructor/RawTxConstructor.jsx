@@ -7,6 +7,7 @@ import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
+import cookie from 'react-cookies';
 import * as Constant from '../../utils/constant';
 import * as utils from '../../utils/utils';
 
@@ -66,6 +67,8 @@ const getMethods = ['account_accountIsExist',
 
 const checkMethods = [ 'equal', 'compare' ];
 
+const testSceneTag = 'testScene';
+
 export default class RawTxConstructor extends Component {
   static displayName = 'RawTxConstructor';
 
@@ -93,6 +96,10 @@ export default class RawTxConstructor extends Component {
   componentDidMount = async () => {
     const chainConfig = await fractal.ft.getChainConfig();
     fractal.ft.setChainId(chainConfig.chainId);
+    const testSceneStr = JSON.stringify(cookie.load(testSceneTag));
+    if (!utils.isEmptyObj(testSceneStr)) {
+      this.setState({ testScene: testSceneStr });
+    }
   }
   rlpEncode = () => {
     const payloadInfos = this.state.payload.split(',');
@@ -916,6 +923,11 @@ export default class RawTxConstructor extends Component {
   onChangePriKeySet = (v) => {
     this.setState({ privateKeyInfoSet: v});
   }
+
+  saveTestSceneToCookie = (v) => {
+    cookie.save(testSceneTag, v);
+  }
+
   addTestCase = () => {
     try {
       if (utils.isEmptyObj(this.state.privateKeyInfoSet)) {
@@ -950,6 +962,7 @@ export default class RawTxConstructor extends Component {
       procedure.expectedResult = this.state.resultType;
       procedure.resultObj = [this.state.sendResultVarible];
       procedureArr.push(procedure);
+      this.saveTestSceneToCookie(JSON.stringify(procedureArr));
       this.setState({ testScene: JSON.stringify(procedureArr) });
     } catch (error) {
       Feedback.toast.error(error.message || error);
@@ -1010,6 +1023,7 @@ export default class RawTxConstructor extends Component {
       procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(',')};
       procedure.resultObj = [this.state.resultVarible];
       procedureArr.push(procedure);
+      this.saveTestSceneToCookie(JSON.stringify(procedureArr));
       this.setState({ testScene: JSON.stringify(procedureArr) });
     } catch (error) {
       Feedback.toast.error(error.message || error);
@@ -1040,8 +1054,9 @@ export default class RawTxConstructor extends Component {
       const procedure = {};
       procedure.type = 'check';
       procedure.info = {method: this.state.checkMethod, arguments: this.state.checkArguments.split(',')};
-      procedure.expectedResult = [this.state.checkExpectResult];
+      procedure.expectedResult = this.state.checkExpectResult;
       procedureArr.push(procedure);
+      this.saveTestSceneToCookie(JSON.stringify(procedureArr));
       this.setState({ testScene: JSON.stringify(procedureArr) });
     } catch (error) {
       Feedback.toast.error(error.message || error);
