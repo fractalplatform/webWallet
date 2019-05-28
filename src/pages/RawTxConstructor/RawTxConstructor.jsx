@@ -131,39 +131,51 @@ export default class RawTxConstructor extends Component {
     return actionType != Constant.TRANSFER && actionType != Constant.UNREG_CANDIDATE 
         && actionType != Constant.REFUND_DEPOSIT && actionType != Constant.DESTORY_ASSET;
   }
+
+  hasUselessPayloadTx = (actionType) => {
+    return actionType == Constant.TRANSFER || actionType == Constant.UNREG_CANDIDATE 
+        || actionType == Constant.REFUND_DEPOSIT || actionType == Constant.DESTORY_ASSET;
+  }
+
   // const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [owner, weight]]]).toString('hex');
   generateTxInfo = () => {
     try {
       const actionType = this.state['actionType'];
       this.state.payloadElements = [];
       let payloadDetailInfo = {};
-      if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {
+      if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {  // 如果是设置账号权限，由于payload构造特殊，故需要单独编码
         this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
                                     [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
         for (let i = 0; i < 5; i++) {
           payloadDetailInfo[this.state[actionType + '-' + 0].payloadName] = this.state[actionType + '-' + 0].value;
         }
-      } else if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {
+      } else if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {  // 对于非合约交易
         const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
-        for (let i = 0; i < payloadInfoNum; i++) {
-          let actionValue = this.state[actionType + '-' + i];
+        for (let j = 0; j < payloadInfoNum; j++) {
+          let actionValue = this.state[actionType + '-' + j];
           let value = '';
           if (actionValue == null) {
             this.state.payloadElements.push('');
+            payloadDetailInfo['payload'] = '';
           } else if (actionValue.isNumber) {
             value = new BigNumber(actionValue.value).toNumber();
             this.state.payloadElements.push(value);
+            payloadDetailInfo[actionValue.payloadName] = value;
           } else {
             value = actionValue.value;
             this.state.payloadElements.push(actionValue.value);
+            payloadDetailInfo[actionValue.payloadName] = value;
           }
-          payloadDetailInfo[actionValue.payloadName] = value;
         }
+      } else if (this.hasUselessPayloadTx(actionType)) {
+        let payloadValue = this.state['default-0'];
+        this.state.payloadElements.push(payloadValue.value);
+        payloadDetailInfo[payloadValue.payloadName] = payloadValue.value;
       }
       let payload = '';
-      if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {
+      if (actionType != Constant.CREATE_CONTRACT) {
         payload = '0x' + (this.state.payloadElements.length > 0 ? encode(this.state.payloadElements).toString('hex') : '');
-      } else if (this.hasPayloadTx(actionType)) {
+      } else {
         payload = this.state[actionType + '-' + 0].value;
         if (payload.indexOf('0x') < 0) {
           payload = '0x' + payload;
@@ -277,29 +289,36 @@ export default class RawTxConstructor extends Component {
     }
   }
   getReceipt = () => {
-    if (!utils.isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
-      fractal.ft.getTransactionReceipt(this.state.txResult).then(resp => {
-        this.setState({ receipt: JSON.stringify(resp) });
-      });
-    } else {
-      Feedback.toast.prompt('无法获取receipt');
+    try {
+      if (!utils.isEmptyObj(this.state.txResult) && this.state.txResult.indexOf('0x') == 0) {
+        fractal.ft.getTransactionReceipt(this.state.txResult).then(resp => {
+          this.setState({ receipt: JSON.stringify(resp) });
+        });
+      } else {
+        Feedback.toast.prompt('无法获取receipt');
+      }
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
   }
   getTxInfo = () => {
-    if (this.state.txResult != null) {
-      fractal.ft.getTransactionByHash(this.state.txResult).then(resp => {
-        this.setState({ receipt: JSON.stringify(resp) });
-      });
-    } else {
-      Feedback.toast.prompt('无法获取交易信息');
+    try {
+      if (this.state.txResult != null) {
+        fractal.ft.getTransactionByHash(this.state.txResult).then(resp => {
+          this.setState({ receipt: JSON.stringify(resp) });
+        });
+      } else {
+        Feedback.toast.prompt('无法获取交易信息');
+      }
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
+    
   }
   onChangeTxType = (txType) => {
     this.state.actionType = txType;
     this.state.payloadInfos = [];
     switch (txType) {
-      case Constant.TRANSFER:
-        break;
       case Constant.CREATE_CONTRACT:
         this.state.payloadInfos.push(
             <Input hasClear
@@ -461,8 +480,6 @@ export default class RawTxConstructor extends Component {
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'accountName', 2, false)}/>
           );
         break;
-      case Constant.DESTORY_ASSET:
-        break;
       case Constant.SET_ASSET_OWNER:
         this.state.payloadInfos.push(
           <Input hasClear
@@ -515,8 +532,6 @@ export default class RawTxConstructor extends Component {
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_CANDIDATE, 'url', 0, false)}/>
           );
         break;
-      case Constant.UNREG_CANDIDATE:
-        break;
       case Constant.VOTE_CANDIDATE:
         this.state.payloadInfos.push(
           <Input hasClear
@@ -533,7 +548,18 @@ export default class RawTxConstructor extends Component {
             onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'voteNumber', 1, true)}/>
           );
         break;
+      case Constant.UNREG_CANDIDATE:
+      case Constant.DESTORY_ASSET:
+      case Constant.TRANSFER:
       case Constant.REFUND_DEPOSIT:
+        this.state.payloadInfos.push(
+          <Input hasClear
+            style={styles.commonElement}
+            addonBefore="payload:"
+            size="medium"
+            defaultValue=''
+            onChange={this.handleElementChange.bind(this, 'default', 'payload', 0, false)}/>
+          );
         break;
       default:
         console.log('error action type:' + actionInfo.type);
@@ -642,12 +668,12 @@ export default class RawTxConstructor extends Component {
           <br />
           <Input hasClear
             style={styles.commonElement}
-            addonBefore="Gas单价（gaft）:"
+            addonBefore="Gas单价（Gaft）:"
             size="medium"
             onChange={this.handleActionElementChange.bind(this, 'gasPrice')}
           />
           <br />
-          1gaft = 10<sup>-9</sup>ft = 10<sup>9</sup>aft
+          1Gaft = 10<sup>-9</sup>ft = 10<sup>9</sup>aft
           <br />
           <br />
           <Input hasClear
@@ -864,62 +890,70 @@ export default class RawTxConstructor extends Component {
     this.state.privateKeyIndex = v;
   }
   addPrivateInfo = () => {
-    if (utils.isEmptyObj(this.state.signPrivateKey)) {
-      Feedback.toast.error('请输入私钥');
-      return;
-    }
-    if (utils.isEmptyObj(this.state.privateKeyIndex)) {
-      Feedback.toast.error('请输入私钥index');
-      return;
-    }
     try {
-      let privateKeyInfo = [];
-      if (!utils.isEmptyObj(this.state.privateKeyInfoSet)) {
-        privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
+      if (utils.isEmptyObj(this.state.signPrivateKey)) {
+        Feedback.toast.error('请输入私钥');
+        return;
       }
-      privateKeyInfo.push({ privateKey:this.state.signPrivateKey, index: this.state.privateKeyIndex });
-      this.setState({privateKeyInfoSet: JSON.stringify(privateKeyInfo)});
+      if (utils.isEmptyObj(this.state.privateKeyIndex)) {
+        Feedback.toast.error('请输入私钥index');
+        return;
+      }
+      try {
+        let privateKeyInfo = [];
+        if (!utils.isEmptyObj(this.state.privateKeyInfoSet)) {
+          privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
+        }
+        privateKeyInfo.push({ privateKey:this.state.signPrivateKey, index: this.state.privateKeyIndex });
+        this.setState({privateKeyInfoSet: JSON.stringify(privateKeyInfo)});
+      } catch (error) {
+        Feedback.toast.error(error);
+      }
     } catch (error) {
-      Feedback.toast.error(error);
+      Feedback.toast.error(error.message || error);
     }
   }
   onChangePriKeySet = (v) => {
     this.setState({ privateKeyInfoSet: v});
   }
   addTestCase = () => {
-    if (utils.isEmptyObj(this.state.privateKeyInfoSet)) {
-      Feedback.toast.error('请在添加私钥及其index信息');
-      return;
-    }
+    try {
+      if (utils.isEmptyObj(this.state.privateKeyInfoSet)) {
+        Feedback.toast.error('请在添加私钥及其index信息');
+        return;
+      }
 
-    if (utils.isEmptyObj(this.state.txInfo)) {
-      Feedback.toast.error('请先生成交易内容');
-      return;
-    }
+      if (utils.isEmptyObj(this.state.txInfo)) {
+        Feedback.toast.error('请先生成交易内容');
+        return;
+      }
 
-    if (this.state.resultType != 1 && this.state.resultType != 0) {
-      Feedback.toast.error('请选择对此交易的预期结果');
-      return;
-    }
+      if (this.state.resultType != 1 && this.state.resultType != 0) {
+        Feedback.toast.error('请选择对此交易的预期结果');
+        return;
+      }
 
-    if (utils.isEmptyObj(this.state.sendResultVarible)) {
-      Feedback.toast.error('请输入交易结果变量');
-      return;
+      if (utils.isEmptyObj(this.state.sendResultVarible)) {
+        Feedback.toast.error('请输入交易结果变量');
+        return;
+      }
+      
+      let procedureArr = [];
+      if (!utils.isEmptyObj(this.state.testScene)) {
+        procedureArr = JSON.parse(this.state.testScene);
+      }
+      const procedure = {};
+      const txInfo = JSON.parse(this.state.txInfo.trim());
+      procedure.type = 'send';
+      procedure.info = txInfo;
+      procedure.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
+      procedure.expectedResult = this.state.resultType;
+      procedure.resultObj = [this.state.sendResultVarible];
+      procedureArr.push(procedure);
+      this.setState({ testScene: JSON.stringify(procedureArr) });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
-    
-    let procedureArr = [];
-    if (!utils.isEmptyObj(this.state.testScene)) {
-      procedureArr = JSON.parse(this.state.testScene);
-    }
-    const procedure = {};
-    const txInfo = JSON.parse(this.state.txInfo.trim());
-    procedure.type = 'send';
-    procedure.info = txInfo;
-    procedure.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
-    procedure.expectedResult = this.state.resultType;
-    procedure.resultObj = [this.state.sendResultVarible];
-    procedureArr.push(procedure);
-    this.setState({ testScene: JSON.stringify(procedureArr) });
   }
 
   onChangeGetMethod = (v) => {
@@ -951,88 +985,100 @@ export default class RawTxConstructor extends Component {
   }
 
   addGetToTestCase = () => {
-    if (utils.isEmptyObj(this.state.getMethod)) {
-      Feedback.toast.error('请选择get方法');
-      return;
+    try {
+      if (utils.isEmptyObj(this.state.getMethod)) {
+        Feedback.toast.error('请选择get方法');
+        return;
+      }
+  
+      if (utils.isEmptyObj(this.state.arguments) || this.state.arguments.indexOf('，') > -1) {
+        Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
+        return;
+      }
+  
+      if (utils.isEmptyObj(this.state.resultVarible)) {
+        Feedback.toast.error('请输入结果变量名');
+        return;
+      }
+      
+      let procedureArr = [];
+      if (!utils.isEmptyObj(this.state.testScene)) {
+        procedureArr = JSON.parse(this.state.testScene);
+      }
+      const procedure = {};
+      procedure.type = 'get';
+      procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(',')};
+      procedure.resultObj = [this.state.resultVarible];
+      procedureArr.push(procedure);
+      this.setState({ testScene: JSON.stringify(procedureArr) });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
-
-    if (utils.isEmptyObj(this.state.arguments) || this.state.arguments.indexOf('，') > -1) {
-      Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
-      return;
-    }
-
-    if (utils.isEmptyObj(this.state.resultVarible)) {
-      Feedback.toast.error('请输入结果变量名');
-      return;
-    }
-    
-    let procedureArr = [];
-    if (!utils.isEmptyObj(this.state.testScene)) {
-      procedureArr = JSON.parse(this.state.testScene);
-    }
-    const procedure = {};
-    procedure.type = 'get';
-    procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(',')};
-    procedure.resultObj = [this.state.resultVarible];
-    procedureArr.push(procedure);
-    this.setState({ testScene: JSON.stringify(procedureArr) });
   }
 
   addCheckToTestCase = () => {
-    if (utils.isEmptyObj(this.state.checkMethod)) {
-      Feedback.toast.error('请选择check方法');
-      return;
+    try {
+      if (utils.isEmptyObj(this.state.checkMethod)) {
+        Feedback.toast.error('请选择check方法');
+        return;
+      }
+  
+      if (utils.isEmptyObj(this.state.checkArguments) || this.state.checkArguments.indexOf('，') > -1) {
+        Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
+        return;
+      }
+  
+      if (this.state.checkExpectResult != 1 && this.state.checkExpectResult != 0) {
+        Feedback.toast.error('请选择此check的预期结果');
+        return;
+      }
+      
+      let procedureArr = [];
+      if (!utils.isEmptyObj(this.state.testScene)) {
+        procedureArr = JSON.parse(this.state.testScene);
+      }
+      const procedure = {};
+      procedure.type = 'check';
+      procedure.info = {method: this.state.checkMethod, arguments: this.state.checkArguments.split(',')};
+      procedure.expectedResult = [this.state.checkExpectResult];
+      procedureArr.push(procedure);
+      this.setState({ testScene: JSON.stringify(procedureArr) });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
-
-    if (utils.isEmptyObj(this.state.checkArguments) || this.state.checkArguments.indexOf('，') > -1) {
-      Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
-      return;
-    }
-
-    if (this.state.checkExpectResult != 1 && this.state.checkExpectResult != 0) {
-      Feedback.toast.error('请选择此check的预期结果');
-      return;
-    }
-    
-    let procedureArr = [];
-    if (!utils.isEmptyObj(this.state.testScene)) {
-      procedureArr = JSON.parse(this.state.testScene);
-    }
-    const procedure = {};
-    procedure.type = 'check';
-    procedure.info = {method: this.state.checkMethod, arguments: this.state.checkArguments.split(',')};
-    procedure.expectedResult = [this.state.checkExpectResult];
-    procedureArr.push(procedure);
-    this.setState({ testScene: JSON.stringify(procedureArr) });
   }
 
   onChangeTestScene = (v) => {
     this.setState({ testScene: v });
   }
   saveTestScene = () => {
-    if (utils.isEmptyObj(this.state.testScene) || !Array.isArray(JSON.parse(this.state.testScene))) {
-      Feedback.toast.error('测试数据有误，请检查');
-      return;
+    try {
+      if (utils.isEmptyObj(this.state.testScene) || !Array.isArray(JSON.parse(this.state.testScene))) {
+        Feedback.toast.error('测试数据有误，请检查');
+        return;
+      }
+      if (utils.isEmptyObj(this.state.sceneName)) {
+        Feedback.toast.error('请对此测试场景命名');
+        return;
+      }
+      if (utils.isEmptyObj(this.state.sceneId)) {
+        Feedback.toast.error('请设置此测试场景的ID');
+        return;
+      }
+      const sceneName = this.state.sceneId + '.' + this.state.sceneName;
+      let oneTestScene = {};
+      oneTestScene.testCases = JSON.parse(this.state.testScene);
+  
+      let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
+      if (testSceneFile == null) {
+        testSceneFile = {};
+      }
+      testSceneFile[sceneName] = oneTestScene;
+      utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
+      Feedback.toast.error('保存成功');
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
-    if (utils.isEmptyObj(this.state.sceneName)) {
-      Feedback.toast.error('请对此测试场景命名');
-      return;
-    }
-    if (utils.isEmptyObj(this.state.sceneId)) {
-      Feedback.toast.error('请设置此测试场景的ID');
-      return;
-    }
-    this.state.sceneName = this.state.sceneId + '.' + this.state.sceneName;
-    let oneTestScene = {};
-    oneTestScene.testCases = JSON.parse(this.state.testScene);
-
-    let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
-    if (testSceneFile == null) {
-      testSceneFile = {};
-    }
-    testSceneFile[this.state.sceneName] = oneTestScene;
-    utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
-    Feedback.toast.error('保存成功');
   }
   exportTestScene = () => {
     let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
@@ -1045,13 +1091,18 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.error('请输入待删除测试场景名称');
       return;
     }
+    if (utils.isEmptyObj(this.state.sceneId)) {
+      Feedback.toast.error('请输入待删除测试场景的ID');
+      return;
+    }
+    const sceneName = this.state.sceneId + '.' + this.state.sceneName;
     let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
     if (testSceneFile != null) {
-      if (testSceneFile[this.state.sceneName] == null) {
+      if (testSceneFile[sceneName] == null) {
         Feedback.toast.error('此测试场景不存在');
         return;
       }
-      delete testSceneFile[this.state.sceneName];
+      delete testSceneFile[sceneName];
       utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
       Feedback.toast.error('删除成功');
     }
