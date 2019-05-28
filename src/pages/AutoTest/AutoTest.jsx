@@ -368,11 +368,37 @@ export default class RawTxConstructor extends Component {
     }
     this.setState({ nonPredictTestScenes });
   }
-  
+
   testOneCase = () => {
 
   }  
-  
+
+  tranform = () => {
+    try {
+      let sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
+      const sceneNames = Object.keys(sceneTestCaseObj);
+      for (const sceneName of sceneNames) {
+        const testCases = sceneTestCaseObj[sceneName].testCases;
+        for (const testCase of testCases) {
+          if (testCase.type == 'send') {
+            testCase.info.resultObj = testCase.resultObj;
+            delete testCase.resultObj;
+          } else if (testCase.type == 'get') {
+            testCase.info.resultObj = testCase.resultObj;
+            delete testCase.resultObj;
+          } else if (testCase.type == 'check') {
+            if (Array.isArray(testCase.expectedResult)) {
+              testCase.expectedResult = testCase.expectedResult[0];
+            }
+          }
+        }
+      }
+      this.setState({ sceneTestCase: JSON.stringify(sceneTestCaseObj) });
+    } catch (error) {
+      Feedback.toast.error('转换失败' + error);
+    }
+  }
+
   render() {
     return (
       <div>
@@ -387,6 +413,8 @@ export default class RawTxConstructor extends Component {
         <br />
         <br />       
         <Button type="primary" onClick={this.parseSceneTestCase.bind(this)}>解析以上测试场景</Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.tranform.bind(this)}>转化为最新结果</Button>
         <br />
         <br />
         <Select
