@@ -64,7 +64,7 @@ const getMethods = ['account_accountIsExist',
                     'fee_getObjectFeeResult',
                     'fee_getObjectFeeResultByTime'];
 
-const checkMethods = [ { label:'equal', value: {method: 'equal', } }, 'compare'];
+const checkMethods = [ 'equal', 'compare' ];
 
 export default class RawTxConstructor extends Component {
   static displayName = 'RawTxConstructor';
@@ -717,7 +717,6 @@ export default class RawTxConstructor extends Component {
           <Input 
             style={styles.halfElement}
             addonBefore="私钥index"
-            defaultValue='0'
             size="medium"
             onChange={this.handlePrivateKeyIndexChange.bind(this)}
           />
@@ -744,6 +743,59 @@ export default class RawTxConstructor extends Component {
           <br />
           <br />
           <Button type="primary" onClick={this.addTestCase.bind(this)}>将生成的交易内容添加到测试场景中</Button>
+          <br />
+          <br />
+          <Select
+            style={{width: 250}}
+            placeholder="请选择get方法"
+            onChange={this.onChangeGetMethod.bind(this)}
+            dataSource={getMethods}
+          />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 250}}
+            addonBefore="参数列表"
+            placeholder='参数间用英文逗号隔开'
+            size="medium"
+            onChange={this.onChangeGetArguments.bind(this)}
+          />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 200}}
+            addonBefore="结果变量"
+            placeholder='变量不可重复'
+            size="medium"
+            onChange={this.onChangeResultVarible.bind(this)}
+          />
+          <br />
+          <br />
+          <Button type="primary" onClick={this.addGetToTestCase.bind(this)}>将Get添加到测试场景中</Button>
+          <br />
+          <br />
+          <Select
+            style={{width: 250}}
+            placeholder="请选择check方法"
+            onChange={this.onChangeCheckMethod.bind(this)}
+            dataSource={checkMethods}
+          />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 250}}
+            addonBefore="参数列表"
+            placeholder='参数间用英文逗号隔开'
+            size="medium"
+            onChange={this.onChangeCheckArguments.bind(this)}
+          />
+          &nbsp;&nbsp;
+          <Select
+            style={{width: 200}}
+            placeholder="选择此check预期结果"
+            onChange={this.onChangeCheckExpectResult.bind(this)}
+            dataSource={this.state.resultTypes}
+          />
+          <br />
+          <br />
+          <Button type="primary" onClick={this.addCheckToTestCase.bind(this)}>将Check添加到测试场景中</Button>
           <br />
           <br />
           <Input multiple
@@ -777,6 +829,10 @@ export default class RawTxConstructor extends Component {
           <Button type="primary" onClick={this.saveTestScene.bind(this)}>保存此测试场景</Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.exportTestScene.bind(this)}>导出所有测试场景</Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.deleteTestScene.bind(this)}>删除指定名称的测试场景</Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.clearTestScene.bind(this)}>清空所有测试场景</Button>
         </IceContainer>
         
         {/* <Button type="primary" onClick={this.checkResult.bind(this)}>校验链上相关状态</Button>
@@ -851,6 +907,88 @@ export default class RawTxConstructor extends Component {
     procedureArr.push(procedure);
     this.setState({ testScene: JSON.stringify(procedureArr) });
   }
+
+  onChangeGetMethod = (v) => {
+    this.state.getMethod = v;
+  }
+
+  onChangeGetArguments = (v) => {
+    this.state.arguments = v;
+  }
+
+  onChangeResultVarible = (v) => {
+    this.state.resultVarible = v;
+  }
+
+
+  onChangeCheckMethod = (v) => {
+    this.state.checkMethod = v;
+  }
+
+  onChangeCheckArguments = (v) => {
+    this.state.checkArguments = v;
+  }
+
+  onChangeCheckExpectResult = (v) => {
+    this.state.checkExpectResult = v;
+  }
+
+  addGetToTestCase = () => {
+    if (utils.isEmptyObj(this.state.getMethod)) {
+      Feedback.toast.error('请选择get方法');
+      return;
+    }
+
+    if (utils.isEmptyObj(this.state.arguments) || this.state.arguments.indexOf('，') > -1) {
+      Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
+      return;
+    }
+
+    if (utils.isEmptyObj(this.state.resultVarible)) {
+      Feedback.toast.error('请输入结果变量名');
+      return;
+    }
+    
+    let procedureArr = [];
+    if (!utils.isEmptyObj(this.state.testScene)) {
+      procedureArr = JSON.parse(this.state.testScene);
+    }
+    const procedure = {};
+    procedure.type = 'get';
+    procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(',')};
+    procedure.resultObj = [this.state.resultVarible];
+    procedureArr.push(procedure);
+    this.setState({ testScene: JSON.stringify(procedureArr) });
+  }
+
+  addCheckToTestCase = () => {
+    if (utils.isEmptyObj(this.state.checkMethod)) {
+      Feedback.toast.error('请选择check方法');
+      return;
+    }
+
+    if (utils.isEmptyObj(this.state.checkArguments) || this.state.checkArguments.indexOf('，') > -1) {
+      Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
+      return;
+    }
+
+    if (utils.isEmptyObj(this.state.checkExpectResult)) {
+      Feedback.toast.error('请选择此check的预期结果');
+      return;
+    }
+    
+    let procedureArr = [];
+    if (!utils.isEmptyObj(this.state.testScene)) {
+      procedureArr = JSON.parse(this.state.testScene);
+    }
+    const procedure = {};
+    procedure.type = 'check';
+    procedure.info = {method: this.state.checkMethod, arguments: this.state.checkArguments.split(',')};
+    procedure.expectedResult = [this.state.checkExpectResult];
+    procedureArr.push(procedure);
+    this.setState({ testScene: JSON.stringify(procedureArr) });
+  }
+
   onChangeTestScene = (v) => {
     this.setState({ testScene: v });
   }
@@ -883,6 +1021,30 @@ export default class RawTxConstructor extends Component {
     copy(JSON.stringify(testSceneFile));
     Feedback.toast.success('测试用例已复制到粘贴板');
   }
+
+  deleteTestScene = () => {
+    if (utils.isEmptyObj(this.state.sceneName)) {
+      Feedback.toast.error('请输入待删除测试场景名称');
+      return;
+    }
+    let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
+    if (testSceneFile != null) {
+      if (testSceneFile[this.state.sceneName] == null) {
+        Feedback.toast.error('此测试场景不存在');
+        return;
+      }
+      delete testSceneFile[this.state.sceneName];
+      utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
+      Feedback.toast.error('删除成功');
+    }
+  }
+
+  clearTestScene = () => {
+    utils.storeDataToFile(Constant.TestSceneFile, {});
+    Feedback.toast.error('清空成功');
+  }
+
+
   handleTestSceneNameChange = (v) => {
     this.state.sceneName = v;
   }
