@@ -40,7 +40,8 @@ export default class RawTxConstructor extends Component {
       historyInfo: {},
       testScene: '',
       sceneTestCase: '',
-      sceneTestCaseNames: '',
+      sceneTestCaseNames: [],
+      testCaseNames: [],
       testResult: '',
       nonPredictTestScenes: [],
     };
@@ -178,6 +179,25 @@ export default class RawTxConstructor extends Component {
   }
   onChangeTestScene  = (v) => {
     this.state.testSceneName = v;
+    const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
+    const testCases = sceneTestCaseObj[v].testCases;
+    this.state.testCaseNames = [];
+    let index = 0;
+    for (const testCase of testCases) {
+      let label = testCase.type + '-';
+      if (testCase.type == 'send') {
+        const actionType = testCase.info.actions[0].actionType;
+        label += TxParser.getActionTypeStr(actionType);
+      } else {
+        label += testCase.info.method + '(' + testCase.info.arguments + ')';
+      }
+      this.state.testCaseNames.push({label, value: index});
+      index++;
+    }
+    this.setState({testCaseNames: this.state.testCaseNames});
+  }
+  onChangeTestCase = (v) => {
+    this.state.testCaseObj = v;
   }
   sleep = (delay) => {
     var start = (new Date()).getTime();
@@ -348,39 +368,47 @@ export default class RawTxConstructor extends Component {
     }
     this.setState({ nonPredictTestScenes });
   }
+  
+  testOneCase = () => {
+
+  }  
+  
   render() {
     return (
       <div>
         <Input multiple
           rows="13"
           style={styles.otherElement}
-          addonBefore="场景测试用例:"
+          addonBefore="测试场景:"
           size="medium"
           value={this.state.sceneTestCase}
           onChange={this.handleSceneTestCaseChange.bind(this)}
         />
         <br />
         <br />       
-        <Button type="primary" onClick={this.parseSceneTestCase.bind(this)}>解析以上场景测试用例</Button>
+        <Button type="primary" onClick={this.parseSceneTestCase.bind(this)}>解析以上测试场景</Button>
         <br />
         <br />
         <Select
           style={{width: '300px'}}
           placeholder="测试场景列表"
           dataSource={this.state.sceneTestCaseNames}
+          onChange={this.onChangeTestScene.bind(this)}
         />
         &nbsp;&nbsp;&nbsp;&nbsp;
         <Select
           style={{width: '300px'}}
-          placeholder="用例列表"
-          onChange={this.onChangeTestScene.bind(this)}
-          dataSource={this.state.sceneTestCaseNames}
+          placeholder="详细用例列表"
+          onChange={this.onChangeTestCase.bind(this)}
+          dataSource={this.state.testCaseNames}
         />
         <br />
         <br />
         <Button type="primary" onClick={this.testOneScene.bind(this)}>测试选中场景</Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.testAllScene.bind(this)}>测试所有场景</Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.testOneCase.bind(this)}>测试单个用例</Button>
         <br />
         <br />
         <Input multiple

@@ -957,10 +957,10 @@ export default class RawTxConstructor extends Component {
       const procedure = {};
       const txInfo = JSON.parse(this.state.txInfo.trim());
       procedure.type = 'send';
+      txInfo.resultObj = [this.state.sendResultVarible];
       procedure.info = txInfo;
       procedure.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
       procedure.expectedResult = this.state.resultType;
-      procedure.resultObj = [this.state.sendResultVarible];
       procedureArr.push(procedure);
       this.saveTestSceneToCookie(JSON.stringify(procedureArr));
       this.setState({ testScene: JSON.stringify(procedureArr) });
@@ -1020,8 +1020,7 @@ export default class RawTxConstructor extends Component {
       }
       const procedure = {};
       procedure.type = 'get';
-      procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(',')};
-      procedure.resultObj = [this.state.resultVarible];
+      procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(','), resultObj: [this.state.resultVarible]};
       procedureArr.push(procedure);
       this.saveTestSceneToCookie(JSON.stringify(procedureArr));
       this.setState({ testScene: JSON.stringify(procedureArr) });
