@@ -17,6 +17,55 @@ const txTypes = [{ value: Constant.TRANSFER, label: '转账'},{value: Constant.C
                 { value: Constant.UPDATE_CANDIDATE, label: '更新候选者' },{ value:  Constant.UNREG_CANDIDATE, label: '注销候选者' },{ value: Constant.VOTE_CANDIDATE, label: '给候选者投票' },
                 { value: Constant.REFUND_DEPOSIT, label: '取回抵押金' }];
 
+const getMethods = ['account_accountIsExist',
+                    'account_getAccountByName',
+                    'account_getAccountByID',
+                    'account_getCode',
+                    'account_getNonce',
+                    'account_getAssetInfoByName',
+                    'account_getAssetInfoByID',
+                    'account_getAccountBalanceByAssetID',
+                    'account_getAccountBalanceByTime',
+                    'account_getAssetAmountByTime',
+                    'account_getSnapshotTime',
+                    'ft_sendRawTransaction',
+                    'ft_getBlockByHash',
+                    'ft_getBlockByNumber',
+                    'ft_getCurrentBlock',
+                    'ft_getTransactionByHash',
+                    'ft_getTransactionReceipt',
+                    'ft_getBlockAndResultByNumber',
+                    'ft_getTxsByAccount',
+                    'ft_getTxsByBloom',
+                    'ft_getInternalTxByAccount',
+                    'ft_getInternalTxByBloom',
+                    'ft_getInternalTxByHash',
+                    'ft_gasPrice',
+                    'ft_call',
+                    'ft_estimateGas',
+                    'ft_getChainConfig',
+                    'dpos_info',
+                    'dpos_irreversible',
+                    'dpos_votersByCandidate',
+                    'dpos_votersByCandidateByNumber',
+                    'dpos_votersByVoter',
+                    'dpos_votersByVoterByNumber',
+                    'dpos_candidates',
+                    'dpos_candidate',
+                    'dpos_availableStake',
+                    'dpos_availableStakeByNumber',
+                    'dpos_validCandidates',
+                    'dpos_validCandidatesByHeight',
+                    'dpos_nextValidCandidates',
+                    'dpos_nextValidCandidatesByNumber',
+                    'dpos_snapShotTime',
+                    'dpos_snapShotTimeByNumber',
+                    'fee_getObjectFeeByName',
+                    'fee_getObjectFeeResult',
+                    'fee_getObjectFeeResultByTime'];
+
+const checkMethods = [ { label:'equal', value: {method: 'equal', } }, 'compare'];
+
 export default class RawTxConstructor extends Component {
   static displayName = 'RawTxConstructor';
 
@@ -38,6 +87,7 @@ export default class RawTxConstructor extends Component {
       checkProcedure: '',
       historyInfo: {},
       testScene: '',
+      privateKeyInfoSet: '',
     };
   }
   componentDidMount = async () => {
@@ -656,7 +706,43 @@ export default class RawTxConstructor extends Component {
         </IceContainer>
         <br />
         <br />
-        <IceContainer style={styles.container} title='测试场景'>
+        <IceContainer style={styles.container} title='测试场景'>          
+          <Input 
+            style={styles.halfElement}
+            addonBefore="私钥"
+            size="medium"
+            onChange={this.handleSignPrivateKeyChange.bind(this)}
+          />
+          &nbsp;&nbsp;
+          <Input 
+            style={styles.halfElement}
+            addonBefore="私钥index"
+            defaultValue='0'
+            size="medium"
+            onChange={this.handlePrivateKeyIndexChange.bind(this)}
+          />
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.addPrivateInfo.bind(this)}>添加私钥</Button>
+          <br />
+          <br />
+          <Input multiple
+            rows="2"
+            style={styles.commonElement}
+            addonBefore="签名用私钥"
+            size="medium"
+            value={this.state.privateKeyInfoSet}
+            onChange={this.onChangePriKeySet.bind(this)}
+          />
+          <br />
+          <br />
+          <Select
+            style={styles.commonElement}
+            placeholder="选择此交易预期结果"
+            onChange={this.onChangeResultType.bind(this)}
+            dataSource={this.state.resultTypes}
+          />
+          <br />
+          <br />
           <Button type="primary" onClick={this.addTestCase.bind(this)}>将生成的交易内容添加到测试场景中</Button>
           <br />
           <br />
@@ -668,14 +754,6 @@ export default class RawTxConstructor extends Component {
             value={this.state.testScene}
             onChange={this.onChangeTestScene.bind(this)}
           />
-          <br />
-          <br />
-          <Select
-              style={styles.commonElement}
-              placeholder="选择预期结果"
-              onChange={this.onChangeResultType.bind(this)}
-              dataSource={this.state.resultTypes}
-            />
           <br />
           <br />
           <Input 
@@ -714,9 +792,39 @@ export default class RawTxConstructor extends Component {
       </div>
     );
   }
-  addTestCase = () => {
-    if (utils.isEmptyObj(this.state.privateKey)) {
+
+  handleSignPrivateKeyChange = (v) => {
+    this.state.signPrivateKey = v;
+  }
+  handlePrivateKeyIndexChange = (v) => {
+    this.state.privateKeyIndex = v;
+  }
+  addPrivateInfo = () => {
+    if (utils.isEmptyObj(this.state.signPrivateKey)) {
       Feedback.toast.error('请输入私钥');
+      return;
+    }
+    if (utils.isEmptyObj(this.state.privateKeyIndex)) {
+      Feedback.toast.error('请输入私钥index');
+      return;
+    }
+    try {
+      let privateKeyInfo = [];
+      if (!utils.isEmptyObj(this.state.privateKeyInfoSet)) {
+        privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
+      }
+      privateKeyInfo.push({ privateKey:this.state.signPrivateKey, index: this.state.privateKeyIndex });
+      this.setState({privateKeyInfoSet: JSON.stringify(privateKeyInfo)});
+    } catch (error) {
+      Feedback.toast.error(error);
+    }
+  }
+  onChangePriKeySet = (v) => {
+    this.setState({ privateKeyInfoSet: v});
+  }
+  addTestCase = () => {
+    if (utils.isEmptyObj(this.state.privateKeyInfoSet)) {
+      Feedback.toast.error('请在添加私钥及其index信息');
       return;
     }
 
@@ -724,15 +832,24 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.error('请先生成交易内容');
       return;
     }
-    
-    let txInfoArr = [];
-    if (!utils.isEmptyObj(this.state.testScene)) {
-      txInfoArr = JSON.parse(this.state.testScene);
+
+    if (this.state.resultType != 1 && this.state.resultType != 0) {
+      Feedback.toast.error('请选择对此交易的预期结果');
+      return;
     }
+    
+    let procedureArr = [];
+    if (!utils.isEmptyObj(this.state.testScene)) {
+      procedureArr = JSON.parse(this.state.testScene);
+    }
+    const procedure = {};
     const txInfo = JSON.parse(this.state.txInfo.trim());
-    txInfo.privateKey = this.state.privateKey;
-    txInfoArr.push(txInfo);
-    this.setState({ testScene: JSON.stringify(txInfoArr) });
+    procedure.type = 'send';
+    procedure.info = txInfo;
+    procedure.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
+    procedure.expectedResult = this.state.resultType;
+    procedureArr.push(procedure);
+    this.setState({ testScene: JSON.stringify(procedureArr) });
   }
   onChangeTestScene = (v) => {
     this.setState({ testScene: v });
@@ -740,10 +857,6 @@ export default class RawTxConstructor extends Component {
   saveTestScene = () => {
     if (utils.isEmptyObj(this.state.testScene) || !Array.isArray(JSON.parse(this.state.testScene))) {
       Feedback.toast.error('测试数据有误，请检查');
-      return;
-    }
-    if (this.state.resultType != 1 && this.state.resultType != 0) {
-      Feedback.toast.error('请选择对此测试场景的预期结果');
       return;
     }
     if (utils.isEmptyObj(this.state.sceneName)) {
@@ -756,7 +869,6 @@ export default class RawTxConstructor extends Component {
     }
     this.state.sceneName = this.state.sceneId + '.' + this.state.sceneName;
     let oneTestScene = {};
-    oneTestScene.predictResult = this.state.resultType;
     oneTestScene.testCases = JSON.parse(this.state.testScene);
 
     let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
@@ -1038,6 +1150,9 @@ const styles = {
   },
   commonElement: {
     width: '680px',
+  },
+  halfElement: {
+    width: '300px',
   },
   otherElement: {
     width: '760px',
