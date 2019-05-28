@@ -735,10 +735,18 @@ export default class RawTxConstructor extends Component {
           <br />
           <br />
           <Select
-            style={styles.commonElement}
+            style={styles.halfElement}
             placeholder="选择此交易预期结果"
             onChange={this.onChangeResultType.bind(this)}
             dataSource={this.state.resultTypes}
+          />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 200}}
+            addonBefore="结果变量"
+            placeholder='变量不可重复'
+            size="medium"
+            onChange={this.onChangeSendResultVarible.bind(this)}
           />
           <br />
           <br />
@@ -893,6 +901,11 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.error('请选择对此交易的预期结果');
       return;
     }
+
+    if (utils.isEmptyObj(this.state.sendResultVarible)) {
+      Feedback.toast.error('请输入交易结果变量');
+      return;
+    }
     
     let procedureArr = [];
     if (!utils.isEmptyObj(this.state.testScene)) {
@@ -904,6 +917,7 @@ export default class RawTxConstructor extends Component {
     procedure.info = txInfo;
     procedure.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
     procedure.expectedResult = this.state.resultType;
+    procedure.resultObj = [this.state.sendResultVarible];
     procedureArr.push(procedure);
     this.setState({ testScene: JSON.stringify(procedureArr) });
   }
@@ -920,6 +934,9 @@ export default class RawTxConstructor extends Component {
     this.state.resultVarible = v;
   }
 
+  onChangeSendResultVarible = (v) => {
+    this.state.sendResultVarible = v;
+  }
 
   onChangeCheckMethod = (v) => {
     this.state.checkMethod = v;
@@ -972,7 +989,7 @@ export default class RawTxConstructor extends Component {
       return;
     }
 
-    if (utils.isEmptyObj(this.state.checkExpectResult)) {
+    if (this.state.checkExpectResult != 1 && this.state.checkExpectResult != 0) {
       Feedback.toast.error('请选择此check的预期结果');
       return;
     }
@@ -1015,6 +1032,7 @@ export default class RawTxConstructor extends Component {
     }
     testSceneFile[this.state.sceneName] = oneTestScene;
     utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
+    Feedback.toast.error('保存成功');
   }
   exportTestScene = () => {
     let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
