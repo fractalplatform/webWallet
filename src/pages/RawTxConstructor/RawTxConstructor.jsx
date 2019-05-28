@@ -687,6 +687,15 @@ export default class RawTxConstructor extends Component {
           />
           <br />
           <br />
+          <Input 
+            style={styles.commonElement}
+            addonBefore="场景ID"
+            size="medium"
+            placeholder="ID可分级，如：1，1.1，1.2.1"
+            onChange={this.handleSceneIdChange.bind(this)}
+          />
+          <br />
+          <br />
           <Button type="primary" onClick={this.saveTestScene.bind(this)}>保存此测试场景</Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.exportTestScene.bind(this)}>导出所有测试场景</Button>
@@ -741,6 +750,11 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.error('请对此测试场景命名');
       return;
     }
+    if (utils.isEmptyObj(this.state.sceneId)) {
+      Feedback.toast.error('请设置此测试场景的ID');
+      return;
+    }
+    this.state.sceneName = this.state.sceneId + '.' + this.state.sceneName;
     let oneTestScene = {};
     oneTestScene.predictResult = this.state.resultType;
     oneTestScene.testCases = JSON.parse(this.state.testScene);
@@ -759,6 +773,9 @@ export default class RawTxConstructor extends Component {
   }
   handleTestSceneNameChange = (v) => {
     this.state.sceneName = v;
+  }
+  handleSceneIdChange = (v) => {
+    this.state.sceneId = v;
   }
   getAseetBalance = (account, assetId) => {
     for (const balanceInfo of account.balances) {

@@ -365,11 +365,17 @@ export default class RawTxConstructor extends Component {
         <br />
         <br />
         <Select
-          style={styles.otherElement}
+          style={{width: '300px'}}
           placeholder="测试场景列表"
+          dataSource={this.state.sceneTestCaseNames}
+        />
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <Select
+          style={{width: '300px'}}
+          placeholder="用例列表"
           onChange={this.onChangeTestScene.bind(this)}
           dataSource={this.state.sceneTestCaseNames}
-          />
+        />
         <br />
         <br />
         <Button type="primary" onClick={this.testOneScene.bind(this)}>测试选中场景</Button>

@@ -194,7 +194,7 @@ export default class ContractManager extends Component {
           let visibilityValue = utils.deepClone(self.state.visibilityValue);
           visibilityValue[funcName] = checked ? 'block' : 'none';
           // self.state.visibilityValue[funcName] = checked ? 'block' : 'none';
-          self.setState({ transferTogether, visibilityValue });
+          self.setState({ transferTogether, visibilityValue, txSendVisible: false });
           var obj = document.getElementById(funcName + 'Container');
           obj.style.display= visibilityValue[funcName];
         }}>附带转账</Checkbox>,<br />,<br />,
@@ -230,7 +230,8 @@ export default class ContractManager extends Component {
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>{callBtnName}</Button>
                         <br />
                         <br />
-                        <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium"/>
+                        <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium"
+                          onClick={()=>{}}/>
                         {txReceiptBtns}
                       </Card>;
     return oneElement;
@@ -245,20 +246,21 @@ export default class ContractManager extends Component {
       }
       fractal.ft.getTransactionByHash(result).then(txInfo => {
         var obj = document.getElementById(funcName + 'TxReceipt');
-        obj.value= txInfo;
+        obj.value= JSON.stringify(txInfo);
       });
     }
   }
 
   getReceiptInfo = (funcName) => {
-    if (this.state.curTxResult[funcName] != null) {
+    const result = this.state.curTxResult[funcName];
+    if (result != null) {
       if (result.indexOf('0x') != 0) {
         Feedback.toast.error('非交易hash，无法查询');
         return;
       }
       fractal.ft.getTransactionReceipt(result).then(receipt => {
         var obj = document.getElementById(funcName + 'TxReceipt');
-        obj.value= receipt;
+        obj.value= JSON.stringify(receipt);
         const actionResults = receipt.actionResults;
         if (actionResults[0].status == 0) {
           Feedback.toast.error('Receipt表明本次交易执行失败，原因：' + actionResults[0].error);

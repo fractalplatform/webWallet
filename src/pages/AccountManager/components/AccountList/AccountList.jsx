@@ -80,6 +80,7 @@ export default class AccountList extends Component {
       withdrawTxFeeVisible: false,
       txSendVisible: false,
       contractInfoVisible: false,
+      contractByteCodeVisible: false,
       originalABI: '',
       inputAssetName: false,
       accountInfos: [],
@@ -341,11 +342,13 @@ export default class AccountList extends Component {
         this.setState({
           txVisible: true,
           txInfos,
+          txSendVisible: false,
         });
       } else {
         this.setState({
           txVisible: true,
           txInfos: [],
+          txSendVisible: false,
         });
       }
     } catch (error) {
@@ -784,10 +787,20 @@ export default class AccountList extends Component {
     }
     this.setState({ contractInfoVisible: true });
   }
+  addByteCode = (index) => {
+    this.state.curAccount = this.state.accountInfos[index];
+    if (this.state.curAccount.codeSize > 0) {
+      
+    } 
+    this.setState({ contractByteCodeVisible: true, txSendVisible: false });
+  }
   renderOperation = (value, index) => {
+    let setByteCodeBtn = '';
     let abiBtn = '';
     if (this.state.accountInfos[index].codeSize > 0) {
       abiBtn = <Button type="primary" onClick={this.addContractABI.bind(this, index)}>设置ABI</Button>
+    } else {
+      setByteCodeBtn = <Button type="primary" onClick={this.addByteCode.bind(this, index)}>添加合约代码</Button>
     }
     return (
       <view>
@@ -811,7 +824,7 @@ export default class AccountList extends Component {
           手续费
         </Button>
         &nbsp;&nbsp;
-        {abiBtn}
+        {abiBtn}{setByteCodeBtn}
       </view>
     );
   };
@@ -1398,7 +1411,7 @@ export default class AccountList extends Component {
     }
     utils.storeDataToFile(Constant.ContractABIFile, storedABI);
   }
-
+  
   onAddContractABIOK = () => {
     if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(this.state.contractABI)) {
       Feedback.toast.error('ABI信息不符合规范，请检查后重新输入');
@@ -1417,6 +1430,30 @@ export default class AccountList extends Component {
     this.state.contractABI = value;
   }
 
+  onAddContractByteCodeOK = () => {
+    if (utils.isEmptyObj(this.state.contractByteCode)) {
+      Feedback.toast.error('请输入bytecode');
+      return;
+    }
+    const payload = '0x' + this.state.contractByteCode;
+    this.state.txInfo = { actionType: Constant.CREATE_CONTRACT,
+      accountName: this.state.curAccount.accountName,
+      toAccountName: this.state.curAccount.accountName,
+      assetId: 0,
+      amount: 0,
+      payload };
+
+    this.showTxSendDialog(this.state.txInfo);
+    this.setState({ contractByteCodeVisible: false });
+  }
+
+  onAddContractByteCodeClose = () => {
+    this.setState({ contractByteCodeVisible: false });
+  }
+
+  handleContractByteCodeChange = (value) => {
+    this.state.contractByteCode = value;
+  }
   render() {
     return (
       <div className="editable-table">
@@ -1798,6 +1835,24 @@ export default class AccountList extends Component {
             addonBefore="ABI信息"
             size="medium"
             defaultValue={this.state.originalABI}
+            hasLimitHint
+          />
+        </Dialog>
+        <Dialog
+          visible={this.state.contractByteCodeVisible}
+          title="设置合约byteCode"
+          footerActions="ok"
+          footerAlign="center"
+          closeable="true"
+          onOk={this.onAddContractByteCodeOK.bind(this)}
+          onCancel={this.onAddContractByteCodeClose.bind(this)}
+          onClose={this.onAddContractByteCodeClose.bind(this)}
+        >
+          <Input hasClear multiple
+            onChange={this.handleContractByteCodeChange.bind(this)}
+            style={{ width: 400 }}
+            addonBefore="合约byteCode"
+            size="medium"
             hasLimitHint
           />
         </Dialog>
