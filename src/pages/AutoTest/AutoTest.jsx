@@ -83,7 +83,7 @@ export default class RawTxConstructor extends Component {
   }
   getNumber = (numberStr) => {
     if (utils.isEmptyObj(numberStr)) {
-      return '';
+      return 0;
     }
     return new BigNumber(numberStr).toNumber();
   }
@@ -304,6 +304,9 @@ export default class RawTxConstructor extends Component {
     let testResultInfo = '测试场景：' + testSceneName + '\n此场景包含测试用例数：' + testCases.length + ', 预期结果为:' + (predictResult ? '成功' : '失败');
     this.setState({ testResult: testResultInfo });
     for (const testCase of testCases) {
+      if (testCase.type != 'send') {
+        continue;
+      }
       try {
         const historyStatusInfo = await this.getTxCorrespondingInfo(testCase);
 
@@ -383,6 +386,7 @@ export default class RawTxConstructor extends Component {
           if (testCase.type == 'send') {
             testCase.info.resultObj = testCase.resultObj;
             delete testCase.resultObj;
+            testCase.info.gasAssetId = this.getNumber(testCase.info.gasAssetId);
           } else if (testCase.type == 'get') {
             testCase.info.resultObj = testCase.resultObj;
             delete testCase.resultObj;

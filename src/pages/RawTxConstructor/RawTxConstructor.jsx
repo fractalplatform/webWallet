@@ -129,7 +129,7 @@ export default class RawTxConstructor extends Component {
   }
   getNumber = (numberStr) => {
     if (utils.isEmptyObj(numberStr)) {
-      return '';
+      return 0;
     }
     return new BigNumber(numberStr).toNumber();
   }
@@ -668,7 +668,6 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="Gas资产ID:"
             size="medium"
-            defaultValue='0'
             onChange={this.handleActionElementChange.bind(this, 'gasAssetId')}
           />
           <br />
