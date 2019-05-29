@@ -162,22 +162,39 @@ export default class TxSend extends Component {
           index++;
           utils.confuseInfo(wallet.privateKey);
         }
-
-        fractal.ft.sendMultiSigTransaction(txInfo, multiSigInfos).then(txHash => {
-          console.log('tx hash=>' + txHash);
-          this.processTxSendResult(txInfo, txHash);
-          this.onTxConfirmClose();
-          if (this.props.sendResult != null) {
-            this.props.sendResult(txHash);
-          }
-        }).catch(error => {
-          Feedback.toast.error('交易发送失败：' + error);
-          this.addSendErrorTxToFile(txInfo);
-          self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
-          if (this.props.sendResult != null) {
-            this.props.sendResult(error);
-          }
-        });
+        if (multiSigInfos.length == 1) {
+          fractal.ft.sendSingleSigTransaction(txInfo, multiSigInfos[0].signInfo).then(txHash => {
+            console.log('tx hash=>' + txHash);
+            this.processTxSendResult(txInfo, txHash);
+            this.onTxConfirmClose();
+            if (this.props.sendResult != null) {
+              this.props.sendResult(txHash);
+            }
+          }).catch(error => {
+            Feedback.toast.error('交易发送失败：' + error);
+            this.addSendErrorTxToFile(txInfo);
+            self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
+            if (this.props.sendResult != null) {
+              this.props.sendResult(error);
+            }
+          });
+        } else {
+          fractal.ft.sendMultiSigTransaction(txInfo, multiSigInfos).then(txHash => {
+            console.log('tx hash=>' + txHash);
+            this.processTxSendResult(txInfo, txHash);
+            this.onTxConfirmClose();
+            if (this.props.sendResult != null) {
+              this.props.sendResult(txHash);
+            }
+          }).catch(error => {
+            Feedback.toast.error('交易发送失败：' + error);
+            this.addSendErrorTxToFile(txInfo);
+            self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
+            if (this.props.sendResult != null) {
+              this.props.sendResult(error);
+            }
+          });
+        }
       }).catch(error => {
         console.log(error);
         Feedback.toast.error(error.message);

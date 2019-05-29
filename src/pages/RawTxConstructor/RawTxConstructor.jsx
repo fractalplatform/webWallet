@@ -962,9 +962,10 @@ export default class RawTxConstructor extends Component {
       const procedure = {};
       const txInfo = JSON.parse(this.state.txInfo.trim());
       procedure.type = 'send';
+      // procedure.selfObj = '';
       txInfo.resultObj = [this.state.sendResultVarible];
+      txInfo.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
       procedure.info = txInfo;
-      procedure.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
       procedure.expectedResult = this.state.resultType;
       procedureArr.push(procedure);
       this.saveTestSceneToCookie(JSON.stringify(procedureArr));
