@@ -76,6 +76,7 @@ export default class RawTxConstructor extends Component {
     super(props);
 
     const actionCookieObj = cookie.load('actionHistoryInfo');
+    const privateKeyInfoSet = cookie.load('privateKeyInfoSet');
     this.state = {
       htmlType: 'password',
       showPrivateKeyTip: '显示私钥',
@@ -92,7 +93,7 @@ export default class RawTxConstructor extends Component {
       checkProcedure: '',
       historyInfo: {},
       testScene: '',
-      privateKeyInfoSet: '',
+      privateKeyInfoSet: privateKeyInfoSet != null ? JSON.stringify(privateKeyInfoSet) : '',
       actionCookie: actionCookieObj != null ? actionCookieObj : {},
       txObjIndex: 0,
       getObjIndex: 0,
@@ -972,6 +973,7 @@ export default class RawTxConstructor extends Component {
           privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
         }
         privateKeyInfo.push({ privateKey:this.state.signPrivateKey, index: this.state.privateKeyIndex });
+        cookie.save('privateKeyInfoSet', privateKeyInfo);
         this.setState({privateKeyInfoSet: JSON.stringify(privateKeyInfo)});
       } catch (error) {
         Feedback.toast.error(error);
