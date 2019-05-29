@@ -200,13 +200,17 @@ export default class RawTxConstructor extends Component {
           assetIdValue = this.getNumber(assetIdValue);
         }
       }
+      let nonceValue = '';
+      if (!utils.isEmptyObj(nonce)) {
+        nonceValue = this.getNumber(nonce);
+      }
       const txInfo = {
         gasAssetId: this.getNumber(this.state['gasAssetId']),
         gasPrice: utils.isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
         actions: [{
           actionType: this.getNumber(this.state['actionType']),
           accountName: this.state['accountName'], 
-          nonce: this.getNumber(this.state['nonce']), 
+          nonce: nonceValue, 
           gasLimit: this.getNumber(this.state['gasLimit']), 
           toAccountName: this.state['toAccountName'], 
           assetId: assetIdValue, 
@@ -1091,7 +1095,7 @@ export default class RawTxConstructor extends Component {
       }
       const sceneName = this.state.sceneId + '.' + this.state.sceneName;
       let oneTestScene = {};
-      oneTestScene.testCases = JSON.parse(this.state.testScene);
+      oneTestScene.procedure = JSON.parse(this.state.testScene);
   
       let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
       if (testSceneFile == null) {
