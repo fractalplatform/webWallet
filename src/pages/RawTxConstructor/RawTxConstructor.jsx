@@ -201,8 +201,8 @@ export default class RawTxConstructor extends Component {
         }
       }
       let nonceValue = '';
-      if (!utils.isEmptyObj(nonce)) {
-        nonceValue = this.getNumber(nonce);
+      if (!utils.isEmptyObj(this.state['nonce'])) {
+        nonceValue = this.getNumber(this.state['nonce']);
       }
       const txInfo = {
         gasAssetId: this.getNumber(this.state['gasAssetId']),
@@ -1103,7 +1103,7 @@ export default class RawTxConstructor extends Component {
       }
       testSceneFile[sceneName] = oneTestScene;
       utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
-      Feedback.toast.error('保存成功');
+      Feedback.toast.success('保存成功');
     } catch (error) {
       Feedback.toast.error(error.message || error);
     }
