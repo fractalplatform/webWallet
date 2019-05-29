@@ -509,34 +509,11 @@ export default class RawTxConstructor extends Component {
   }  
 
   tranform = () => {
-    try {
-      let sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
-      const sceneNames = Object.keys(sceneTestCaseObj);
-      for (const sceneName of sceneNames) {
-        const testCases = sceneTestCaseObj[sceneName].testCases;
-        for (const testCase of testCases) {
-          if (testCase.type == 'send') {
-            if (testCase.resultObj != null) {
-              testCase.info.resultObj = testCase.resultObj;
-              delete testCase.resultObj;
-            }
-            testCase.info.gasAssetId = this.getNumber(testCase.info.gasAssetId);
-          } else if (testCase.type == 'get') {
-            if (testCase.resultObj != null) {
-              testCase.info.resultObj = testCase.resultObj;
-              delete testCase.resultObj;
-            }
-          } else if (testCase.type == 'check') {
-            if (Array.isArray(testCase.expectedResult)) {
-              testCase.expectedResult = testCase.expectedResult[0];
-            }
-          }
-        }
-      }
-      this.setState({ sceneTestCase: JSON.stringify(sceneTestCaseObj) });
-    } catch (error) {
-      Feedback.toast.error('转换失败' + error);
-    }
+    // try {
+      
+    // } catch (error) {
+    //   Feedback.toast.error('转换失败' + error);
+    // }
   }
 
   render() {

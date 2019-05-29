@@ -74,6 +74,8 @@ export default class RawTxConstructor extends Component {
 
   constructor(props) {
     super(props);
+
+    const actionCookieObj = cookie.load('actionHistoryInfo');
     this.state = {
       htmlType: 'password',
       showPrivateKeyTip: '显示私钥',
@@ -91,6 +93,7 @@ export default class RawTxConstructor extends Component {
       historyInfo: {},
       testScene: '',
       privateKeyInfoSet: '',
+      actionCookie: actionCookieObj != null ? actionCookieObj : {},
     };
   }
   componentDidMount = async () => {
@@ -588,6 +591,8 @@ export default class RawTxConstructor extends Component {
   }
   handleActionElementChange = (actionElement, v) => {
     this.state[actionElement] = v;
+    this.state.actionCookie[actionElement] = v;
+    cookie.save('actionHistoryInfo', this.state.actionCookie);
   }
   onChangeZeroNumType = (v) => {
     this.state.zeroNum = v;
@@ -620,9 +625,9 @@ export default class RawTxConstructor extends Component {
         <IceContainer style={styles.container} title='通用信息'>
           <Input hasClear
             style={styles.commonElement}
-            addonBefore="nonce值:"
+            addonBefore="nonce值(选填):"
             size="medium"
-            placeholder="可选填"
+            defaultValue={this.state.actionCookie.nonce}
             onChange={this.handleActionElementChange.bind(this, 'nonce')}
           />
           <br />
@@ -631,6 +636,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="from账号:"
             size="medium"
+            defaultValue={this.state.actionCookie.accountName}
             onChange={this.handleActionElementChange.bind(this, 'accountName')}
           />
           <br />
@@ -639,6 +645,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="to账号:"
             size="medium"
+            defaultValue={this.state.actionCookie.toAccountName}
             onChange={this.handleActionElementChange.bind(this, 'toAccountName')}
           />
           <br />
@@ -647,6 +654,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="资产ID:"
             size="medium"
+            defaultValue={this.state.actionCookie.assetId}
             onChange={this.handleActionElementChange.bind(this, 'assetId')}
           />
           <br />
@@ -655,6 +663,7 @@ export default class RawTxConstructor extends Component {
             style={{width:500}}
             addonBefore="资产数量:"
             size="medium"
+            defaultValue={this.state.actionCookie.amount}
             onChange={this.handleActionElementChange.bind(this, 'amount')}
           />
           &nbsp;&nbsp;
@@ -670,6 +679,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="交易备注:"
             size="medium"
+            defaultValue={this.state.actionCookie.remark}
             onChange={this.handleActionElementChange.bind(this, 'remark')}
           />
           <br />
@@ -678,6 +688,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="Gas资产ID:"
             size="medium"
+            defaultValue={this.state.actionCookie.gasAssetId}
             onChange={this.handleActionElementChange.bind(this, 'gasAssetId')}
           />
           <br />
@@ -686,6 +697,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="Gas单价（Gaft）:"
             size="medium"
+            defaultValue={this.state.actionCookie.gasPrice}
             onChange={this.handleActionElementChange.bind(this, 'gasPrice')}
           />
           <br />
@@ -696,6 +708,7 @@ export default class RawTxConstructor extends Component {
             style={styles.commonElement}
             addonBefore="Gas上限:"
             size="medium"
+            defaultValue={this.state.actionCookie.gasLimit}
             onChange={this.handleActionElementChange.bind(this, 'gasLimit')}
           />
         </IceContainer>
@@ -1095,13 +1108,14 @@ export default class RawTxConstructor extends Component {
       }
       const sceneName = this.state.sceneId + '.' + this.state.sceneName;
       let oneTestScene = {};
+      oneTestScene.name = sceneName;
       oneTestScene.procedure = JSON.parse(this.state.testScene);
   
       let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
       if (testSceneFile == null) {
-        testSceneFile = {};
+        testSceneFile = [];
       }
-      testSceneFile[sceneName] = oneTestScene;
+      testSceneFile.push(oneTestScene);
       utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
       Feedback.toast.success('保存成功');
     } catch (error) {
@@ -1115,30 +1129,30 @@ export default class RawTxConstructor extends Component {
   }
 
   deleteTestScene = () => {
-    if (utils.isEmptyObj(this.state.sceneName)) {
-      Feedback.toast.error('请输入待删除测试场景名称');
-      return;
-    }
-    if (utils.isEmptyObj(this.state.sceneId)) {
-      Feedback.toast.error('请输入待删除测试场景的ID');
-      return;
-    }
-    const sceneName = this.state.sceneId + '.' + this.state.sceneName;
-    let testSceneFile = utils.getDataFromFile(Constant.TestSceneFile);
-    if (testSceneFile != null) {
-      if (testSceneFile[sceneName] == null) {
-        Feedback.toast.error('此测试场景不存在');
+    try {
+      if (utils.isEmptyObj(this.state.sceneName)) {
+        Feedback.toast.error('请输入待删除测试场景名称');
         return;
       }
-      delete testSceneFile[sceneName];
-      utils.storeDataToFile(Constant.TestSceneFile, testSceneFile);
-      Feedback.toast.error('删除成功');
+      if (utils.isEmptyObj(this.state.sceneId)) {
+        Feedback.toast.error('请输入待删除测试场景的ID');
+        return;
+      }
+      const sceneName = this.state.sceneId + '.' + this.state.sceneName;
+      let testSceneArr = utils.getDataFromFile(Constant.TestSceneFile);
+      if (testSceneArr != null) {
+        testSceneArr.splice(testSceneArr.findIndex(item => item.name == sceneName), 1);
+        utils.storeDataToFile(Constant.TestSceneFile, testSceneArr);
+        Feedback.toast.success('删除成功');
+      }
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
     }
   }
 
   clearTestScene = () => {
-    utils.storeDataToFile(Constant.TestSceneFile, {});
-    Feedback.toast.error('清空成功');
+    utils.storeDataToFile(Constant.TestSceneFile, []);
+    Feedback.toast.success('清空成功');
   }
 
 
