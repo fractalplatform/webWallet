@@ -94,7 +94,15 @@ export default class RawTxConstructor extends Component {
       testScene: '',
       privateKeyInfoSet: '',
       actionCookie: actionCookieObj != null ? actionCookieObj : {},
+      txObjIndex: 0,
+      getObjIndex: 0,
+      checkObjIndex: 0
     };
+    if (actionCookieObj != null) {
+      Object.keys(actionCookieObj).map(key => {
+        this.state[key] = actionCookieObj[key];
+      });
+    }
   }
   componentDidMount = async () => {
     const chainConfig = await fractal.ft.getChainConfig();
@@ -199,9 +207,11 @@ export default class RawTxConstructor extends Component {
       }
       let assetIdValue = this.state['assetId'];
       if (!utils.isEmptyObj(assetIdValue)) {
-        if (assetIdValue.indexOf('$') < 0 ) {
+        if (assetIdValue.indexOf('$') < 0) {
           assetIdValue = this.getNumber(assetIdValue);
         }
+      } else {
+        assetIdValue = 0;
       }
       let nonceValue = '';
       if (!utils.isEmptyObj(this.state['nonce'])) {
@@ -795,7 +805,8 @@ export default class RawTxConstructor extends Component {
             onChange={this.onChangeResultType.bind(this)}
             dataSource={this.state.resultTypes}
           />
-          &nbsp;&nbsp;
+          <br />
+          <br />
           <Input 
             style={{width: 200}}
             addonBefore="结果变量"
@@ -803,9 +814,18 @@ export default class RawTxConstructor extends Component {
             size="medium"
             onChange={this.onChangeSendResultVarible.bind(this)}
           />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 300}}
+            addonBefore="备注"
+            size="medium"
+            onChange={this.onChangeTxTooltip.bind(this)}
+          />
           <br />
           <br />
           <Button type="primary" onClick={this.addTestCase.bind(this)}>将生成的交易内容添加到测试场景中</Button>
+          <br />
+          <br />
           <br />
           <br />
           <Select
@@ -814,7 +834,8 @@ export default class RawTxConstructor extends Component {
             onChange={this.onChangeGetMethod.bind(this)}
             dataSource={getMethods}
           />
-          &nbsp;&nbsp;
+          <br />
+          <br />
           <Input 
             style={{width: 250}}
             addonBefore="参数列表"
@@ -824,15 +845,24 @@ export default class RawTxConstructor extends Component {
           />
           &nbsp;&nbsp;
           <Input 
-            style={{width: 200}}
+            style={{width: 180}}
             addonBefore="结果变量"
             placeholder='变量不可重复'
             size="medium"
             onChange={this.onChangeResultVarible.bind(this)}
           />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 200}}
+            addonBefore="备注"
+            size="medium"
+            onChange={this.onChangeGetTooltip.bind(this)}
+          />
           <br />
           <br />
           <Button type="primary" onClick={this.addGetToTestCase.bind(this)}>将Get添加到测试场景中</Button>
+          <br />
+          <br />
           <br />
           <br />
           <Select
@@ -841,7 +871,8 @@ export default class RawTxConstructor extends Component {
             onChange={this.onChangeCheckMethod.bind(this)}
             dataSource={checkMethods}
           />
-          &nbsp;&nbsp;
+          <br />
+          <br />
           <Input 
             style={{width: 250}}
             addonBefore="参数列表"
@@ -851,10 +882,17 @@ export default class RawTxConstructor extends Component {
           />
           &nbsp;&nbsp;
           <Select
-            style={{width: 200}}
+            style={{width: 180}}
             placeholder="选择此check预期结果"
             onChange={this.onChangeCheckExpectResult.bind(this)}
             dataSource={this.state.resultTypes}
+          />
+          &nbsp;&nbsp;
+          <Input 
+            style={{width: 200}}
+            addonBefore="备注"
+            size="medium"
+            onChange={this.onChangeCheckTooltip.bind(this)}
           />
           <br />
           <br />
@@ -895,7 +933,7 @@ export default class RawTxConstructor extends Component {
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.deleteTestScene.bind(this)}>删除指定名称的测试场景</Button>
           &nbsp;&nbsp;
-          <Button type="primary" onClick={this.clearTestScene.bind(this)}>清空所有测试场景</Button>
+          <Button type="primary" onClick={this.clearTestScene.bind(this)}>清空缓存中所有的测试场景</Button>
         </IceContainer>
         
         {/* <Button type="primary" onClick={this.checkResult.bind(this)}>校验链上相关状态</Button>
@@ -979,7 +1017,8 @@ export default class RawTxConstructor extends Component {
       const procedure = {};
       const txInfo = JSON.parse(this.state.txInfo.trim());
       procedure.type = 'send';
-      // procedure.selfObj = '';
+      procedure.selfObj = 'txObj' + this.state.txObjIndex++;
+      procedure.tooltip = this.state.txTooltip;
       txInfo.resultObj = [this.state.sendResultVarible];
       txInfo.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
       procedure.info = txInfo;
@@ -1004,8 +1043,16 @@ export default class RawTxConstructor extends Component {
     this.state.resultVarible = v;
   }
 
+  onChangeGetTooltip = (v) => {
+    this.state.getTooltip = v;
+  }
+
   onChangeSendResultVarible = (v) => {
     this.state.sendResultVarible = v;
+  }
+
+  onChangeTxTooltip = (v) => {
+    this.state.txTooltip = v;
   }
 
   onChangeCheckMethod = (v) => {
@@ -1018,6 +1065,10 @@ export default class RawTxConstructor extends Component {
 
   onChangeCheckExpectResult = (v) => {
     this.state.checkExpectResult = v;
+  }
+
+  onChangeCheckTooltip = (v) => {
+    this.state.checkTooltip = v;
   }
 
   addGetToTestCase = () => {
@@ -1047,6 +1098,8 @@ export default class RawTxConstructor extends Component {
       }
       const procedure = {};
       procedure.type = 'get';
+      procedure.selfObj = 'getObj' + this.state.getObjIndex++;
+      procedure.tooltip = this.state.getTooltip;
       procedure.info = {method: this.state.getMethod, arguments: this.state.arguments.split(','), resultObj: [this.state.resultVarible]};
       procedureArr.push(procedure);
       this.saveTestSceneToCookie(JSON.stringify(procedureArr));
@@ -1079,6 +1132,8 @@ export default class RawTxConstructor extends Component {
       }
       const procedure = {};
       procedure.type = 'check';
+      procedure.selfObj = 'checkObj' + this.state.checkObjIndex++;
+      procedure.tooltip = this.state.checkTooltip;
       procedure.info = {method: this.state.checkMethod, arguments: this.state.checkArguments.split(',')};
       procedure.expectedResult = this.state.checkExpectResult;
       procedureArr.push(procedure);
@@ -1388,7 +1443,6 @@ export default class RawTxConstructor extends Component {
       Feedback.toast.prompt('因无法获取receipt，故无法确认交易执行状态');
     }
 
-    
   }
 
   recordHistory = async () => {

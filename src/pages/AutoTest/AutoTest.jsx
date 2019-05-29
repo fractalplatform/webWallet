@@ -178,23 +178,28 @@ export default class RawTxConstructor extends Component {
     }
   }
   onChangeTestScene  = (v) => {
-    this.state.testSceneName = v;
-    const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
-    const testCases = sceneTestCaseObj[v].testCases;
-    this.state.testCaseNames = [];
-    let index = 0;
-    for (const testCase of testCases) {
-      let label = testCase.type + '-';
-      if (testCase.type == 'send') {
-        const actionType = testCase.info.actions[0].actionType;
-        label += TxParser.getActionTypeStr(actionType);
-      } else {
-        label += testCase.info.method + '(' + testCase.info.arguments + ')';
+    try {
+      this.state.testSceneName = v;
+      const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
+      const testCases = sceneTestCaseObj[v].testCases;
+      this.state.testCaseNames = [];
+      let index = 0;
+      for (const testCase of testCases) {
+        let label = testCase.type + '-';
+        if (testCase.type == 'send') {
+          const actionType = testCase.info.actions[0].actionType;
+          label += TxParser.getActionTypeStr(actionType);
+        } else {
+          label += testCase.info.method + '(' + testCase.info.arguments + ')';
+        }
+        this.state.testCaseNames.push({label, value: index});
+        index++;
       }
-      this.state.testCaseNames.push({label, value: index});
-      index++;
+      this.setState({testCaseNames: this.state.testCaseNames});
+    } catch (error) {
+      Feedback.toast.error('测试步骤解析失败');
     }
-    this.setState({testCaseNames: this.state.testCaseNames});
+    
   }
 
   onChangeTestCase = (v) => {
