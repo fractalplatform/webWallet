@@ -65,7 +65,7 @@ const getMethods = ['account_accountIsExist',
                     'fee_getObjectFeeResult',
                     'fee_getObjectFeeResultByTime'];
 
-const checkMethods = [ 'equal', 'compare' ];
+const checkMethods = [ 'equalstr', 'equali', 'equalf', 'add', 'sub', 'mul', 'div' ];
 
 const testSceneTag = 'testScene';
 
@@ -194,6 +194,12 @@ export default class RawTxConstructor extends Component {
       if (this.state.zeroNum != null && this.state.zeroNum > 0) {
         zeros = '0'.repeat(this.state.zeroNum);
       }
+      let assetIdValue = this.state['assetId'];
+      if (!utils.isEmptyObj(assetIdValue)) {
+        if (assetIdValue.indexOf('$') < 0 ) {
+          assetIdValue = this.getNumber(assetIdValue);
+        }
+      }
       const txInfo = {
         gasAssetId: this.getNumber(this.state['gasAssetId']),
         gasPrice: utils.isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
@@ -203,7 +209,7 @@ export default class RawTxConstructor extends Component {
           nonce: this.getNumber(this.state['nonce']), 
           gasLimit: this.getNumber(this.state['gasLimit']), 
           toAccountName: this.state['toAccountName'], 
-          assetId: this.getNumber(this.state['assetId']), 
+          assetId: assetIdValue, 
           amount: this.getNumber(this.state['amount'] + zeros), 
           payload, 
           payloadDetailInfo,
@@ -1002,8 +1008,12 @@ export default class RawTxConstructor extends Component {
         Feedback.toast.error('请选择get方法');
         return;
       }
-  
-      if (utils.isEmptyObj(this.state.arguments) || this.state.arguments.indexOf('，') > -1) {
+      
+      if (utils.isEmptyObj(this.state.arguments)) {
+        this.state.arguments = '';
+      }
+
+      if (this.state.arguments.indexOf('，') > -1) {
         Feedback.toast.error('请输入合法参数值，参数值之间用英文逗号隔开');
         return;
       }

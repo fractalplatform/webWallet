@@ -196,9 +196,15 @@ export default class RawTxConstructor extends Component {
     }
     this.setState({testCaseNames: this.state.testCaseNames});
   }
+
   onChangeTestCase = (v) => {
     this.state.testCaseObj = v;
   }
+
+  handleTestPathChange = (v) => {
+    this.state.testPath = v;
+  }
+
   sleep = (delay) => {
     var start = (new Date()).getTime();
     while ((new Date()).getTime() - start < delay) {
@@ -304,41 +310,54 @@ export default class RawTxConstructor extends Component {
     let testResultInfo = '测试场景：' + testSceneName + '\n此场景包含测试用例数：' + testCases.length + ', 预期结果为:' + (predictResult ? '成功' : '失败');
     this.setState({ testResult: testResultInfo });
     for (const testCase of testCases) {
-      if (testCase.type != 'send') {
-        continue;
-      }
-      try {
-        const historyStatusInfo = await this.getTxCorrespondingInfo(testCase);
-
-        const txTypeName = TxParser.getActionTypeStr(testCase.actions[0].actionType);
-        const originalInfo = JSON.stringify(testCase);
-        testResultInfo += '\n\n交易类型：' + txTypeName;
-        testResultInfo += '\n交易原始信息：' + originalInfo;
-        this.setState({ testResult: testResultInfo });
-        const signInfo = await fractal.ft.signTx(testCase, testCase.privateKey);
-        const txHash = await fractal.ft.sendSingleSigTransaction(testCase, signInfo);
-        testResultInfo += '\n本次交易发送成功，获得交易hash：' + txHash;
-        this.setState({ testResult: testResultInfo });
-        let gotReceipt = false;
-        while(!gotReceipt) {
-          testResultInfo += '\n开始获取receipt...';
-          this.setState({ testResult: testResultInfo });
-          this.sleep(3000);
-          const receipt = await fractal.ft.getTransactionReceipt(txHash);
-          if (receipt != null) {
-            gotReceipt = true;
-            const status = receipt.actionResults[0].status;
-            const error = receipt.actionResults[0].error;
-            testResultInfo += '\n通过receipt表明此交易执行结果为:' + (status == 1 ? '成功' : ('失败，原因：' + error));
-            result = result && (status == 1);
-
-            const curStatusInfo = await this.getTxCorrespondingInfo(testCase);
-          }
+      if (testCase.type == 'get') {
+        const getResult = this.testGetCase(testCase);
+        if (!getResult) {
+          result = false;
+          break;
         }
-      } catch (error) {
-        testResultInfo += '\n本次交易失败，错误原因：' + error;
-        result = false;
+      } else if (testCase.type == 'check') {
+        const checkResult = this.testCheckCase(testCase);
+        const expectedResult = testCase.expectedResult == 1;
+        if (checkResult != expectedResult) {
+          result = false;
+          break;
+        }
+      } else {
+        try {
+          //const historyStatusInfo = await this.getTxCorrespondingInfo(testCase);
+  
+          const txTypeName = TxParser.getActionTypeStr(testCase.actions[0].actionType);
+          const originalInfo = JSON.stringify(testCase);
+          testResultInfo += '\n\n交易类型：' + txTypeName;
+          testResultInfo += '\n交易原始信息：' + originalInfo;
+          this.setState({ testResult: testResultInfo });
+          const signInfo = await fractal.ft.signTx(testCase, testCase.privateKey);
+          const txHash = await fractal.ft.sendSingleSigTransaction(testCase, signInfo);
+          testResultInfo += '\n本次交易发送成功，获得交易hash：' + txHash;
+          this.setState({ testResult: testResultInfo });
+          let gotReceipt = false;
+          while(!gotReceipt) {
+            testResultInfo += '\n开始获取receipt...';
+            this.setState({ testResult: testResultInfo });
+            this.sleep(3000);
+            const receipt = await fractal.ft.getTransactionReceipt(txHash);
+            if (receipt != null) {
+              gotReceipt = true;
+              const status = receipt.actionResults[0].status;
+              const error = receipt.actionResults[0].error;
+              testResultInfo += '\n通过receipt表明此交易执行结果为:' + (status == 1 ? '成功' : ('失败，原因：' + error));
+              result = result && (status == 1);
+  
+              //const curStatusInfo = await this.getTxCorrespondingInfo(testCase);
+            }
+          }
+        } catch (error) {
+          testResultInfo += '\n本次交易失败，错误原因：' + error;
+          result = false;
+        }
       }
+      
       this.setState({ testResult: testResultInfo });
     }
     testResultInfo += '\n本测试场景与预期:' + (predictResult == result ? '相符' : '不符') + '\n\n';
@@ -372,7 +391,120 @@ export default class RawTxConstructor extends Component {
     this.setState({ nonPredictTestScenes });
   }
 
-  testOneCase = () => {
+  testSendCase = async (testCase) => {
+    try {
+      // const historyStatusInfo = await this.getTxCorrespondingInfo(testCase);
+
+      const txTypeName = TxParser.getActionTypeStr(testCase.actions[0].actionType);
+      const originalInfo = JSON.stringify(testCase);
+      testResultInfo += '\n\n交易类型：' + txTypeName;
+      testResultInfo += '\n交易原始信息：' + originalInfo;
+      this.setState({ testResult: testResultInfo });
+      const signInfo = await fractal.ft.signTx(testCase, testCase.privateKey);
+      const txHash = await fractal.ft.sendSingleSigTransaction(testCase, signInfo);
+      testResultInfo += '\n本次交易发送成功，获得交易hash：' + txHash;
+      this.setState({ testResult: testResultInfo });
+      let gotReceipt = false;
+      while(!gotReceipt) {
+        testResultInfo += '\n开始获取receipt...';
+        this.setState({ testResult: testResultInfo });
+        this.sleep(3000);
+        const receipt = await fractal.ft.getTransactionReceipt(txHash);
+        if (receipt != null) {
+          gotReceipt = true;
+          const status = receipt.actionResults[0].status;
+          const error = receipt.actionResults[0].error;
+          testResultInfo += '\n通过receipt表明此交易执行结果为:' + (status == 1 ? '成功' : ('失败，原因：' + error));
+          result = result && (status == 1);
+
+          // const curStatusInfo = await this.getTxCorrespondingInfo(testCase);
+        }
+      }
+    } catch (error) {
+      testResultInfo += '\n本次交易失败，错误原因：' + error;
+      result = false;
+    }
+    this.setState({ testResult: testResultInfo });
+  }  
+
+  getResult = (method, params) => {
+    const dataToSrv = JSON.stringify({ jsonrpc: '2.0',
+      method,
+      params,
+      id: 1 });
+    return fractal.utils.postToNode({
+      data: dataToSrv,
+    });
+  }
+
+  testGetCase = async (testCase) => {
+    const info = testCase.info;
+    let testCaseInfo = '\n开始执行Get:' + info.method + '(' + info.arguments + ')';
+    try {
+      this.state[info.resultObj[0]] = await this.getResult(info.method, info.arguments);
+    } catch (error) {
+      testCaseInfo += '\n发生错误:' + error;
+      this.setState({ testResult: this.state.testResult + testCaseInfo });
+      return false;
+    }
+    this.setState({ testResult: this.state.testResult + testCaseInfo });
+    return true;
+  }
+
+  equal = (first, second) => {
+    if (first == null || second == null) {
+      Feedback.toast.error('equal参数不符合要求');
+      return false;
+    }
+    const firstElements = first.split(',');
+    const secondElements = second.split(',');
+    const fristNum = firstElements.length;
+    const secondNum = secondElements.length;
+    let firstValue = first;
+    let secondValue = second;
+    if (this.state[firstElements[0]] != null) {
+      switch(fristNum) {
+        case 2:
+          firstValue = this.state[firstElements[0]][firstElements[1]];
+          break;
+        case 3:
+          firstValue = this.state[firstElements[0]][firstElements[1]][firstElements[2]];
+          break;
+        case 4:
+          firstValue = this.state[firstElements[0]][firstElements[1]][firstElements[2]][firstElements[3]];
+          break;
+      }
+    }
+
+    if (this.state[secondElements[0]] != null) {
+      switch(secondNum) {
+        case 2:
+          secondValue = this.state[secondElements[0]][secondElements[1]];
+          break;
+        case 3:
+          secondValue = this.state[secondElements[0]][secondElements[1]][secondElements[2]];
+          break;
+        case 4:
+          secondValue = this.state[secondElements[0]][secondElements[1]][secondElements[2]][secondElements[3]];
+          break;
+      }
+    }
+
+    return firstValue == secondValue;
+  }
+
+  testCheckCase = (testCase) => {
+    const info = testCase.info;
+    if (info.method == 'equal') {
+      return this.equal(info.arguments[0], info.arguments[1]);
+    }
+  }
+
+  testOneCase= (testCase) => {
+    
+  }
+
+  testPathCase = (testCase) => {
 
   }  
 
@@ -384,12 +516,16 @@ export default class RawTxConstructor extends Component {
         const testCases = sceneTestCaseObj[sceneName].testCases;
         for (const testCase of testCases) {
           if (testCase.type == 'send') {
-            testCase.info.resultObj = testCase.resultObj;
-            delete testCase.resultObj;
+            if (testCase.resultObj != null) {
+              testCase.info.resultObj = testCase.resultObj;
+              delete testCase.resultObj;
+            }
             testCase.info.gasAssetId = this.getNumber(testCase.info.gasAssetId);
           } else if (testCase.type == 'get') {
-            testCase.info.resultObj = testCase.resultObj;
-            delete testCase.resultObj;
+            if (testCase.resultObj != null) {
+              testCase.info.resultObj = testCase.resultObj;
+              delete testCase.resultObj;
+            }
           } else if (testCase.type == 'check') {
             if (Array.isArray(testCase.expectedResult)) {
               testCase.expectedResult = testCase.expectedResult[0];
@@ -429,11 +565,19 @@ export default class RawTxConstructor extends Component {
         />
         &nbsp;&nbsp;&nbsp;&nbsp;
         <Select
-          style={{width: '300px'}}
+          style={{width: '430px'}}
           placeholder="详细用例列表"
           onChange={this.onChangeTestCase.bind(this)}
           dataSource={this.state.testCaseNames}
         />
+        <br />
+        <br />
+        <Input hasClear
+            style={{width: '300px'}}
+            addonBefore="路径:"
+            size="medium"
+            onChange={this.handleTestPathChange.bind(this, 'gasLimit')}
+          />
         <br />
         <br />
         <Button type="primary" onClick={this.testOneScene.bind(this)}>测试选中场景</Button>
@@ -441,6 +585,8 @@ export default class RawTxConstructor extends Component {
         <Button type="primary" onClick={this.testAllScene.bind(this)}>测试所有场景</Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.testOneCase.bind(this)}>测试单个用例</Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.testPathCase.bind(this)}>测试符合路径的场景</Button>
         <br />
         <br />
         <Input multiple
