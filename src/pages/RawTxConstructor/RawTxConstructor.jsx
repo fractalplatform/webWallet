@@ -5,6 +5,7 @@ import IceContainer from '@icedesign/container';
 import { Button } from '@alifd/next';
 import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
+import * as ethUtil from 'ethereumjs-util';
 import BigNumber from 'bignumber.js';
 import copy from 'copy-to-clipboard';
 import cookie from 'react-cookies';
@@ -75,6 +76,7 @@ export default class RawTxConstructor extends Component {
   constructor(props) {
     super(props);
 
+    const privateKeyStr = cookie.load('privateKey');
     const actionCookieObj = cookie.load('actionHistoryInfo');
     const privateKeyInfoSet = cookie.load('privateKeyInfoSet');
     this.state = {
@@ -83,7 +85,7 @@ export default class RawTxConstructor extends Component {
       txResult: '',
       txInfo: '',
       payload: '',
-      privateKey: '',
+      privateKey: privateKeyStr,
       receipt: '',
       txTypeInfos: txTypes,
       payloadInfos: [],
@@ -138,6 +140,7 @@ export default class RawTxConstructor extends Component {
 
   handlePrivateKeyChange = (v) => {
     this.state.privateKey = v;
+    cookie.save('privateKey', v);
   }
   getNumber = (numberStr) => {
     if (utils.isEmptyObj(numberStr)) {
@@ -163,8 +166,24 @@ export default class RawTxConstructor extends Component {
       this.state.payloadElements = [];
       let payloadDetailInfo = {};
       if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {  // 如果是设置账号权限，由于payload构造特殊，故需要单独编码
-        this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
-                                    [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
+        //const UpdateAuthorType = { Add: 0, Update: 1, Delete: 2};
+        const AuthorOwnerType = { Error: -1, AccountName: 0, PublicKey: 1, Address: 2 };
+        const newOwner = this.state[actionType + '-' + 3].value;
+        let ownerType = AuthorOwnerType.Error;
+        if (ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(utils.getPublicKeyWithPrefix(newOwner))), true)) {
+          ownerType = AuthorOwnerType.PublicKey;
+        } else if (ethUtil.isValidAddress(newOwner) || ethUtil.isValidAddress('0x' + newOwner)) {
+          ownerType = AuthorOwnerType.Address;
+        } else if (new RegExp('^[a-z0-9]{7,16}(\\.[a-z0-9]{1,8}){0,1}$').test(newOwner)) {
+          ownerType = AuthorOwnerType.AccountName;
+        }
+
+        const threshold = this.getNumber(this.state[actionType + '-' + 0].value);
+        const updateAuthorThreshold = this.getNumber(this.state[actionType + '-' + 1].value);
+        const updateAuthorType = this.getNumber(this.state[actionType + '-' + 2].value);
+        const weight = this.getNumber(this.state[actionType + '-' + 4].value);
+        // [threshold, updateAuthorThreshold, [[UpdateAuthorType.Delete, [ownerType, owner, weight]]]]
+        this.state.payloadElements = [threshold, updateAuthorThreshold, [[updateAuthorType, [ownerType, newOwner, weight]]]];  
         for (let i = 0; i < 5; i++) {
           payloadDetailInfo[this.state[actionType + '-' + i].payloadName] = this.state[actionType + '-' + i].value;
         }
@@ -231,7 +250,7 @@ export default class RawTxConstructor extends Component {
           amount: this.getNumber(this.state['amount'] + zeros), 
           payload, 
           payloadDetailInfo,
-          remark: this.state['remark'], 
+          remark: utils.isEmptyObj(this.state['remark']) ? '' : this.state['remark'], 
         }]
       };
       this.setState({ txInfo: JSON.stringify(txInfo) });
@@ -297,6 +316,7 @@ export default class RawTxConstructor extends Component {
     // txInfo = txInfo.replace(regex, '"');
     if (txInfo.length > 130 && txInfo.charAt(0) === '{' && txInfo.charAt(txInfo.length - 1) === '}') {
       try {
+        console.log('raw->' + txInfo);
         const txObj = JSON.parse(txInfo);
         fractal.ft.signTx(txObj, this.state.privateKey).then(signInfo => {
           fractal.ft.sendSingleSigTransaction(txObj, signInfo).then(txHash => {
@@ -619,6 +639,7 @@ export default class RawTxConstructor extends Component {
           addonBefore="私钥:"
           size="medium"
           placeholder="私钥用于对交易信息进行签名，无需0x前缀"
+          defaultValue={this.state.privateKey}
           onChange={this.handlePrivateKeyChange.bind(this)}
         />
         &nbsp;&nbsp;

@@ -47,7 +47,7 @@ function getActionTypeStr(actionTypeNum) {
       actionType = '设置资产所有者';
       break;
     case actionTypes.SET_ASSET_FOUNDER:
-      actionType = '设置资产创建者';
+      actionType = '设置资产创办者';
       break;
     case actionTypes.REG_CANDIDATE:
       actionType = '注册候选者';
@@ -130,12 +130,10 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         break;
       case actionTypes.UPDATE_ACCOUNT:
         actionParseInfo.actionType = '更新账户';
-        if (payloadInfo.length >= 4) {
-          const founder = String.fromCharCode.apply(null, payloadInfo[1]);
-          const chargeRatio = payloadInfo[2].length === 0 ? 0 : payloadInfo[2][0];
-          const publicKey = bytes2Hex(payloadInfo[3]);
-          actionParseInfo.detailInfo = `创建者：${founder}, 手续费收取比例:${chargeRatio}%, 公钥:${publicKey}`;
-          actionParseInfo.detailObj = { founder, chargeRatio, publicKey };
+        if (payloadInfo.length >= 1) {
+          const founder = String.fromCharCode.apply(null, payloadInfo[0]);
+          actionParseInfo.detailInfo = `创建者：${founder}`;
+          actionParseInfo.detailObj = { founder };
         } else {
           actionParseInfo.detailInfo = 'payload信息不足，无法解析';
         }
@@ -149,6 +147,10 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           let authorType = 0;
           let owner = '';
           let weight = 0;
+          if (!Array.isArray(payloadInfo[2][0])) {
+            actionParseInfo.detailInfo = '解析异常';
+            return actionParseInfo;
+          }
           let updateAuthorTypeBytes = payloadInfo[2][0][0];
           let authorTypeBytes = payloadInfo[2][0][1][0];
           let ownerBytes = payloadInfo[2][0][1][1];

@@ -155,7 +155,7 @@ export default class TxSend extends Component {
       const self = this;
       Promise.all(promiseArr).then(async (wallets) => {
         utils.confuseInfo(this.state.password);
-        console.log(txInfo);
+        console.log(JSON.stringify(txInfo));
         for (let wallet of wallets) {
           const signInfo = await fractal.ft.signTx(txInfo, wallet.privateKey);
           multiSigInfos.push({signInfo, indexes: [index]});
@@ -171,6 +171,7 @@ export default class TxSend extends Component {
               this.props.sendResult(txHash);
             }
           }).catch(error => {
+            console.log(error);
             Feedback.toast.error('交易发送失败：' + error);
             this.addSendErrorTxToFile(txInfo);
             self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
@@ -187,6 +188,7 @@ export default class TxSend extends Component {
               this.props.sendResult(txHash);
             }
           }).catch(error => {
+            console.log(error);
             Feedback.toast.error('交易发送失败：' + error);
             this.addSendErrorTxToFile(txInfo);
             self.state.txInfo = utils.deepClone(self.state.originalTxInfo);

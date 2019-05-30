@@ -523,6 +523,7 @@ export default class KeyList extends Component {
     }
     let wallet = new ethers.Wallet(privateKey);
     //const publicKey = '0x' + EthCrypto.publicKeyByPrivateKey(privateKey);
+    Feedback.toast.success('开始导入');
     this.encryptWallet(wallet, password, '导入成功');
   };
 

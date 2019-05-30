@@ -6,7 +6,6 @@ import { Tag, Balloon } from '@alifd/next';
 import BigNumber from 'bignumber.js';
 import * as fractal from 'fractal-web3';
 import * as ethUtil from 'ethereumjs-util';
-import { ethers } from 'ethers';
 import copy from 'copy-to-clipboard';
 
 import { encode } from 'rlp';
@@ -148,7 +147,7 @@ export default class AccountList extends Component {
     this.setState({ importAccountVisible: true });
   }
   onApplyForAccount = () => {
-    Feedback.toast.success('请向 test@fractalproject.com 发送邮件申请测试账号');
+    Feedback.toast.success('请向 support@fractalproject.com 发送邮件申请测试账号');
   }
   onImportAccountOK = async () => {
     if (this.state.importAccountName == '') {
@@ -348,7 +347,6 @@ export default class AccountList extends Component {
         this.setState({
           txVisible: true,
           txInfos: [],
-          txSendVisible: false,
         });
       }
     } catch (error) {
@@ -837,11 +835,21 @@ export default class AccountList extends Component {
   deleteAuthor = async (index) => {
     const { threshold, updateAuthorThreshold } = this.state.curAccount;
     const { owner, weight } = this.state.authorList[index];
-    const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [owner, weight]]]).toString('hex');
+
+    let ownerType = AuthorOwnerType.Error;
+    if (ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(utils.getPublicKeyWithPrefix(owner))), true)) {
+      ownerType = AuthorOwnerType.PublicKey;
+    } else if (ethUtil.isValidAddress(owner) || ethUtil.isValidAddress('0x' + owner)) {
+      ownerType = AuthorOwnerType.Address;
+    } else if (this.state.accountReg.test(owner)) {
+      ownerType = AuthorOwnerType.AccountName;
+    }
+
+    const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Delete, [ownerType, owner, weight]]]]).toString('hex');
     this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,
-      assetId: 1,
+      assetId: 0,
       amount: 0,
       payload };
 
@@ -1041,7 +1049,7 @@ export default class AccountList extends Component {
     this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,
-      assetId: 1,
+      assetId: 0,
       amount: 0,
       payload };
 
