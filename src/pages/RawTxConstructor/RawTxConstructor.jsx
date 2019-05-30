@@ -164,29 +164,23 @@ export default class RawTxConstructor extends Component {
     try {
       const actionType = this.state['actionType'];
       this.state.payloadElements = [];
-      let payloadDetailInfo = {};
+      let payloadDetailInfoList = [];
       if (actionType == Constant.UPDATE_ACCOUNT_AUTHOR) {  // 如果是设置账号权限，由于payload构造特殊，故需要单独编码
-        //const UpdateAuthorType = { Add: 0, Update: 1, Delete: 2};
-        const AuthorOwnerType = { Error: -1, AccountName: 0, PublicKey: 1, Address: 2 };
-        const newOwner = this.state[actionType + '-' + 3].value;
-        let ownerType = AuthorOwnerType.Error;
-        if (ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(utils.getPublicKeyWithPrefix(newOwner))), true)) {
-          ownerType = AuthorOwnerType.PublicKey;
-        } else if (ethUtil.isValidAddress(newOwner) || ethUtil.isValidAddress('0x' + newOwner)) {
-          ownerType = AuthorOwnerType.Address;
-        } else if (new RegExp('^[a-z0-9]{7,16}(\\.[a-z0-9]{1,8}){0,1}$').test(newOwner)) {
-          ownerType = AuthorOwnerType.AccountName;
-        }
-
         const threshold = this.getNumber(this.state[actionType + '-' + 0].value);
         const updateAuthorThreshold = this.getNumber(this.state[actionType + '-' + 1].value);
         const updateAuthorType = this.getNumber(this.state[actionType + '-' + 2].value);
-        const weight = this.getNumber(this.state[actionType + '-' + 4].value);
-        // [threshold, updateAuthorThreshold, [[UpdateAuthorType.Delete, [ownerType, owner, weight]]]]
+        const ownerType = this.getNumber(this.state[actionType + '-' + 3].value);
+        const newOwner = this.state[actionType + '-' + 4].value;   
+        const weight = this.getNumber(this.state[actionType + '-' + 5].value);
+        
         this.state.payloadElements = [threshold, updateAuthorThreshold, [[updateAuthorType, [ownerType, newOwner, weight]]]];  
-        for (let i = 0; i < 5; i++) {
-          payloadDetailInfo[this.state[actionType + '-' + i].payloadName] = this.state[actionType + '-' + i].value;
-        }
+
+        payloadDetailInfoList.push({name: 'threshold', value: threshold});
+        payloadDetailInfoList.push({name: 'updateAuthorThreshold', value: updateAuthorThreshold});
+        payloadDetailInfoList.push({name: 'updateAuthorType', value: updateAuthorType});
+        payloadDetailInfoList.push({name: 'ownerType', value: ownerType});
+        payloadDetailInfoList.push({name: 'newOwner', value: newOwner});
+        payloadDetailInfoList.push({name: 'weight', value: weight});
       } else if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {  // 对于非合约交易
         const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
         for (let j = 0; j < payloadInfoNum; j++) {
@@ -194,21 +188,21 @@ export default class RawTxConstructor extends Component {
           let value = '';
           if (actionValue == null) {
             this.state.payloadElements.push('');
-            payloadDetailInfo['payload'] = '';
+            payloadDetailInfoList.push({name: 'payload', value: ''});
           } else if (actionValue.isNumber) {
             value = new BigNumber(actionValue.value).toNumber();
             this.state.payloadElements.push(value);
-            payloadDetailInfo[actionValue.payloadName] = value;
+            payloadDetailInfoList.push({name: actionValue.payloadName, value});
           } else {
             value = actionValue.value;
             this.state.payloadElements.push(actionValue.value);
-            payloadDetailInfo[actionValue.payloadName] = value;
+            payloadDetailInfoList.push({name: actionValue.payloadName, value});
           }
         }
       } else if (this.hasUselessPayloadTx(actionType)) {
         let payloadValue = this.state['default-0'];
         this.state.payloadElements.push(payloadValue.value);
-        payloadDetailInfo[payloadValue.payloadName] = payloadValue.value;
+        payloadDetailInfoList.push({name: payloadValue.payloadName, value:payloadValue.value});
       }
       let payload = '';
       if (actionType != Constant.CREATE_CONTRACT) {
@@ -218,7 +212,7 @@ export default class RawTxConstructor extends Component {
         if (payload.indexOf('0x') < 0) {
           payload = '0x' + payload;
         }
-        payloadDetailInfo[this.state[actionType + '-' + 0].payloadName] = payload;
+        payloadDetailInfoList.push({name: this.state[actionType + '-' + 0].payloadName, value:payload});
       }
       
       let zeros = '';
@@ -249,7 +243,7 @@ export default class RawTxConstructor extends Component {
           assetId: assetIdValue, 
           amount: this.getNumber(this.state['amount'] + zeros), 
           payload, 
-          payloadDetailInfo,
+          payloadDetailInfo: payloadDetailInfoList,
           remark: utils.isEmptyObj(this.state['remark']) ? '' : this.state['remark'], 
         }]
       };
@@ -432,23 +426,30 @@ export default class RawTxConstructor extends Component {
             size="medium"
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'updateThreshold', 1, true)}/>,<br/>,<br/>,
-          <Select hasClear
+          <Input hasClear
             style={styles.commonElement}
-            placeholder="选择操作类型"
-            dataSource={this.state.updateAuthorTypes}
+            addonBefore="操作类型"
+            placeholder='0:添加权限，1:更新权限，2:删除权限'
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opType', 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
-            addonBefore="用户名/地址/公钥:"
+            addonBefore="所有者类型:"
             size="medium"
             defaultValue=''
-            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opContent', 3, false)}/>,<br/>,<br/>,
+            placeholder='0:用户名，1:公钥，2:地址'
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'contentType', 3, true)}/>,<br/>,<br/>,
+          <Input hasClear
+            style={styles.commonElement}
+            addonBefore="所有者:"
+            size="medium"
+            defaultValue=''
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opContent', 4, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="权重:"
             size="medium"
             defaultValue=''
-            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'weight', 4, true)}/>
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'weight', 5, true)}/>
           );
         break;
       case Constant.ISSUE_ASSET:
