@@ -168,29 +168,52 @@ export default class RawTxConstructor extends Component {
   handleSceneTestCaseChange = (v) => {
     this.setState({ sceneTestCase: v });
   }
-  parseSceneTestCase = () => {
+  addSceneTestCase = () => {
     try {
-      const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
-      utils.storeDataToFile(Constant.CurTestSceneCases, sceneTestCaseObj);
-      this.setState({sceneTestCaseNames: Object.keys(sceneTestCaseObj)});
+      const sceneTestCaseArr = JSON.parse(this.state.sceneTestCase);
+      const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+      const testCaseNames = {};
+      testCases.map(testCase => testCaseNames[testCase.name] = 1);
+      sceneTestCaseArr.map(newTestCase => {
+        if (testCaseNames[newTestCase.name] != 1) {
+          testCases.push(newTestCase);
+        }
+      });
+      utils.storeDataToFile(Constant.CurTestSceneCases, testCases);
+
+      this.state.sceneTestCaseNames = [];
+      testCases.map(testCase => {
+        this.state.sceneTestCaseNames.push(testCase.name);
+      })
+      this.setState({sceneTestCaseNames: this.state.sceneTestCaseNames});
     } catch (error) {
       Feedback.toast.error('测试用例解析失败');
     }
   }
+  exportAllSceneTestCase  = () => {
+    const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+    copy(JSON.stringify(testCases));
+    Feedback.toast.success('已导出到粘贴板');
+  }
   onChangeTestScene  = (v) => {
     try {
       this.state.testSceneName = v;
-      const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
-      const testCases = sceneTestCaseObj[v].testCases;
+      const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+      
+      const sceneTestCaseObj = testCases.filter(testCase => testCase.name == v);
+      if (sceneTestCaseObj.length == 0) {
+        return;
+      }
+      const procedure = sceneTestCaseObj[0].procedure;
       this.state.testCaseNames = [];
       let index = 0;
-      for (const testCase of testCases) {
-        let label = testCase.type + '-';
-        if (testCase.type == 'send') {
-          const actionType = testCase.info.actions[0].actionType;
+      for (const step of procedure) {
+        let label = step.type + '-';
+        if (step.type == 'send') {
+          const actionType = step.info.actions[0].actionType;
           label += TxParser.getActionTypeStr(actionType);
         } else {
-          label += testCase.info.method + '(' + testCase.info.arguments + ')';
+          label += step.tooltip + '-' + step.info.method + '(' + step.info.arguments + ')';
         }
         this.state.testCaseNames.push({label, value: index});
         index++;
@@ -307,23 +330,26 @@ export default class RawTxConstructor extends Component {
   }
 
   execTest = async (testSceneName) => {
-    const sceneTestCaseObj = JSON.parse(this.state.sceneTestCase);
-    const sceneTestCase = sceneTestCaseObj[testSceneName];
-    const predictResult = sceneTestCase.predictResult == 1;
+    const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+      
+    const sceneTestCaseObj = testCases.filter(testCase => testCase.name == testSceneName);
+    if (sceneTestCaseObj.length == 0) {
+      return;
+    }
     let result = true;
-    const testCases = sceneTestCase.testCases;
-    let testResultInfo = '测试场景：' + testSceneName + '\n此场景包含测试用例数：' + testCases.length + ', 预期结果为:' + (predictResult ? '成功' : '失败');
+    const procedure = sceneTestCaseObj[0].procedure;
+    let testResultInfo = '测试场景：' + testSceneName + '\n此场景包含测试步骤数：' + procedure.length;
     this.setState({ testResult: testResultInfo });
-    for (const testCase of testCases) {
-      if (testCase.type == 'get') {
-        const getResult = this.testGetCase(testCase);
+    for (const step of procedure) {
+      if (step.type == 'get') {
+        const getResult = this.testGetCase(step);
         if (!getResult) {
           result = false;
           break;
         }
-      } else if (testCase.type == 'check') {
-        const checkResult = this.testCheckCase(testCase);
-        const expectedResult = testCase.expectedResult == 1;
+      } else if (step.type == 'check') {
+        const checkResult = this.testCheckCase(step);
+        const expectedResult = step.expectedResult == 1;
         if (checkResult != expectedResult) {
           result = false;
           break;
@@ -332,13 +358,13 @@ export default class RawTxConstructor extends Component {
         try {
           //const historyStatusInfo = await this.getTxCorrespondingInfo(testCase);
   
-          const txTypeName = TxParser.getActionTypeStr(testCase.actions[0].actionType);
-          const originalInfo = JSON.stringify(testCase);
+          const txTypeName = TxParser.getActionTypeStr(step.actions[0].actionType);
+          const originalInfo = JSON.stringify(step);
           testResultInfo += '\n\n交易类型：' + txTypeName;
           testResultInfo += '\n交易原始信息：' + originalInfo;
           this.setState({ testResult: testResultInfo });
-          const signInfo = await fractal.ft.signTx(testCase, testCase.privateKey);
-          const txHash = await fractal.ft.sendSingleSigTransaction(testCase, signInfo);
+          const signInfo = await fractal.ft.signTx(step, step.privateKey);
+          const txHash = await fractal.ft.sendSingleSigTransaction(step, signInfo);
           testResultInfo += '\n本次交易发送成功，获得交易hash：' + txHash;
           this.setState({ testResult: testResultInfo });
           let gotReceipt = false;
@@ -353,7 +379,6 @@ export default class RawTxConstructor extends Component {
               const error = receipt.actionResults[0].error;
               testResultInfo += '\n通过receipt表明此交易执行结果为:' + (status == 1 ? '成功' : ('失败，原因：' + error));
               result = result && (status == 1);
-  
               //const curStatusInfo = await this.getTxCorrespondingInfo(testCase);
             }
           }
@@ -500,8 +525,20 @@ export default class RawTxConstructor extends Component {
 
   testCheckCase = (testCase) => {
     const info = testCase.info;
-    if (info.method == 'equal') {
+    if (info.method == 'equalstr') {
       return this.equal(info.arguments[0], info.arguments[1]);
+    } else if (info.method == 'equali') {
+
+    } else if (info.method == 'equalf') {
+      
+    } else if (info.method == 'add') {
+      
+    } else if (info.method == 'sub') {
+      
+    } else if (info.method == 'mul') {
+      
+    } else if (info.method == 'div') {
+      
     }
   }
 
@@ -534,9 +571,11 @@ export default class RawTxConstructor extends Component {
         />
         <br />
         <br />       
-        <Button type="primary" onClick={this.parseSceneTestCase.bind(this)}>解析以上测试场景</Button>
+        <Button type="primary" onClick={this.addSceneTestCase.bind(this)}>添加以上测试场景</Button>
         &nbsp;&nbsp;
-        <Button type="primary" onClick={this.tranform.bind(this)}>转化为最新结果</Button>
+        <Button type="primary" onClick={this.exportAllSceneTestCase.bind(this)}>导出所有测试场景</Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.tranform.bind(this)}>转化为最新JSON格式</Button>
         <br />
         <br />
         <Select
@@ -547,18 +586,18 @@ export default class RawTxConstructor extends Component {
         />
         &nbsp;&nbsp;&nbsp;&nbsp;
         <Select
-          style={{width: '430px'}}
-          placeholder="详细用例列表"
+          style={{width: '440px'}}
+          placeholder="详细步骤列表"
           onChange={this.onChangeTestCase.bind(this)}
           dataSource={this.state.testCaseNames}
         />
         <br />
         <br />
         <Input hasClear
-            style={{width: '300px'}}
-            addonBefore="路径:"
-            size="medium"
-            onChange={this.handleTestPathChange.bind(this, 'gasLimit')}
+          style={styles.otherElement}
+          addonBefore="路径:"
+          size="medium"
+          onChange={this.handleTestPathChange.bind(this, 'gasLimit')}
           />
         <br />
         <br />
@@ -566,7 +605,7 @@ export default class RawTxConstructor extends Component {
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.testAllScene.bind(this)}>测试所有场景</Button>
         &nbsp;&nbsp;
-        <Button type="primary" onClick={this.testOneCase.bind(this)}>测试单个用例</Button>
+        <Button type="primary" onClick={this.testOneCase.bind(this)}>测试单个Send</Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.testPathCase.bind(this)}>测试符合路径的场景</Button>
         <br />

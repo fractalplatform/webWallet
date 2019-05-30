@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import * as fractal from 'fractal-web3'
 import { headerMenuConfig } from '../../menuConfig';
 import Logo from '../Logo';
+import * as utils from '../../utils/utils';
 
 export const history = createHashHistory();
 
@@ -47,8 +48,8 @@ export default class Header extends PureComponent {
     this.state.port = v;
   }
   onConfigNodeOK = () => {
-    if (this.state.ip === '') {
-      Feedback.toast.error('请输入IP地址');
+    if (!utils.checkIpVaild(this.state.ip)) {
+      Feedback.toast.error('请输入合法的IP地址');
       return;
     }
     if (this.state.port === '') {

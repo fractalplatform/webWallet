@@ -25,7 +25,7 @@ const getMethods = ['account_accountIsExist',
                     'account_getNonce',
                     'account_getAssetInfoByName',
                     'account_getAssetInfoByID',
-                    'account_getAccountBalanceByAssetID',
+                    'account_getAccountBalanceByID',
                     'account_getAccountBalanceByTime',
                     'account_getAssetAmountByTime',
                     'account_getSnapshotTime',
@@ -166,7 +166,7 @@ export default class RawTxConstructor extends Component {
         this.state.payloadElements = [this.getNumber(this.state[actionType + '-' + 0].value), this.getNumber(this.state[actionType + '-' + 1].value), 
                                     [this.getNumber(this.state[actionType + '-' + 2].value), [this.state[actionType + '-' + 3].value, this.getNumber(this.state[actionType + '-' + 4].value)]]];
         for (let i = 0; i < 5; i++) {
-          payloadDetailInfo[this.state[actionType + '-' + 0].payloadName] = this.state[actionType + '-' + 0].value;
+          payloadDetailInfo[this.state[actionType + '-' + i].payloadName] = this.state[actionType + '-' + i].value;
         }
       } else if (actionType != Constant.CREATE_CONTRACT && this.hasPayloadTx(actionType)) {  // 对于非合约交易
         const payloadInfoNum = (this.state.payloadInfos.length + 2) / 3;
