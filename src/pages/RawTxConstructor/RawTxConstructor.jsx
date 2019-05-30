@@ -66,7 +66,7 @@ const getMethods = ['account_accountIsExist',
                     'fee_getObjectFeeResult',
                     'fee_getObjectFeeResultByTime'];
 
-const checkMethods = [ 'equalstr', 'equali', 'equalf', 'add', 'sub', 'mul', 'div' ];
+const checkMethods = [ 'equalstr', 'equalint', 'equalbool', 'add', 'sub', 'mul', 'div' ];
 
 const testSceneTag = 'testScene';
 
