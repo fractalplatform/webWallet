@@ -26,18 +26,19 @@ export default class BlocksTable extends Component {
     fractal.ft.getCurrentBlock().then(async(block) => {
       this.state.blockList = [block, ...this.state.blockList];
       block['txn'] = block.transactions.length;
-      const length = this.state.blockList.length;
-      // if (length < 18) {
-      //   const lastBlock = this.state.blockList[length - 1];
-      //   var startHeight = lastBlock.number - 1;
-      //   for (var i = startHeight; i > startHeight - (18 - length) && i >= 0; i--) {
-      //     var curBlockInfo = await fractal.ft.getBlockByNum(i, false);
-      //     curBlockInfo['txn'] = curBlockInfo.transactions.length;
-      //     this.state.blockList.push(curBlockInfo);
-      //   }
-      // } else 
-      if (length > 18) {
+      let length = this.state.blockList.length;
+      if (length < 18) {
+        const lastBlock = this.state.blockList[length - 1];
+        var startHeight = lastBlock.number - 1;
+        for (var i = startHeight; i > startHeight - (18 - length) && i >= 0; i--) {
+          var curBlockInfo = await fractal.ft.getBlockByNum(i, false);
+          curBlockInfo['txn'] = curBlockInfo.transactions.length;
+          this.state.blockList.push(curBlockInfo);
+        }
+      } 
+      while (length > 18) {
         this.state.blockList.pop();
+        length = this.state.blockList.length;
       }
 
       // const blockList = [];
