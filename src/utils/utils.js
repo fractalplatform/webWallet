@@ -144,6 +144,10 @@ function bytes2Hex(array) {
   });
   return hexStr;
 }
+
+function str2Hex(str) {
+  return bytes2Hex(str2Bytes(str));
+}
 // 每个byte里存放的是二进制数据，从高位依次到低位
 function bytes2Number(bytes) {
   try {
@@ -404,7 +408,7 @@ function checkIpVaild(ip) {
   return ipReg.test(ip);                        
 }
 
-export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, 
+export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, str2Hex,
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
          removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, 

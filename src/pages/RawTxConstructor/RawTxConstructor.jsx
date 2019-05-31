@@ -142,7 +142,9 @@ export default class RawTxConstructor extends Component {
     this.state.privateKey = v;
     cookie.save('privateKey', v);
   }
+
   getNumber = (numberStr) => {
+    // return numberStr;
     if (utils.isEmptyObj(numberStr)) {
       return 0;
     }
@@ -188,9 +190,9 @@ export default class RawTxConstructor extends Component {
           let value = '';
           if (actionValue == null) {
             this.state.payloadElements.push('');
-            payloadDetailInfoList.push({name: 'payload', value: ''});
+            payloadDetailInfoList.push({name: actionValue.payloadName, value: ''});
           } else if (actionValue.isNumber) {
-            value = new BigNumber(actionValue.value).toNumber();
+            value = this.getNumber(actionValue.value);
             this.state.payloadElements.push(value);
             payloadDetailInfoList.push({name: actionValue.payloadName, value});
           } else {
