@@ -44,6 +44,9 @@ export default class RawTxConstructor extends Component {
       testCaseNames: [],
       testResult: '',
       nonPredictTestScenes: [],
+      stepDetail: '',
+      curTestCase: {},
+      curStepIndex: 0,
     };
   }
   componentDidMount = () => {
@@ -208,6 +211,7 @@ export default class RawTxConstructor extends Component {
       if (sceneTestCaseObj.length == 0) {
         return;
       }
+      this.state.curTestCase = sceneTestCaseObj[0];
       const procedure = sceneTestCaseObj[0].procedure;
       this.state.testCaseNames = [];
       let index = 0;
@@ -222,15 +226,42 @@ export default class RawTxConstructor extends Component {
         this.state.testCaseNames.push({label, value: index});
         index++;
       }
-      this.setState({testCaseNames: this.state.testCaseNames});
+
+      this.setState({testCaseNames: this.state.testCaseNames, stepDetail: ''});
     } catch (error) {
       Feedback.toast.error('测试步骤解析失败');
     }
     
   }
 
-  onChangeTestCase = (v) => {
-    this.state.testCaseObj = v;
+  onChangeTestStep = (v) => {
+    this.state.curStepIndex = v;
+    const procedure = this.state.curTestCase.procedure;
+    this.setState({stepDetail: JSON.stringify(procedure[v])});
+  }
+
+  onChangeStepDetail = (v) => {
+    this.setState({stepDetail: v});
+  }
+
+  saveStep = () => {
+    const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+    testCases.map(testCase => {
+      if (testCase.name == this.state.curTestCase.name) {
+        testCase.procedure[this.state.curStepIndex] = JSON.parse(this.state.stepDetail);  
+        this.state.curTestCase = testCase;      
+      }
+    });
+    utils.storeDataToFile(Constant.CurTestSceneCases, testCases);
+
+    const sceneTestCaseArr = JSON.parse(this.state.sceneTestCase);
+    sceneTestCaseArr.map(testCase => {
+      if (testCase.name == this.state.curTestCase.name) {
+        testCase.procedure[this.state.curStepIndex] = JSON.parse(this.state.stepDetail);        
+      }
+    });
+    this.setState({sceneTestCase: JSON.stringify(sceneTestCaseArr)});
+    Feedback.toast.success('保存成功');
   }
 
   handleTestPathChange = (v) => {
@@ -553,7 +584,6 @@ export default class RawTxConstructor extends Component {
   testPathCase = (testCase) => {
 
   }  
-
   tranform = () => {
     try {
       const newTestCaseList = [];
@@ -613,6 +643,19 @@ export default class RawTxConstructor extends Component {
         <Button type="primary" onClick={this.tranform.bind(this)}>转化为最新JSON格式</Button>
         <br />
         <br />
+        <Input multiple
+          rows="10"
+          style={styles.otherElement}
+          addonBefore="步骤详情:"
+          size="medium"
+          value={this.state.stepDetail}
+          onChange={this.onChangeStepDetail.bind(this)}
+        />
+        <br />
+        <br />
+        <Button type="primary" onClick={this.saveStep.bind(this)}>保存步骤详情</Button>
+        <br />
+        <br />
         <Select
           style={{width: '300px'}}
           placeholder="测试场景列表"
@@ -623,7 +666,7 @@ export default class RawTxConstructor extends Component {
         <Select
           style={{width: '440px'}}
           placeholder="详细步骤列表"
-          onChange={this.onChangeTestCase.bind(this)}
+          onChange={this.onChangeTestStep.bind(this)}
           dataSource={this.state.testCaseNames}
         />
         <br />
