@@ -11,7 +11,6 @@ import './DisplayCard.scss';
 import injectReducer from '../../../../utils/injectReducer';
 import { getLatestBlock, getTransactionsNum } from './actions';
 import reducer from './reducer';
-import { getCurrentBlock, getTotalTxNumByBlockNum, getCadidates, getDposIrreversibleInfo, getLatestEpchoInfo } from '../../../../api';
 import eventProxy from '../../../../utils/eventProxy';
 
 const { Row, Col } = Grid;
@@ -72,13 +71,20 @@ class BlockTxLayout extends Component {
         maxTxNum = 0;
         let promiseArr = [];
         let blockHeights = [];
-        for (let fromHeight = curHeight - maxSpan; fromHeight <= curHeight; fromHeight++) {
+        let fromHeight = curHeight - maxSpan;
+        if (fromHeight < 0) {
+          fromHeight = 0;
+        }
+        for (; fromHeight <= curHeight; fromHeight++) {
           promiseArr.push(fractal.ft.getBlockByNum(fromHeight, false));
           blockHeights.push(fromHeight);
         }
         Promise.all(promiseArr).then(blocks => {
           for (let i = 0; i < blocks.length; i++) {
             const block = blocks[i];
+            if (block == null) {
+              continue;
+            }
             const txNumber = block.transactions.length;
             self.state.txInfos.push({ blockHeight: blockHeights[i], txNum: txNumber });
             totalNum += txNumber;

@@ -14,7 +14,7 @@ export default class BlocksTable extends Component {
     super(props);
 
     this.state = {
-      dataSource: [],
+      blockList: [],
     };
   }
 
@@ -24,18 +24,34 @@ export default class BlocksTable extends Component {
 
   updateBlockInfo = () => {
     fractal.ft.getCurrentBlock().then(async(block) => {
-      this.state.dataSource = [];
-      var curHeight = block.number;
-      for (var i = curHeight; i > curHeight - 18 && i >= 0; i--) {
-        var curBlockInfo = await fractal.ft.getBlockByNum(i, false);
-        curBlockInfo['txn'] = curBlockInfo.transactions.length;
-        this.state.dataSource.push(curBlockInfo);
+      this.state.blockList = [block, ...this.state.blockList];
+      block['txn'] = block.transactions.length;
+      const length = this.state.blockList.length;
+      // if (length < 18) {
+      //   const lastBlock = this.state.blockList[length - 1];
+      //   var startHeight = lastBlock.number - 1;
+      //   for (var i = startHeight; i > startHeight - (18 - length) && i >= 0; i--) {
+      //     var curBlockInfo = await fractal.ft.getBlockByNum(i, false);
+      //     curBlockInfo['txn'] = curBlockInfo.transactions.length;
+      //     this.state.blockList.push(curBlockInfo);
+      //   }
+      // } else 
+      if (length > 18) {
+        this.state.blockList.pop();
       }
+
+      // const blockList = [];
+      // var curHeight = block.number;
+      // for (var i = curHeight; i > curHeight - 18 && i >= 0; i--) {
+      //   var curBlockInfo = await fractal.ft.getBlockByNum(i, false);
+      //   curBlockInfo['txn'] = curBlockInfo.transactions.length;
+      //   blockList.push(curBlockInfo);
+      // }
       this.setState({
-        dataSource: this.state.dataSource,
+        blockList: this.state.blockList,
       });
       setTimeout(() => { this.updateBlockInfo(); }, 3000);
-    })
+    });
   }
 
   renderCellProgress = value => (
@@ -64,7 +80,7 @@ export default class BlocksTable extends Component {
       <div className="progress-table">
         <IceContainer className="tab-card" title="区块">
           <Table
-            dataSource={this.state.dataSource}
+            dataSource={this.state.blockList}
             primaryKey="number"
           >
             <Table.Column title="时间" dataIndex="timestamp" width={100} cell={this.renderTimeStamp.bind(this)}/>

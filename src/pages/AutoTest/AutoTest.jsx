@@ -171,7 +171,10 @@ export default class RawTxConstructor extends Component {
   addSceneTestCase = () => {
     try {
       const sceneTestCaseArr = JSON.parse(this.state.sceneTestCase);
-      const testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+      let testCases = utils.getDataFromFile(Constant.CurTestSceneCases);
+      if (testCases == null) {
+        testCases = [];
+      }
       const testCaseNames = {};
       testCases.map(testCase => testCaseNames[testCase.name] = 1);
       sceneTestCaseArr.map(newTestCase => {
@@ -186,6 +189,7 @@ export default class RawTxConstructor extends Component {
         this.state.sceneTestCaseNames.push(testCase.name);
       })
       this.setState({sceneTestCaseNames: this.state.sceneTestCaseNames});
+      Feedback.toast.success('添加成功');
     } catch (error) {
       Feedback.toast.error('测试用例解析失败');
     }
@@ -211,7 +215,7 @@ export default class RawTxConstructor extends Component {
         let label = step.type + '-';
         if (step.type == 'send') {
           const actionType = step.info.actions[0].actionType;
-          label += TxParser.getActionTypeStr(actionType);
+          label += TxParser.getActionTypeStr(actionType) + '-' + step.tooltip;
         } else {
           label += step.tooltip + '-' + step.info.method + '(' + step.info.arguments + ')';
         }
@@ -527,9 +531,9 @@ export default class RawTxConstructor extends Component {
     const info = testCase.info;
     if (info.method == 'equalstr') {
       return this.equal(info.arguments[0], info.arguments[1]);
-    } else if (info.method == 'equali') {
+    } else if (info.method == 'equalint') {
 
-    } else if (info.method == 'equalf') {
+    } else if (info.method == 'equalbool') {
       
     } else if (info.method == 'add') {
       
@@ -551,11 +555,42 @@ export default class RawTxConstructor extends Component {
   }  
 
   tranform = () => {
-    // try {
-      
-    // } catch (error) {
-    //   Feedback.toast.error('转换失败' + error);
-    // }
+    try {
+      const newTestCaseList = [];
+      const testCaseObj = JSON.parse(this.state.sceneTestCase);
+      Object.keys(testCaseObj).map(testCaseName => {
+        let sendObjIndex = 0;
+        let getObjIndex = 0;
+        let checkObjIndex = 0;
+        const newTestCase = {name: testCaseName, procedure: []};
+        testCaseObj[testCaseName].testCases.map(oneStep => {
+          if (oneStep.type == 'send') {
+            oneStep.selfObj = 'sendObj' + sendObjIndex++;
+            oneStep.tooltip = '';
+            const payloadDetailObj = oneStep.info.actions[0].payloadDetailInfo;
+            const newPayloadDetailObj = [];
+            Object.keys(payloadDetailObj).map(payloadName => {
+              newPayloadDetailObj.push({name: payloadName, value: payloadDetailObj[payloadName]});
+            })
+            oneStep.info.actions[0].payloadDetailInfo = newPayloadDetailObj;
+          } else if (oneStep.type == 'get') {
+            oneStep.selfObj = 'getObj' + getObjIndex++;
+            oneStep.tooltip = '';
+          } else if (oneStep.type == 'check') {
+            oneStep.selfObj = 'checkObj' + checkObjIndex++;
+            oneStep.tooltip = '';
+            if (oneStep.info.method == 'equal') {
+              oneStep.info.method = 'equalstr';
+            }
+          }
+          newTestCase.procedure.push(oneStep);
+        });
+        newTestCaseList.push(newTestCase);
+      });
+      this.setState({sceneTestCase: JSON.stringify(newTestCaseList)});
+    } catch (error) {
+      Feedback.toast.error('转换失败' + error);
+    }
   }
 
   render() {

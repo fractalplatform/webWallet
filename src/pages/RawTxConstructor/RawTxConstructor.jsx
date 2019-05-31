@@ -97,7 +97,7 @@ export default class RawTxConstructor extends Component {
       testScene: '',
       privateKeyInfoSet: privateKeyInfoSet != null ? JSON.stringify(privateKeyInfoSet) : '',
       actionCookie: actionCookieObj != null ? actionCookieObj : {},
-      txObjIndex: 0,
+      sendObjIndex: 0,
       getObjIndex: 0,
       checkObjIndex: 0
     };
@@ -1041,7 +1041,7 @@ export default class RawTxConstructor extends Component {
       const procedure = {};
       const txInfo = JSON.parse(this.state.txInfo.trim());
       procedure.type = 'send';
-      procedure.selfObj = 'txObj' + this.state.txObjIndex++;
+      procedure.selfObj = 'sendObj' + this.state.sendObjIndex++;
       procedure.tooltip = this.state.txTooltip;
       txInfo.resultObj = [this.state.sendResultVarible];
       txInfo.privateKeyInfo = JSON.parse(this.state.privateKeyInfoSet);
