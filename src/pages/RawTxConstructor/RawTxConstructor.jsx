@@ -66,7 +66,7 @@ const getMethods = ['account_accountIsExist',
                     'fee_getObjectFeeResult',
                     'fee_getObjectFeeResultByTime'];
 
-const checkMethods = [ 'equalstr', 'equalint', 'equalbool', 'add', 'sub', 'mul', 'div' ];
+const checkMethods = [ 'equalstr', 'equalint', 'equalbool', 'add', 'sub', 'mul', 'div', 'muladd' ];
 
 const testSceneTag = 'testScene';
 
@@ -164,6 +164,10 @@ export default class RawTxConstructor extends Component {
   // const payload = '0x' + encode([threshold, updateAuthorThreshold, [UpdateAuthorType.Delete, [owner, weight]]]).toString('hex');
   generateTxInfo = () => {
     try {
+      if (this.state.actionType == null) {
+        Feedback.toast.error('请选择交易类型');
+        return;
+      }
       const actionType = this.state['actionType'];
       this.state.payloadElements = [];
       let payloadDetailInfoList = [];
@@ -375,6 +379,7 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_CONTRACT, 'byteCode', 0, false)}/>
             );
+        this.state[Constant.CREATE_CONTRACT + '-' + 0] = { value: '', isNumber: false, payloadName: 'byteCode' };        
         break;    
       case Constant.CREATE_NEW_ACCOUNT:
         this.state.payloadInfos.push(
@@ -403,6 +408,10 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'desc', 3, false)}/>
           );
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 0] = { value: '', isNumber: false, payloadName: 'newAccountName' };
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 1] = { value: '', isNumber: false, payloadName: 'founder' };
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 2] = { value: '', isNumber: false, payloadName: 'publicKey' };
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 3] = { value: '', isNumber: false, payloadName: 'desc' };
         break;
       case Constant.UPDATE_ACCOUNT:
         this.state.payloadInfos.push(
@@ -413,6 +422,7 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT, 'founder', 0, false)}/>
           );
+        this.state[Constant.UPDATE_ACCOUNT + '-' + 0] = { value: '', isNumber: false, payloadName: 'founder' };
         break;
       case Constant.UPDATE_ACCOUNT_AUTHOR:
         this.state.payloadInfos.push(
@@ -453,6 +463,12 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'weight', 5, true)}/>
           );
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 0] = { value: 0, isNumber: true, payloadName: 'threshold' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 1] = { value: 0, isNumber: true, payloadName: 'updateThreshold' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 2] = { value: 0, isNumber: true, payloadName: 'opType' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 3] = { value: 0, isNumber: true, payloadName: 'contentType' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 4] = { value: '', isNumber: false, payloadName: 'opContent' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 5] = { value: 0, isNumber: true, payloadName: 'weight' };
         break;
       case Constant.ISSUE_ASSET:
         this.state.payloadInfos.push(
@@ -511,6 +527,15 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'desc', 8, false)}/>
           );
+        this.state[Constant.ISSUE_ASSET + '-' + 0] = { value: '', isNumber: false, payloadName: 'assetName' };
+        this.state[Constant.ISSUE_ASSET + '-' + 1] = { value: '', isNumber: false, payloadName: 'symbol' };
+        this.state[Constant.ISSUE_ASSET + '-' + 2] = { value: 0, isNumber: true, payloadName: 'amount' };
+        this.state[Constant.ISSUE_ASSET + '-' + 3] = { value: 0, isNumber: true, payloadName: 'decimals' };
+        this.state[Constant.ISSUE_ASSET + '-' + 4] = { value: '', isNumber: false, payloadName: 'founder' };
+        this.state[Constant.ISSUE_ASSET + '-' + 5] = { value: '', isNumber: false, payloadName: 'owner' };
+        this.state[Constant.ISSUE_ASSET + '-' + 6] = { value: 0, isNumber: true, payloadName: 'upperLimit' };
+        this.state[Constant.ISSUE_ASSET + '-' + 7] = { value: '', isNumber: false, payloadName: 'contractName' };
+        this.state[Constant.ISSUE_ASSET + '-' + 8] = { value: '', isNumber: false, payloadName: 'desc' };
         break;
       case Constant.INCREASE_ASSET:
         this.state.payloadInfos.push(
@@ -533,6 +558,9 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'accountName', 2, false)}/>
           );
+        this.state[Constant.INCREASE_ASSET + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.INCREASE_ASSET + '-' + 1] = { value: 0, isNumber: true, payloadName: 'amount' };
+        this.state[Constant.INCREASE_ASSET + '-' + 2] = { value: '', isNumber: false, payloadName: 'accountName' };
         break;
       case Constant.SET_ASSET_OWNER:
         this.state.payloadInfos.push(
@@ -549,6 +577,8 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'accountName', 1, false)}/>
           );
+        this.state[Constant.SET_ASSET_OWNER + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.SET_ASSET_OWNER + '-' + 1] = { value: '', isNumber: false, payloadName: 'accountName' };
         break;
       case Constant.SET_ASSET_FOUNDER:
         this.state.payloadInfos.push(
@@ -565,6 +595,8 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'accountName', 1, false)}/>
           );
+        this.state[Constant.SET_ASSET_FOUNDER + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.SET_ASSET_FOUNDER + '-' + 1] = { value: '', isNumber: false, payloadName: 'accountName' };
         break;
       case Constant.REG_CANDIDATE:
         this.state.payloadInfos.push(
@@ -575,6 +607,7 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.REG_CANDIDATE, 'url', 0, false)}/>
           );
+        this.state[Constant.REG_CANDIDATE + '-' + 0] = { value: '', isNumber: false, payloadName: 'url' };
         break;
       case Constant.UPDATE_CANDIDATE:
         this.state.payloadInfos.push(
@@ -585,6 +618,7 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_CANDIDATE, 'url', 0, false)}/>
           );
+        this.state[Constant.UPDATE_CANDIDATE + '-' + 0] = { value: '', isNumber: false, payloadName: 'url' };
         break;
       case Constant.VOTE_CANDIDATE:
         this.state.payloadInfos.push(
@@ -601,6 +635,8 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'voteNumber', 1, true)}/>
           );
+        this.state[Constant.VOTE_CANDIDATE + '-' + 0] = { value: '', isNumber: false, payloadName: 'accountName' };
+        this.state[Constant.VOTE_CANDIDATE + '-' + 1] = { value: 0, isNumber: true, payloadName: 'voteNumber' };
         break;
       case Constant.UNREG_CANDIDATE:
       case Constant.DESTORY_ASSET:
@@ -614,6 +650,7 @@ export default class RawTxConstructor extends Component {
             defaultValue=''
             onChange={this.handleElementChange.bind(this, 'default', 'payload', 0, false)}/>
           );
+        this.state['default' + '-' + 0] = { value: '', isNumber: false, payloadName: 'payload' };
         break;
       default:
         console.log('error action type:' + actionInfo.type);

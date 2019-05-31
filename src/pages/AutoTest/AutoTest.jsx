@@ -179,10 +179,13 @@ export default class RawTxConstructor extends Component {
         testCases = [];
       }
       const testCaseNames = {};
-      testCases.map(testCase => testCaseNames[testCase.name] = 1);
+      let index = 0;
+      testCases.map(testCase => testCaseNames[testCase.name] = index++);
       sceneTestCaseArr.map(newTestCase => {
-        if (testCaseNames[newTestCase.name] != 1) {
+        if (testCaseNames[newTestCase.name] == null) {
           testCases.push(newTestCase);
+        } else {
+          testCases[testCaseNames[newTestCase.name]] = newTestCase;
         }
       });
       utils.storeDataToFile(Constant.CurTestSceneCases, testCases);
@@ -216,7 +219,7 @@ export default class RawTxConstructor extends Component {
       this.state.testCaseNames = [];
       let index = 0;
       for (const step of procedure) {
-        let label = step.type + '-';
+        let label = (index + 1) + ':' + step.type + '-';
         if (step.type == 'send') {
           const actionType = step.info.actions[0].actionType;
           label += TxParser.getActionTypeStr(actionType) + '-' + step.tooltip;
