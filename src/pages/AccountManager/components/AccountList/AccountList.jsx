@@ -71,7 +71,7 @@ export default class AccountList extends Component {
       maxRollbackTime: 0,  // ms
       importAccountVisible: false,
       authorListVisible: false,
-      selfCreateAccountVisible: false,
+      selfCreateAccountVisible: props.location != null ? props.location.state.selfCreateAccountVisible : false,
       bindNewAuthorVisible: false,
       updateWeightVisible: false,
       transferVisible: false,
@@ -105,6 +105,7 @@ export default class AccountList extends Component {
                         <Button type='normal' onClick={this.onTxClose.bind(this)}>取消</Button>
                       </view>),
       txFeeInfo: '',
+      helpVisible: false,
     };
   }
 
@@ -909,6 +910,10 @@ export default class AccountList extends Component {
   addAccountBySelf = () => {
     this.state.accountNames = [];
     this.state.accountInfos.map(account => this.state.accountNames.push(account.accountName));
+    if (this.state.accountNames.length == 0) {
+      this.setState({ helpVisible: true });
+      return;
+    }
     this.setState({ selfCreateAccountVisible: true, txSendVisible: false });
   }
   onSelfCreateAccountOK = async () => {
@@ -1514,9 +1519,9 @@ export default class AccountList extends Component {
           <div onClick={this.onImportAccount.bind(this)} style={styles.addNewItem}>
             + 导入账户
           </div>
-          <div onClick={this.onApplyForAccount.bind(this)} style={styles.addNewItem}>
-            + 申请测试账户
-          </div>
+          <Feedback title="提示" type="help" visible={this.state.helpVisible}>
+          首个主网账户请找第三方申请，如是首个测试网账户可上 http://t.ft.im/apply 进行申请，申请成功后请将私钥和账户导入即可使用。
+          </Feedback>
         </IceContainer>
         <Dialog
           visible={this.state.selfCreateAccountVisible}

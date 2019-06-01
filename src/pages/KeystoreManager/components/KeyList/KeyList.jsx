@@ -10,11 +10,14 @@ import EccCrypto from 'eccrypto';
 import * as ethUtil from 'ethereumjs-util';
 import copy from 'copy-to-clipboard';
 import * as fractal from 'fractal-web3';
+import { createHashHistory } from 'history';
 
 import CellEditor from './CellEditor';
 import * as utils from '../../../../utils/utils'; 
 import { KeyStoreFile } from '../../../../utils/constant';
 import './KeyList.scss';
+
+const history = createHashHistory();
 
 const { Group: TagGroup, Selectable: SelectableTag } = Tag;
 const ActionType = { CreateFirstAccountByMnemonic: 0, CreateNewAccount: 1, ExportPrivateKey: 2, ExportKeyStoreInfo: 3, ExportMnemonic: 4,
@@ -124,6 +127,16 @@ export default class KeyList extends Component {
     });
   };
 
+  createNewAccount = (index) => {
+    this.state.curData = this.state.dataSource[index];
+    //history.push('http://localhost:8080/#/AccountManager');
+    history.push({ pathname: '/AccountManager', state: { publicKey: this.state.curData.publicKey, selfCreateAccountVisible: true } });
+  };
+
+  signTx = (index) => {
+    this.state.curData = this.state.dataSource[index];
+  };
+
   modifyPwd = (index) => {
     if (!this.hasKeyStoreFile()) {
       Feedback.toast.error('无密码可修改');
@@ -171,6 +184,14 @@ export default class KeyList extends Component {
           <Button type="primary" onClick={this.deleteItem.bind(this, index)}>
             删除
           </Button>
+          <p /><p />
+          <Button type="primary" onClick={this.createNewAccount.bind(this, index)}>
+            创建账户
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.signTx.bind(this, index)}>
+            签名
+          </Button>
         </view>
       );
     } else {
@@ -190,6 +211,14 @@ export default class KeyList extends Component {
           <p /><p />
           <Button type="primary" onClick={this.deleteItem.bind(this, index)}>
             删除
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.createNewAccount.bind(this, index)}>
+            创建账户
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.signTx.bind(this, index)}>
+            签名
           </Button>
         </view>
       );
