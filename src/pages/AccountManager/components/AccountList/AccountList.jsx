@@ -16,9 +16,10 @@ import * as utils from '../../../../utils/utils';  //{ utils.hex2Bytes, utils.is
 import * as Constant from '../../../../utils/constant';
 import TxSend from "../../../TxSend";
 
-const UpdateAuthorType = { Add: 0, Update: 1, Delete: 2};
+//const UpdateAuthorType = { Add: 0, Update: 1, Delete: 2};
 const AuthorOwnerType = { Error: -1, AccountName: 0, PublicKey: 1, Address: 2 };
 const TxFeeType = { Asset:0, Contract:1, Coinbase:2 };
+const AuthorUpdateStatus = { Add: 0, Modify: 1, Delete: 2, Normal: 3 };
 
 export default class AccountList extends Component {
   static displayName = 'AccountList';
@@ -74,6 +75,7 @@ export default class AccountList extends Component {
       selfCreateAccountVisible: props.location != null ? props.location.state.selfCreateAccountVisible : false,
       bindNewAuthorVisible: false,
       updateWeightVisible: false,
+      modifyThresholdVisible: false,
       transferVisible: false,
       innerTxVisible: false,
       withdrawTxFeeVisible: false,
@@ -98,7 +100,7 @@ export default class AccountList extends Component {
                         <Button type='normal' onClick={this.getTxFee.bind(this)}>查询</Button>
                        </view>),
       authorListFooter: (<view>
-                        <Button type='primary' onClick={this.bindNewAuthor.bind(this)}>绑定新权限</Button>
+                        <Button type='primary' onClick={this.submitAllAuthorUpdate.bind(this)}>提交所有修改</Button>
                       </view>),
       txListFooter: (<view>
                         <Button type='primary' onClick={this.onUpdateTx.bind(this)}>刷新</Button>
@@ -106,6 +108,7 @@ export default class AccountList extends Component {
                       </view>),
       txFeeInfo: '',
       helpVisible: false,
+      thresholdTypes: [{value: 1, label:'普通交易所需阈值'}, {value: 2, label:'修改权限所需阈值'}],
     };
   }
 
@@ -768,10 +771,44 @@ export default class AccountList extends Component {
     });
   }
   showAuthors = (index) => {
+    this.state.accountInfos[index].authors.map(author => {
+      author.status = AuthorUpdateStatus.Normal;
+    })
     this.setState({authorListVisible: true, authorList: this.state.accountInfos[index].authors, curAccount: this.state.accountInfos[index]});
   }
   bindNewAuthor = () => {
     this.setState({ bindNewAuthorVisible: true});
+  }
+  modifyThreshold = () => {
+    this.setState({ modifyThresholdVisible: true});
+  }
+  submitAllAuthorUpdate= () => {
+    const { threshold, updateAuthorThreshold } = this.state.curAccount;
+    const authorUpdateList = [];
+    this.state.authorList.map(author => {
+      if (author.status == AuthorUpdateStatus.Normal) {
+        return;
+      }
+      const owner = author.owner;
+      let ownerType = AuthorOwnerType.Error;
+      if (ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(utils.getPublicKeyWithPrefix(owner))), true)) {
+        ownerType = AuthorOwnerType.PublicKey;
+      } else if (ethUtil.isValidAddress(owner) || ethUtil.isValidAddress('0x' + owner)) {
+        ownerType = AuthorOwnerType.Address;
+      } else if (this.state.accountReg.test(owner)) {
+        ownerType = AuthorOwnerType.AccountName;
+      }
+      authorUpdateList.push({status: author.status, detailInfo: {ownerType, owner, weight: author.weight}});
+    });
+
+    const payload = '0x' + encode([threshold, updateAuthorThreshold, [...authorUpdateList]]).toString('hex');
+    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
+      accountName: this.state.curAccount.accountName,
+      toAccountName: this.state.chainConfig.accountName,
+      assetId: 0,
+      amount: 0,
+      payload };
+    this.showTxSendDialog(this.state.txInfo);
   }
   withdrawTxFee = (index) => {
     this.setState({ withdrawTxFeeVisible: true, curAccount: this.state.accountInfos[index] });
@@ -816,7 +853,7 @@ export default class AccountList extends Component {
         </Button>
         <p /><p />
         <Button type="primary" onClick={this.showAuthors.bind(this, index)}>
-          权限列表
+          权限管理
         </Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.withdrawTxFee.bind(this, index)}>
@@ -834,32 +871,27 @@ export default class AccountList extends Component {
   }
 
   deleteAuthor = async (index) => {
-    const { threshold, updateAuthorThreshold } = this.state.curAccount;
-    const { owner, weight } = this.state.authorList[index];
-
-    let ownerType = AuthorOwnerType.Error;
-    if (ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(utils.getPublicKeyWithPrefix(owner))), true)) {
-      ownerType = AuthorOwnerType.PublicKey;
-    } else if (ethUtil.isValidAddress(owner) || ethUtil.isValidAddress('0x' + owner)) {
-      ownerType = AuthorOwnerType.Address;
-    } else if (this.state.accountReg.test(owner)) {
-      ownerType = AuthorOwnerType.AccountName;
+    const curAuthor = this.state.authorList[index];
+    if (curAuthor.status == AuthorUpdateStatus.Add) {
+      this.state.authorList.splice(index, 1);
+    } else {
+      curAuthor.weight = (curAuthor.weight + '').split('->')[0];
+      curAuthor.status = AuthorUpdateStatus.Delete;
     }
+    this.setState({authorList: this.state.authorList});
+    // const { threshold, updateAuthorThreshold } = this.state.curAccount;
 
-    const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Delete, [ownerType, owner, weight]]]]).toString('hex');
-    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
-      accountName: this.state.curAccount.accountName,
-      toAccountName: this.state.chainConfig.accountName,
-      assetId: 0,
-      amount: 0,
-      payload };
-
-    this.showTxSendDialog(this.state.txInfo);
   }
 
   updateWeight = async (index) => {
     this.state.curAuthor = this.state.authorList[index];
     this.setState({ updateWeightVisible: true, txSendVisible: false })
+  }
+  undoOperator = (index) => {
+    const curAuthor = this.state.authorList[index];
+    curAuthor.status = AuthorUpdateStatus.Normal;
+    curAuthor.weight = (curAuthor.weight + '').split('->')[0];
+    this.setState({ authorList: this.state.authorList })
   }
   isAccountAsOwner = (owner) => {
     return this.state.accountReg.test(owner);
@@ -871,18 +903,54 @@ export default class AccountList extends Component {
     const displayValue = value.substr(0, 6) + '...' + value.substr(value.length - 6);
     return <address title={'点击可复制'} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
   }
+  renderStatus = (value) => {
+    let status = '未改变';
+    switch(value) {
+      case AuthorUpdateStatus.Normal:
+        break;
+      case AuthorUpdateStatus.Add:
+          status = '新增';
+        break;
+      case AuthorUpdateStatus.Delete:
+          status = '待删除';
+        break;
+      case AuthorUpdateStatus.Modify:
+          status = '待修改';
+        break;
+    }
+    return status;
+  }
   renderAuthorOperation = (value, index) => {
-    return (
-      <view>
-        <Button type="primary" onClick={this.deleteAuthor.bind(this, index)}>
-          删除
-        </Button>
-        <p /><p />
-        <Button type="primary" onClick={this.updateWeight.bind(this, index)}>
-          修改权重
-        </Button>
-      </view>
-    );
+    const curAuthor = this.state.authorList[index];
+    if (curAuthor.status == AuthorUpdateStatus.Add) {
+      return (
+        <view>
+          <Button type="primary" onClick={this.deleteAuthor.bind(this, index)}>
+            删除
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.updateWeight.bind(this, index)}>
+            修改
+          </Button>
+        </view>
+      );
+    } else {
+      return (
+        <view>
+          <Button type="primary" onClick={this.deleteAuthor.bind(this, index)}>
+            删除
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.updateWeight.bind(this, index)}>
+            修改
+          </Button>
+          <p /><p />
+          <Button type="primary" onClick={this.undoOperator.bind(this, index)}>
+            重置
+          </Button>
+        </view>
+      );
+    }
   };
   onAuthorListClose = () => {
     this.setState({authorListVisible: false, txSendVisible: false});
@@ -1020,7 +1088,12 @@ export default class AccountList extends Component {
   handleGasLimitChange(v) {
     this.state.gasLimit = v;
   }
-
+  handleAuthorThresholdChange = (v) => {
+    this.state.authorThreshold = v;
+  }
+  handleThresholdChange = (v) => {
+    this.state.authorThreshold = v;
+  }
   onBindNewAuthorOK = async () => {
     const newOwner = this.state.newOwner;
 
@@ -1044,46 +1117,49 @@ export default class AccountList extends Component {
         return;
       }
     }
-    if (this.state.weight == '') {
-      Feedback.toast.error('请输入新的权重');
+    if (utils.isEmptyObj(this.state.weight)) {
+      Feedback.toast.error('请输入权重');
       return;
     }
 
-    const { threshold, updateAuthorThreshold } = this.state.curAccount;
-    const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Add, [ownerType, newOwner, this.state.weight]]]]).toString('hex');
-    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
-      accountName: this.state.curAccount.accountName,
-      toAccountName: this.state.chainConfig.accountName,
-      assetId: 0,
-      amount: 0,
-      payload };
+    this.state.authorList.push({owner: newOwner, weight: this.state.weight, status: AuthorUpdateStatus.Add});
+    this.setState({authorList: this.state.authorList, bindNewAuthorVisible: false});
 
-    this.showTxSendDialog(this.state.txInfo);
+    // const { threshold, updateAuthorThreshold } = this.state.curAccount;
+    // const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Add, [ownerType, newOwner, this.state.weight]]]]).toString('hex');
+    // this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
+    //   accountName: this.state.curAccount.accountName,
+    //   toAccountName: this.state.chainConfig.accountName,
+    //   assetId: 0,
+    //   amount: 0,
+    //   payload };
+
+    // this.showTxSendDialog(this.state.txInfo);
   }
   onBindNewAuthorClose = () => {
     this.setState({ bindNewAuthorVisible: false, txSendVisible: false });
   }
 
-  onUpdateWeightOK = () => {
-    const { threshold, updateAuthorThreshold } = this.state.curAccount;
-    const { owner } = this.state.curAuthor;
+  onModifyThresholdOK = async () => {
 
-    let ownerType = AuthorOwnerType.Error;
-    if (ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(utils.getPublicKeyWithPrefix(owner))), true)) {
-      ownerType = AuthorOwnerType.PublicKey;
-    } else if (ethUtil.isValidAddress(owner) || ethUtil.isValidAddress('0x' + owner)) {
-      ownerType = AuthorOwnerType.Address;
-    } else if (this.state.accountReg.test(owner)) {
-      ownerType = AuthorOwnerType.AccountName;
+  }
+
+  onModifyThresholdClose = () => {
+    this.setState({ modifyThresholdVisible: false, txSendVisible: false });
+  }
+
+  onChangeThresholdType =  (v) => {
+    this.state.thresholdType = v;
+  }
+
+  onUpdateWeightOK = () => {
+    if (this.state.curAuthor.status == AuthorUpdateStatus.Add) {
+      this.state.curAuthor.weight = this.state.weight;
+    } else {
+      this.state.curAuthor.weight = (this.state.curAuthor.weight + '').split('->')[0] + '->' + this.state.weight;
+      this.state.curAuthor.status = AuthorUpdateStatus.Modify;
     }
-    const payload = '0x' + encode([threshold, updateAuthorThreshold, [[UpdateAuthorType.Update, [ownerType, owner, this.state.weight]]]]).toString('hex');
-    this.state.txInfo = { actionType: Constant.UPDATE_ACCOUNT_AUTHOR,
-      accountName: this.state.curAccount.accountName,
-      toAccountName: this.state.chainConfig.accountName,
-      assetId: 0,
-      amount: 0,
-      payload };
-    this.showTxSendDialog(this.state.txInfo);
+    this.setState({authorList: this.state.authorList, updateWeightVisible: false});
   }
 
   onUpdateWeightClose = () => {
@@ -1636,6 +1712,31 @@ export default class AccountList extends Component {
         </Dialog>
 
         <Dialog
+          visible={this.state.modifyThresholdVisible}
+          onOk={this.onModifyThresholdOK.bind(this)}
+          onCancel={this.onModifyThresholdClose.bind(this)}
+          onClose={this.onModifyThresholdClose.bind(this)}
+          title="修改阈值"
+          footerAlign="center"
+        >
+          <Select
+            style={{ width: 400 }}
+            placeholder="选择阈值类型"
+            onChange={this.onChangeThresholdType.bind(this)}
+            dataSource={this.state.thresholdTypes}
+          />
+          <br />
+          <br />
+          新阈值:
+          <NumberPicker
+            onChange={this.handleThresholdChange.bind(this)}
+            style={{ width: 400 }}
+            step={1}
+            inputWidth={"350px"} 
+          />
+        </Dialog>
+
+        <Dialog
           visible={this.state.updateWeightVisible}
           onOk={this.onUpdateWeightOK.bind(this)}
           onCancel={this.onUpdateWeightClose.bind(this)}
@@ -1700,9 +1801,9 @@ export default class AccountList extends Component {
           />
         </Dialog>
         <Dialog
-          style={{ width: 450 }}
+          style={{ width: 600 }}
           visible={this.state.authorListVisible}
-          title="权限拥有者列表"
+          title="权限管理"
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1716,8 +1817,31 @@ export default class AccountList extends Component {
               <Table primaryKey="owner" dataSource={this.state.authorList} hasBorder={false} resizable>
                 <Table.Column title="所有者" dataIndex="owner" width={100} cell={this.renderOwner.bind(this)}/>
                 <Table.Column title="权重" dataIndex="weight" width={100} />
+                <Table.Column title="当前状态" dataIndex="status" width={100} cell={this.renderStatus.bind(this)}/>
                 <Table.Column title="操作" width={150} cell={this.renderAuthorOperation.bind(this)} />
               </Table>
+
+              <div onClick={this.bindNewAuthor.bind(this)} style={styles.addNewItem}>
+                + 绑定新权限
+              </div>
+              <br />
+              <br />
+              <Input
+                onChange={this.handleAuthorThresholdChange.bind(this)}
+                style={{ width: 500 }}
+                addonBefore="权限交易阈值"
+                size="medium"
+                defaultValue={this.state.curAccount.updateAuthorThreshold}
+              />
+              <br />
+              <br />
+              <Input
+                onChange={this.handleThresholdChange.bind(this)}
+                style={{ width: 500 }}
+                addonBefore="普通交易阈值"
+                defaultValue={this.state.curAccount.threshold}
+                size="medium"
+              />
             </IceContainer>
           </div>
         </Dialog>

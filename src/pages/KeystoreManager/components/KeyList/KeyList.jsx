@@ -5,7 +5,7 @@ import IceContainer from '@icedesign/container';
 import { Table, Button, Input, Dialog, Feedback } from '@icedesign/base';
 import { Tag } from '@alifd/next';
 import { ethers } from 'ethers';
-import EthCrypto from 'eth-crypto';
+import EthCrypto, { sign } from 'eth-crypto';
 import EccCrypto from 'eccrypto';
 import * as ethUtil from 'ethereumjs-util';
 import copy from 'copy-to-clipboard';
@@ -21,7 +21,7 @@ const history = createHashHistory();
 
 const { Group: TagGroup, Selectable: SelectableTag } = Tag;
 const ActionType = { CreateFirstAccountByMnemonic: 0, CreateNewAccount: 1, ExportPrivateKey: 2, ExportKeyStoreInfo: 3, ExportMnemonic: 4,
-                     DeleteAccount: 5, ImportKeystore: 6, ImportPrivateKey: 7 };
+                     DeleteAccount: 5, ImportKeystore: 6, ImportPrivateKey: 7, SignTxInfo: 8 };
 const MnemonicPath = "m/44'/550'/0'/0/";
 const ConfusePwd = '*&^()!@863';
 const ConfuseMnemonic = '*&^() !@863 sdfs* (*^d';
@@ -60,7 +60,8 @@ export default class KeyList extends Component {
       mnemonicWords: '',
       bip32path: '',
       reMnemonicVisible: false,
-      reMnemonicVisible: false,
+      signVisible: false,
+      signResult: '',
       reMnemonicWords: '',
       mnemonicWordTagList: [],
       keystoreInfo: '',
@@ -134,7 +135,26 @@ export default class KeyList extends Component {
   };
 
   signTx = (index) => {
+    this.state.method = ActionType.SignTxInfo;
     this.state.curData = this.state.dataSource[index];
+    this.setState({
+      pwdDialogVisible: true,
+      signResult: '',
+    });
+  };
+
+  signTxInfo = () => {
+    try {
+      const txInfoObj = JSON.parse(this.state.txInfo);
+      fractal.ft.signTx(txInfoObj, this.state.msgContent).then(signature => {
+        this.setState({ signResult: signature });
+      }).catch(error => {
+        Feedback.toast.error(error.message || error);
+      });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
+    }
+
   };
 
   modifyPwd = (index) => {
@@ -497,6 +517,15 @@ export default class KeyList extends Component {
           pwdDialogVisible: false,
         });
       });
+    } else if (this.state.method === ActionType.SignTxInfo) {
+      this.processAction(item => item.address === this.state.curData.address, '密码验证中', wallet => {
+        Feedback.toast.hide();
+        this.state.msgContent = wallet.privateKey;
+        this.setState({
+          signVisible: true,
+          pwdDialogVisible: false,
+        });
+      });
     }
   };
 
@@ -646,6 +675,15 @@ export default class KeyList extends Component {
     this.state.bip32path = v;
   }
 
+  onTxInfoChange(v) {
+    this.state.txInfo = v;
+  }
+
+  onSignClose = () => {
+    this.setState({signVisible: false});
+  }
+
+
   onTagChange = (word, checked) => {
     if (this.state.reMnemonicWords.indexOf(word) < 0) {
       this.state.reMnemonicWords += word + ' ';
@@ -727,13 +765,20 @@ export default class KeyList extends Component {
     );
     const footerTwo = (
       <div>
-        <a onClick={this.onBackToMnemonic} href="javascript:;">
+        <a onClick={this.onBackToMnemonic.bind(this)} href="javascript:;">
           上一步
         </a>
         &nbsp;&nbsp;
-        <a onClick={this.onReMnemonicOK} href="javascript:;">
+        <a onClick={this.onReMnemonicOK.bind(this)} href="javascript:;">
           下一步
         </a>
+      </div>
+    );
+    const signFooter = (
+      <div>
+        <Button onClick={this.signTxInfo.bind(this)} href="javascript:;">
+          获取签名
+        </Button>
       </div>
     );
     return (
@@ -992,6 +1037,29 @@ export default class KeyList extends Component {
           />
           <p />
           <TagGroup>{this.state.mnemonicWordTagList}</TagGroup>
+        </Dialog>
+        <Dialog
+          visible={this.state.signVisible}
+          title="签名交易"
+          footer={signFooter}
+          footerAlign="center"
+          closeable="true"
+          onCancel={this.onSignClose}
+          onClose={this.onSignClose}
+        >
+          <Input multiple
+            style={{ width: 350 }}
+            rows='5'
+            onChange={this.onTxInfoChange.bind(this)}
+          />
+          <p />
+          <p />
+          <Input hasClear
+            style={{ width: 350 }}
+            addonBefore="签名结果"
+            size="medium"
+            value={this.state.signResult}
+          />
         </Dialog>
       </div>
     );

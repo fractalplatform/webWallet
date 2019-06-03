@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
-import { Input, Feedback, Dialog, Select } from '@icedesign/base';
+import { Input, Feedback, Dialog, Select, CascaderSelect, Button } from '@icedesign/base';
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
 import * as ethUtil from 'ethereumjs-util';
+import * as EthCrypto from 'eth-crypto';
 import * as fractal from 'fractal-web3';
 import * as utils from '../../utils/utils';
 import * as Constant from '../../utils/constant';
@@ -12,9 +13,10 @@ export default class TxSend extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      accountReg: new RegExp('^[a-z0-9]{7,16}(\\.[a-z0-9]{1,8}){0,1}$'),
       txConfirmVisible: this.props.visible,
       originalTxInfo: {},
-      txInfo: {},
+      actionInfo: {},
       sysTokenID: 0,
       curAccount: {accountName: ''},
       keystoreList: [],
@@ -22,13 +24,22 @@ export default class TxSend extends Component {
       chainConfig: {},
       accounts: [],
       accountSelector: [],
+      superAccounts: [],
+      superAccountSelector: [],
+      curSupperAccount: {accountName: ''},
+      multiSignInputs: [],
+      multiSignVisible: false,
+      multiSignData: [],
+      txToBeSigned: '',
+      signInfo: {},
+      indexesList: [],
     };
   }
 
   componentDidMount = async () => {
     this.state.chainConfig = await fractal.ft.getChainConfig();
     this.state.chainConfig.sysTokenID = 0;
-    //this.state.accountSelector = [];
+    this.state.indexesList = [];
     fractal.ft.setChainId(this.state.chainConfig.chainId);
     this.state.keystoreList = utils.loadKeystoreFromLS();
     fractal.ft.getSuggestionGasPrice().then(gasPrice => {
@@ -38,6 +49,12 @@ export default class TxSend extends Component {
   onChangeAccount = (accountName) => {
     this.state.accountName = accountName;
     fractal.account.getAccountByName(accountName).then(account => this.state.curAccount = account);
+    this.addSuperAccount(accountName);
+  }
+
+  onChangeSuperAccount = (superAccountName) => {
+    this.state.superAccountName = superAccountName;
+    fractal.account.getAccountByName(superAccountName).then(account => this.state.curSupperAccount = account);
   }
 
   async componentWillReceiveProps(nextProps) {
@@ -45,6 +62,7 @@ export default class TxSend extends Component {
     this.state.accounts = [];
     if (!utils.isEmptyObj(nextProps.accountName)) {
       fractal.account.getAccountByName(nextProps.accountName).then(account => this.state.curAccount = account);
+      this.addSuperAccount(nextProps.accountName);
     } else {
       //const self = this;
       const accountInfos = await utils.loadAccountsFromLS();
@@ -54,7 +72,7 @@ export default class TxSend extends Component {
       this.state.accountSelector.push([
         <Select
           style={{ width: 400 }}
-          placeholder="选择需发起交易的账户"
+          placeholder="选择交易发送方"
           onChange={this.onChangeAccount.bind(this)}
           dataSource={this.state.accounts}
         />, <br/>, <br/>]
@@ -62,10 +80,35 @@ export default class TxSend extends Component {
     }
     this.state.originalTxInfo = utils.deepClone(nextProps.txInfo);
     this.setState({
-      txInfo: nextProps.txInfo,
+      actionInfo: nextProps.txInfo,
       txConfirmVisible: nextProps.visible,
       accountSelector: this.state.accountSelector,
-    })
+    });
+  }
+
+  // a.b => a  a.b.c => a, a.b
+  addSuperAccount = (accountName) => {
+    const supperAccountNames = accountName.split('.');
+    this.state.superAccountSelector = [];
+    this.state.superAccounts = [];
+    for (let i = 1; i < supperAccountNames.length; i++) {
+      const superAccountName = supperAccountNames.slice(0, i);
+      if (superAccountName != this.state.chainConfig.chainName) {
+        this.state.superAccounts.push(superAccountName);
+      }
+    }
+    if (this.state.superAccounts.length > 0) {
+      this.state.superAccounts.push(accountName);
+      this.state.superAccountSelector.push([
+        <Select
+          style={{ width: 400 }}
+          placeholder="选择需要对交易进行签名的账户"
+          onChange={this.onChangeSuperAccount.bind(this)}
+          dataSource={this.state.superAccounts}
+        />, <br/>, <br/>]
+      );
+      this.setState({superAccountSelector: this.state.superAccountSelector});
+    }
   }
 
   handlePasswordChange = (v) => {
@@ -115,8 +158,8 @@ export default class TxSend extends Component {
       Feedback.toast.error('余额不足以支付gas费用');
       return;
     }
-    if (this.state.txInfo.assetId === this.state.sysTokenID) {
-      const value = new BigNumber(this.state.txInfo.amount);
+    if (this.state.actionInfo.assetId === this.state.sysTokenID) {
+      const value = new BigNumber(this.state.actionInfo.amount);
       const valueAddGasFee = value.plus(gasValue);
 
       if (valueAddGasFee.comparedTo(maxValue) > 0) {
@@ -126,7 +169,7 @@ export default class TxSend extends Component {
     }
 
     let txInfo = {};
-    let actionInfo = this.state.txInfo;
+    let actionInfo = this.state.actionInfo;
     if (actionInfo.accountName == null) {
       actionInfo.accountName = this.state.curAccount.accountName;
     }
@@ -137,14 +180,34 @@ export default class TxSend extends Component {
     txInfo.gasPrice = new BigNumber(this.state.gasPrice).shiftedBy(9).toNumber();
     txInfo.actions = [actionInfo];
 
-    const authors = this.state.curAccount.authors;
-    let threshold = this.state.curAccount.threshold;
+    let curSignAccount = this.state.curAccount;
+    if (this.state.curSupperAccount != null && this.state.curSupperAccount.accountName != '') {
+      curSignAccount = this.state.curSupperAccount;
+    }
+    const authors = curSignAccount.authors;
+    let threshold = curSignAccount.threshold;
     if (actionInfo.actionType === Constant.UPDATE_ACCOUNT_AUTHOR) {
-      threshold = this.state.curAccount.updateAuthorThreshold;
+      threshold = curSignAccount.updateAuthorThreshold;
     }
     const keystores = this.getValidKeystores(authors, threshold);
     if (keystores.length == 0) {
-      Feedback.toast.error('本地权限不足，需其它账户提供签名内容，此功能待开发');
+      //Feedback.toast.prompt('本地权限不足，需其它账户对交易进行签名');
+      this.state.multiSignData = [];
+      let index = 0;
+      authors.map(async (author) => {
+        if(this.state.accountReg.test(author.owner)) {
+          const account = await fractal.account.getAccountByName(author.owner);
+          const threshold = (actionInfo.actionType === Constant.UPDATE_ACCOUNT_AUTHOR) ? account.updateAuthorThreshold : account.threshold;
+          this.state.multiSignData.push({originalValue: author.owner, label: author.owner + '(权重:' + author.weight + ',权限阈值:' + threshold + ')', value: index + '', accountName: author.owner });
+        } else {
+          const labelInfo = author.owner.substr(0, 6) + '...' + author.owner.substr(author.owner.length - 4);
+          this.state.multiSignData.push({originalValue: author.owner, label: labelInfo + '(权重:' + author.weight + ')', value: index + '', isLeaf: true });
+        }
+        index++;
+      })
+      fractal.ft.packTx(txInfo).then(txToBeSigned => {
+        this.setState({multiSignVisible: true, txToBeSigned: JSON.stringify(txToBeSigned) });
+      })
     } else {
       let index = 0;
       let multiSigInfos = [];
@@ -180,7 +243,7 @@ export default class TxSend extends Component {
             }
           });
         } else {
-          fractal.ft.sendMultiSigTransaction(txInfo, multiSigInfos).then(txHash => {
+          fractal.ft.sendSeniorSigTransaction(txInfo, multiSigInfos, 0).then(txHash => {
             console.log('tx hash=>' + txHash);
             this.processTxSendResult(txInfo, txHash);
             this.onTxConfirmClose();
@@ -325,7 +388,163 @@ export default class TxSend extends Component {
     }
     return totalWeight < threshold ? [] : myKeystores;
   }
+  onSignOK = () => {
+    const txInfo = JSON.parse(this.state.txToBeSigned);
+    let multiSigInfos = [];
+    this.state.indexesList.map(indexes => {
+      const signInfo = this.state.signInfo[indexes];
+      if (!utils.isEmptyObj(signInfo)) {
+        multiSigInfos.push({signInfo, indexes: indexes.split('.')});
+      }
+    });
+    fractal.ft.sendSeniorSigTransaction(txInfo, multiSigInfos, 0).then(txHash => {
+      console.log('tx hash=>' + txHash);
+      this.processTxSendResult(txInfo, txHash);
+      this.onTxConfirmClose();
+      if (this.props.sendResult != null) {
+        this.props.sendResult(txHash);
+      }
+    }).catch(error => {
+      console.log(error);
+      Feedback.toast.error('交易发送失败：' + error);
+      this.addSendErrorTxToFile(txInfo);
+      self.state.txInfo = utils.deepClone(self.state.originalTxInfo);
+      if (this.props.sendResult != null) {
+        this.props.sendResult(error);
+      }
+    });
+  }
+  onSignClose = () => {
+    this.setState({multiSignVisible: false});
+  }
+  handleElementChange = (indexes, signature) => {
+    this.state.signInfo[indexes] = signature;
+    this.setState({signInfo: this.state.signInfo});
+  }
+  signBySelf = (indexes, keystore) => {
+    Feedback.toast.success('开始计算签名');
+    ethers.Wallet.fromEncryptedJson(JSON.stringify(keystore), this.state.password).then(wallet => {
+      fractal.ft.signTx(JSON.parse(this.state.txToBeSigned), wallet.privateKey).then(signature => {
+        Feedback.toast.hide();
+        this.state.signInfo[indexes] = signature;
+        this.setState({signInfo: this.state.signInfo});
+      }).catch(error => {
+        Feedback.toast.error(error.message || error);
+      });
+    }).catch(error => {
+      Feedback.toast.error(error.message || error);
+    });
+  }
+  verifySign = (indexes, address) => {
+    const signature = this.state.signInfo[indexes];
+    fractal.ft.recoverSignedTx(JSON.parse(this.state.txToBeSigned), signature).then(signer => {
+      if (signer.toLowerCase() == address.toLowerCase()) {
+        Feedback.toast.success('验证通过');
+      } else {
+        Feedback.toast.error('验证失败');
+      }
+    });
+  }
+  handleMultiSignChange = (indexesList) => {
+    //console.log(indexesList);
+    this.setState({ indexesList });
+  }
+  updateMultiSignInputs = () => {
+    console.log('updateMultiSignInputs');
+    this.state.multiSignInputs = [];
+    this.state.indexesList.map(indexes => {
+      let curUpdateData = this.state.multiSignData;
+      const multiFatherIndexes = indexes.split('.');
+      let addOnBeforeInput = '';
+      let lastOwner = '';
+      multiFatherIndexes.map(index => {
+        if (Object.prototype.hasOwnProperty.call(curUpdateData, 'children')) {
+          curUpdateData = curUpdateData.children[parseInt(index)];
+        } else {
+          curUpdateData = curUpdateData[parseInt(index)];
+        }
+        if (curUpdateData != null) {
+          addOnBeforeInput += curUpdateData.label.split('(')[0] + '/';
+          lastOwner = curUpdateData.originalValue;
+        } else {
+          debugger
+          console.log(indexes + ', ' + index);
+        }
+      });
+      let bSignBySelf = false;
+      let curKeystore = null;
+      if (!this.state.accountReg.test(lastOwner)) {
+        for (const keystore of this.state.keystoreList) {
+          const buffer = Buffer.from(utils.hex2Bytes(lastOwner));
+          if (ethUtil.isValidPublic(buffer, true)) {
+            lastOwner = ethUtil.bufferToHex(ethUtil.pubToAddress(lastOwner, true));
+          }
+          if (keystore.address == lastOwner.substr(2)) {
+            bSignBySelf = true;
+            curKeystore = keystore;
+            break;
+          }
+        }
+      }
+      
+      this.state.multiSignInputs.push(
+        <br />,<br />,
+        addOnBeforeInput + '的签名:',<br />,
+        <Input id={multiFatherIndexes} hasClear
+          style={{width: 400}}
+          addonBefore='签名'
+          size="medium"
+          value={this.state.signInfo[multiFatherIndexes]}
+          onChange={this.handleElementChange.bind(this, multiFatherIndexes)}/>
+      );
+      if (bSignBySelf) {
+        this.state.multiSignInputs.push(
+          <view>&nbsp;&nbsp;</view>,
+          <Button type="primary" onClick={this.signBySelf.bind(this, multiFatherIndexes, curKeystore)}>自己签名</Button>
+        );
+      } else {
+        this.state.multiSignInputs.push(
+          <view>&nbsp;&nbsp;</view>,
+          <Button type="primary" onClick={this.verifySign.bind(this, multiFatherIndexes, lastOwner)}>验证签名</Button>
+        );
+      }
+    });
+  }
+  onLoadData(data) {
+    const accountName = data.accountName;
+    const fatherIndex = data.value;
+    const multiFatherIndexes = fatherIndex.split('.');
+    let curUpdateData = this.state.multiSignData;
+    multiFatherIndexes.map(index => {
+      if (Object.prototype.hasOwnProperty.call(curUpdateData, 'children')) {
+        curUpdateData = curUpdateData.children[parseInt(index)];
+      } else {
+        curUpdateData = curUpdateData[parseInt(index)];
+      }
+    });
+
+    fractal.account.getAccountByName(accountName).then(async (account) => {
+      if (account == null) {
+        return;
+      }
+      curUpdateData.children = [];
+      let index = 0;
+      for (let author of account.authors) {
+        if(this.state.accountReg.test(author.owner)) {
+          const newAccount = await fractal.account.getAccountByName(author.owner);
+          curUpdateData.children.push({originalValue: author.owner, label: author.owner + '(权重:' + author.weight + ',权限阈值:' + newAccount.threshold + ')', value: fatherIndex + '.' + index, accountName: author.owner });
+        } else {
+          const labelInfo = author.owner.substr(0, 6) + '...' + author.owner.substr(author.owner.length - 4);
+          curUpdateData.children.push({originalValue: author.owner, label: labelInfo + '(权重:' + author.weight + ')', value: fatherIndex + '.' + index, isLeaf: true });
+        }
+        index++;
+      }
+
+      this.setState({multiSignData: this.state.multiSignData});
+    });
+  }
   render() {
+    this.updateMultiSignInputs();
     return (
       <div>
         <Dialog
@@ -339,17 +558,18 @@ export default class TxSend extends Component {
           onClose={this.onTxConfirmClose.bind(this)}
         >
           {this.state.accountSelector}
+          {this.state.superAccountSelector}
           <Input hasClear
             onChange={this.handleGasPriceChange.bind(this)}
             style={{ width: 400 }}
             addonBefore="GAS单价"
-            addonAfter="gaft"
+            addonAfter="Gaft"
             size="medium"
             placeholder={`建议值：${this.state.suggestionPrice}`}
             hasLimitHint
           />
           <br />
-          1gaft = 10<sup>-9</sup>ft = 10<sup>9</sup>aft
+          1Gaft = 10<sup>-9</sup>ft = 10<sup>9</sup>aft
           <br />
           <br />
           <Input hasClear
@@ -381,6 +601,37 @@ export default class TxSend extends Component {
             hasLimitHint
             onPressEnter={this.onTxConfirmOK.bind(this)}
           />
+          <Dialog
+            visible={this.state.multiSignVisible}
+            title={"获取多签名数据"}
+            footerActions="ok"
+            footerAlign="center"
+            closeable="true"
+            onOk={this.onSignOK.bind(this)}
+            onCancel={this.onSignClose.bind(this)}
+            onClose={this.onSignClose.bind(this)}
+          >
+            <Input multiple
+              rows="3"
+              style={{ width: 500 }}
+              addonBefore="待签名的交易内容:"
+              size="medium"
+              value={this.state.txToBeSigned}
+            />
+            <br />
+            <br />
+            <CascaderSelect multiple hasClear
+              placeholder="请选择需要对本交易进行签名的各方"
+              style={{ width: 500 }}
+              canOnlyCheckLeaf={true}
+              changeOnSelect={false}
+              dataSource={this.state.multiSignData}
+              //displayRender={this.displayRender.bind(this)}
+              onChange={this.handleMultiSignChange.bind(this)}
+              loadData={this.onLoadData.bind(this)}
+            />
+            {this.state.multiSignInputs}
+          </Dialog>
         </Dialog>
       </div>
     );
