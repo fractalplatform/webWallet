@@ -282,6 +282,8 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           } else {
             actionParseInfo.detailInfo = 'URL为空';
           }
+          const stake = getReadableNumber(amount, assetInfo.decimals);
+          actionParseInfo.detailInfo += ', 抵押票数:' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
           actionParseInfo.detailObj = {};
         } else {
           actionParseInfo.detailInfo = 'payload信息不足，无法解析';
@@ -330,7 +332,10 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         actionParseInfo.actionType = '未知类型：' + actionType;
         console.log('error action type:' + actionInfo.actionType);
     }
-    if (amount > 0 && actionInfo.actionType !== actionTypes.TRANSFER && actionInfo.actionType !== actionTypes.DESTORY_ASSET && actionInfo.actionType !== actionTypes.UPDATE_CANDIDATE) {
+    if (amount > 0 && actionInfo.actionType !== actionTypes.TRANSFER 
+     && actionInfo.actionType !== actionTypes.DESTORY_ASSET 
+     && actionInfo.actionType !== actionTypes.REG_CANDIDATE 
+     && actionInfo.actionType !== actionTypes.UPDATE_CANDIDATE) {
       actionParseInfo.detailInfo += ',新账号收到转账:' + readableNum + assetInfo.symbol;
     }
     return actionParseInfo;

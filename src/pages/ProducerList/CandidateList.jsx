@@ -50,6 +50,7 @@ export default class CandidateList extends Component {
       curBlock: {},
 
       txSendVisible: false,
+      sendResult: null,
       txInfo: {},
       inputPasswordVisible: false,
       removeVoterVisible: false,
@@ -118,7 +119,7 @@ export default class CandidateList extends Component {
       for (const account of accountInfos) {
         account.label = account.accountName;
         account.value = account.accountName;
-        const voters = await fractal.dpos.getVotersByVoter(account.accountName, true);
+        const voters = await fractal.dpos.getVotersByVoter(0, account.accountName, true);
         this.state.votersOfMyAccount[account.accountName] = voters == null ? [] : voters;
       }
       this.state.accounts = accountInfos;
@@ -133,8 +134,8 @@ export default class CandidateList extends Component {
   }
 
   updateCandidateInfo = () => {
-    fractal.dpos.getCandidates(true).then(candidates => {
-      fractal.dpos.getValidCandidates().then(validCandidates => {
+    fractal.dpos.getCandidates(0, true).then(candidates => {
+      fractal.dpos.getValidCandidates(0).then(validCandidates => {
         validCandidates.activatedCandidateSchedule.map(validCandidate => {
           this.state.votersOfAllCandidate[validCandidate] = [];
         });
@@ -144,7 +145,7 @@ export default class CandidateList extends Component {
         })
 
         validCandidates.activatedCandidateSchedule.map(validCandidate => {
-          fractal.dpos.getVotersByCandidate(validCandidate.name, true).then(voters => {
+          fractal.dpos.getVotersByCandidate(0, validCandidate.name, true).then(voters => {
             this.state.votersOfAllCandidate[validCandidate.name] = voters;
           });
         });
@@ -167,7 +168,7 @@ export default class CandidateList extends Component {
 
     this.state.canVoteAccounts = [];
     this.state.accounts.map(account => this.state.canVoteAccounts.push({ label: account.accountName, value: account.accountName, originValue: account }));
-    this.setState({ voteVisible: true, stake: 0, curAccount: { accountName: '' } })
+    this.setState({ voteVisible: true, stake: 0, curAccount: { accountName: '' }, maxStakeTooltip: '' })
   }
 
   onVoteOK = () => {
@@ -181,7 +182,7 @@ export default class CandidateList extends Component {
       return;
     }
     const candidateName = this.state.rowSelection.selectedRowKeys[0];
-    stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toNumber();
+    stake = '0x' + new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toString(16);
     const payload = '0x' + encode([candidateName, stake]).toString('hex');
     let txInfo = {actionType: Constant.VOTE_CANDIDATE, 
                   accountName: this.state.curAccount.accountName, 
@@ -189,7 +190,7 @@ export default class CandidateList extends Component {
                   assetId: this.state.chainConfig.sysTokenID,
                   amount: 0,
                   payload};
-    this.setState({ txSendVisible: true, txInfo})
+    this.setState({ txSendVisible: true, txInfo, sendResult: this.onVoteClose.bind(this)})
   }
 
   onVoteClose = () => {
@@ -210,7 +211,7 @@ export default class CandidateList extends Component {
         this.state.canRegisterAccounts.push({ label: account.accountName, value: account.accountName, originValue: account });
       }
     });
-    this.setState({ registerProducerVisible: true, curAccount: { accountName: '' }, stake: 0, txSendVisible: false })
+    this.setState({ maxStakeTooltip: '', registerProducerVisible: true, curAccount: { accountName: '' }, stake: 0, txSendVisible: false })
   }
 
   onRegisterProducerOK = () => {
@@ -226,7 +227,7 @@ export default class CandidateList extends Component {
     }
 
     stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toNumber();
-    const payload = '0x' + (utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
+    const payload = '0x' + (!utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
 
     let txInfo = {actionType: Constant.REG_CANDIDATE, 
       accountName: this.state.curAccount.accountName, 
@@ -234,14 +235,14 @@ export default class CandidateList extends Component {
       assetId: this.state.chainConfig.sysTokenID,
       amount: stake,
       payload};
-    this.setState({ txSendVisible: true, txInfo})
+    this.setState({ txSendVisible: true, txInfo, sendResult: this.onRegisterProducerClose.bind(this)})
   }
 
   onRegisterProducerClose = () => {
     this.setState({ registerProducerVisible: false, txSendVisible: false })
   }
 
-
+  
   updateProducer = () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
       Feedback.toast.error('请选择需要更新的候选者账号');
@@ -254,9 +255,10 @@ export default class CandidateList extends Component {
         break;
       }
     }
-    fractal.dpos.getAvailableStake(candidateName).then(accountMaxStake => {
-      accountMaxStake = new BigNumber(accountMaxStake).shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(this.state.dposInfo.unitStake).toNumber();
-      this.setState({ updateProducerVisible: true, curAccount: { accountName: candidateName }, stake: 0, maxStakeTooltip: '最大可增抵押票数：' + accountMaxStake, accountMaxStake, txSendVisible: false });
+    fractal.account.getAccountByName(candidateName).then(account => {
+      const ftBalance = this.getAccountFTBalance(account);
+      const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(this.state.dposInfo.unitStake).toNumber();
+      this.setState({ updateProducerVisible: true, curAccount: { accountName: candidateName }, stake: 0, maxStakeTooltip: '最多可增加的抵押票数：' + accountMaxStake, accountMaxStake, txSendVisible: false });
     });
   }
 
@@ -267,7 +269,7 @@ export default class CandidateList extends Component {
       return;
     }
     stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toNumber();
-    const payload = '0x' + (utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
+    const payload = '0x' + (!utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
 
     let txInfo = {actionType: Constant.UPDATE_CANDIDATE, 
       accountName: this.state.curAccount.accountName, 
@@ -275,7 +277,7 @@ export default class CandidateList extends Component {
       assetId: this.state.chainConfig.sysTokenID,
       amount: stake,
       payload};
-    this.setState({ txSendVisible: true, txInfo});
+    this.setState({ txSendVisible: true, txInfo, sendResult: this.onUpdateProducerClose.bind(this)});
   }
 
   onUpdateProducerClose = () => {
@@ -312,13 +314,24 @@ export default class CandidateList extends Component {
     this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }});
   }
 
+  getAccountFTBalance = (account) => {
+    let ftBalance = new BigNumber(0);
+    for (let balanceInfo of account.balances) {
+      if (balanceInfo.assetID == this.state.chainConfig.sysTokenID) {
+        ftBalance = new BigNumber(balanceInfo.balance);
+        break;
+      }
+    }
+    return ftBalance;
+  }
+
   onAccountChange = function (value, option) {
     this.state.curAccount = option.originValue;
     const unitStake = new BigNumber(this.state.dposInfo.unitStake);
-    fractal.dpos.getAvailableStake(value).then(accountMaxStake => {
-      accountMaxStake = new BigNumber(accountMaxStake).shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
-      this.setState({ maxStakeTooltip: '最大可投票数' + accountMaxStake, accountMaxStake, txSendVisible: false });
-    });
+    
+    const ftBalance = this.getAccountFTBalance(this.state.curAccount);    
+    const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
+    this.setState({ maxStakeTooltip: '最大可投票数' + accountMaxStake, accountMaxStake, txSendVisible: false });
   };
 
   handleStakeChange = (v) => {
@@ -332,19 +345,28 @@ export default class CandidateList extends Component {
   onProducerChange = (value, option) => {
     this.state.curAccount = option.originValue;
     const unitStake = new BigNumber(this.state.dposInfo.unitStake);
-    fractal.dpos.getAvailableStake(value).then(accountMaxStake => {
-      accountMaxStake = new BigNumber(accountMaxStake).shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
-      if (this.state.dposInfo.candidateMinQuantity > accountMaxStake) {
-        Feedback.toast.error('此账户无足够抵押票数，不可申请候选者，最低抵押票数为：' + this.state.dposInfo.candidateMinQuantity);
-        return;
-      }
-      this.setState({ maxStakeTooltip: this.state.dposInfo.candidateMinQuantity + '<= 抵押票数 <=' + accountMaxStake, accountMaxStake, txSendVisible: false });
-    });
+    const ftBalance = this.getAccountFTBalance(this.state.curAccount);    
+    
+    const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
+    if (this.state.dposInfo.candidateMinQuantity > accountMaxStake) {
+      Feedback.toast.error('此账户无足够抵押票数，不可申请候选者，最低抵押票数为：' + this.state.dposInfo.candidateMinQuantity);
+      return;
+    }
+    this.setState({ maxStakeTooltip: this.state.dposInfo.candidateMinQuantity + '<= 可抵押票数 <=' + accountMaxStake, accountMaxStake, txSendVisible: false });
   }
 
   onVoterChange = (v) => {
     this.state.voter = v;
     this.setState({ passwordTooltip: v });
+  }
+
+  counterRender = (value, index, record) => {
+    if (record.shouldCounter == 0) {
+      return value;
+    }
+    const counterRatio = new BigNumber(record.actualCounter).div(new BigNumber(record.shouldCounter))
+                        .multipliedBy(new BigNumber(100)).toFixed(2) + '%';
+    return value + '(出块率:' + counterRatio + ')'; 
   }
 
   nameRender = (value, index, record) => {
@@ -434,8 +456,9 @@ export default class CandidateList extends Component {
           <Table.Column title="URL" dataIndex="url" width={150} />
           <Table.Column title="抵押票数" dataIndex="quantity" width={100} sortable />
           <Table.Column title="总投票数" dataIndex="totalQuantity" width={100} sortable />
-          <Table.Column title="生效区块高度" dataIndex="height" width={150} sortable />
-          <Table.Column title="产出区块数" dataIndex="actualCounter" width={150} sortable />
+          <Table.Column title="生效区块高度" dataIndex="number" width={150} sortable />
+          <Table.Column title="实出块数" dataIndex="actualCounter" width={150} sortable cell={this.counterRender.bind(this)} />
+          <Table.Column title="应出块数" dataIndex="shouldCounter" width={150} sortable />
           <Table.Column title="我的投票" dataIndex="name" width={200} cell={this.renderMyVote.bind(this)} />
         </Table>
         <Icon type="process" style={{ color: '#FF3333', marginRight: '10px' }} />--可出块节点
@@ -553,7 +576,7 @@ export default class CandidateList extends Component {
             onPressEnter={this.onUpdateProducerOK.bind(this)}
           />
         </Dialog>
-        <TxSend visible={this.state.txSendVisible} accountName={this.state.curAccount.accountName} txInfo={this.state.txInfo}/>
+        <TxSend sendResult={this.state.sendResult} visible={this.state.txSendVisible} accountName={this.state.curAccount.accountName} txInfo={this.state.txInfo}/>
       </div>
     );
   }

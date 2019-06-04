@@ -46,8 +46,8 @@ class BlockTxLayout extends Component {
       const curBlockInfo = await fractal.ft.getCurrentBlock(false);
       const irreversibleInfo = await fractal.dpos.getDposIrreversibleInfo();
       //console.log(curBlockInfo.proposedIrreversible + '<->' + irreversibleInfo.proposedIrreversible)
-      const latestEpchoInfo = await fractal.dpos.getValidCandidates();
-      const candidates = await fractal.dpos.getCandidates(false);
+      const latestEpchoInfo = await fractal.dpos.getValidCandidates(0);
+      const candidates = await fractal.dpos.getCandidates(0, false);
       const dposInfo = await fractal.dpos.getDposInfo();
       const self = this;
       const curHeight = curBlockInfo.number;

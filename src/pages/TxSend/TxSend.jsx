@@ -175,6 +175,7 @@ export default class TxSend extends Component {
     }
     actionInfo.gasLimit = new BigNumber(this.state.gasLimit).toNumber();
     actionInfo.remark = this.state.remark;
+    actionInfo.amount = actionInfo.amount != 0 ? '0x' + new BigNumber(actionInfo.amount).toString(16) : 0;
 
     txInfo.gasAssetId = this.state.chainConfig.sysTokenID;  // ft作为gas asset
     txInfo.gasPrice = new BigNumber(this.state.gasPrice).shiftedBy(9).toNumber();
@@ -207,7 +208,7 @@ export default class TxSend extends Component {
       })
       fractal.ft.packTx(txInfo).then(txToBeSigned => {
         this.setState({multiSignVisible: true, txToBeSigned: JSON.stringify(txToBeSigned) });
-      })
+      });
     } else {
       let index = 0;
       let multiSigInfos = [];

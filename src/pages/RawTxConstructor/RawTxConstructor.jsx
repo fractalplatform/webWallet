@@ -247,7 +247,7 @@ export default class RawTxConstructor extends Component {
           gasLimit: this.getNumber(this.state['gasLimit']), 
           toAccountName: this.state['toAccountName'], 
           assetId: assetIdValue, 
-          amount: this.getNumber(this.state['amount'] + zeros), 
+          amount: '0x' + this.getNumber(this.state['amount'] + zeros).toString(16), 
           payload, 
           payloadDetailInfo: payloadDetailInfoList,
           remark: utils.isEmptyObj(this.state['remark']) ? '' : this.state['remark'], 

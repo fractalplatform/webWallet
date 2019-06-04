@@ -690,7 +690,8 @@ export default class AccountList extends Component {
         break;
       case Constant.TxStatus.ExecuteFail:
       case Constant.TxStatus.InnerFail:
-        status = <font color='red'><b>执行失败</b></font>;
+        const defaultTrigger = <font color='red'><b>执行失败</b></font>;
+        status = <Balloon trigger={defaultTrigger} closable={false}>{record.actions[0].error}</Balloon>;
         break;
       case Constant.TxStatus.ExecuteSuccess:
       case Constant.TxStatus.InnerSuccess:
