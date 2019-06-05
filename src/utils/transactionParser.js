@@ -151,25 +151,6 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
             actionParseInfo.detailInfo = '解析异常';
             return actionParseInfo;
           }
-          let updateAuthorTypeBytes = payloadInfo[2][0][0];
-          let authorTypeBytes = payloadInfo[2][0][1][0];
-          let ownerBytes = payloadInfo[2][0][1][1];
-          let weightBytes = payloadInfo[2][0][1][2];
-          if (payloadInfo[2][0] == null) {
-            updateAuthorTypeBytes = payloadInfo[2][0];
-            authorTypeBytes = payloadInfo[2][1][0];
-            ownerBytes = payloadInfo[2][1][1];
-            weightBytes = payloadInfo[2][1][2];
-          }
-          updateAuthorType = bytes2Number(updateAuthorTypeBytes).toNumber();
-          authorType = bytes2Number(authorTypeBytes).toNumber();
-          if (ownerBytes.length > 60 || ownerBytes.length == 40) {
-            owner = bytes2Hex(ownerBytes);
-          } else {
-            owner = String.fromCharCode.apply(null, ownerBytes);
-          }
-          weight = bytes2Number(weightBytes).toNumber();
-          
           let detailInfo = '';
           if (threshold != 0) {
             detailInfo += '普通交易阈值:' + threshold + ',';
@@ -177,20 +158,41 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           if (updateAuthorThreshold != 0) {
             detailInfo += '权限交易阈值:' + updateAuthorThreshold + ',';
           }
-          switch(updateAuthorType) {
-            case 0:  // ADD
-              detailInfo += '权限所有者' + owner + ',权重' + weight;
-              actionParseInfo.actionType = '增加账户权限';
-              break;
-            case 1:  // update
-              detailInfo += '将权限拥有者' + owner + '的权重更新为:' + weight;
-              actionParseInfo.actionType = '更新账户权限';
-              break;
-            case 2:  // del
-              detailInfo += '权限拥有者' + owner + ',权重' + weight;
-              actionParseInfo.actionType = '删除账户权限';
-              break;
+
+          const updateNum = payloadInfo[2].length;
+          for (let i = 0; i < updateNum; i++) {
+            let updateAuthorTypeBytes = payloadInfo[2][i][0];
+            let authorTypeBytes = payloadInfo[2][i][1][0];
+            let ownerBytes = payloadInfo[2][i][1][1];
+            let weightBytes = payloadInfo[2][i][1][2];
+            if (payloadInfo[2][i] == null) {
+              updateAuthorTypeBytes = payloadInfo[2][i];
+              authorTypeBytes = payloadInfo[2][i+1][0];
+              ownerBytes = payloadInfo[2][i+1][1];
+              weightBytes = payloadInfo[2][i+1][2];
+            }
+            updateAuthorType = bytes2Number(updateAuthorTypeBytes).toNumber();
+            authorType = bytes2Number(authorTypeBytes).toNumber();
+            if (ownerBytes.length > 60 || ownerBytes.length == 40) {
+              owner = bytes2Hex(ownerBytes);
+            } else {
+              owner = String.fromCharCode.apply(null, ownerBytes);
+            }
+            weight = bytes2Number(weightBytes).toNumber();
+                      
+            switch(updateAuthorType) {
+              case 0:  // ADD
+                detailInfo += '[增加账户权限:权限所有者' + owner + ',权重' + weight + ']';
+                break;
+              case 1:  // update
+                detailInfo += '[更新账户权限:将权限拥有者' + owner + '的权重更新为:' + weight + ']';
+                break;
+              case 2:  // del
+                detailInfo += '[删除账户权限:权限拥有者' + owner + ',权重' + weight + ']';
+                break;
+            }
           }
+          
           actionParseInfo.detailInfo = detailInfo;
           actionParseInfo.detailObj = { threshold, updateAuthorThreshold, updateAuthorType, owner, weight };
         } else {

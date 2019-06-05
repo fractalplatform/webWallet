@@ -495,7 +495,7 @@ export default class CandidateList extends Component {
               取回抵押金
           </Button>
             &nbsp;&nbsp;
-          当前周期:{this.state.curEpoch}, 一个周期时长:{this.state.duration}
+            <b>当前周期:{this.state.curEpoch}, 一个周期时长:{this.state.duration}</b>
         </p>
         <Table primaryKey="name"
           dataSource={this.state.producerList}

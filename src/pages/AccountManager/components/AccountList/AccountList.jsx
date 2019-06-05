@@ -36,7 +36,7 @@ export default class AccountList extends Component {
       fractalAccount: '',
       selfAccount: '',
       accountReg: new RegExp('^[a-z0-9]{7,16}(\\.[a-z0-9]{1,8}){0,1}$'),
-      numberReg: new RegExp('^[1-9][0-9]*(\\.[0-9]*){0,1}$'),
+      numberReg: new RegExp('^[0-9][0-9]*(\\.[0-9]*){0,1}$'),
       idReg: new RegExp('^[1-9][0-9]*'),
       fractalPublicKey: '',
       selfPublicKey: '',

@@ -85,18 +85,22 @@ export default class KeyList extends Component {
   }
 
   componentDidMount = async () => {
-    const chainConfig = await fractal.ft.getChainConfig();
-    fractal.ft.setChainId(chainConfig.chainId);
-    const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
-    if (keystoreInfoObj == null) {
-      return;
+    try {
+      const chainConfig = await fractal.ft.getChainConfig();
+      fractal.ft.setChainId(chainConfig.chainId);
+      const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
+      if (keystoreInfoObj == null) {
+        return;
+      }
+      for (const ksInfoObj of keystoreInfoObj.keyList) {
+        const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : NonMnemonicGenerate;
+        const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
+        this.state.dataSource.push(displayKeyObj);
+      }
+      this.setState({ dataSource: this.state.dataSource });
+    } catch (error) {
+      Feedback.toast.error(error);
     }
-    for (const ksInfoObj of keystoreInfoObj.keyList) {
-      const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : NonMnemonicGenerate;
-      const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
-      this.state.dataSource.push(displayKeyObj);
-    }
-    this.setState({ dataSource: this.state.dataSource });
   }
 
   renderOrder = (value, index) => {

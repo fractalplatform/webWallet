@@ -2,7 +2,6 @@
 import React, { Component } from 'react';
 import * as fractal from 'fractal-web3';
 
-import eventProxy from '../../../../utils/eventProxy';
 import TransactionList from '../../../../TransactionList';
 
 
@@ -37,7 +36,9 @@ export default class TransactionsTable extends Component {
           break;
         }
         const blockInfo = await fractal.ft.getBlockByNum(height, false);
-
+        if (blockInfo == null || blockInfo.transactions == null) {
+          continue;
+        }
         for (let txHash of blockInfo.transactions) {
           txHashArr.push(txHash);
           txNum++;

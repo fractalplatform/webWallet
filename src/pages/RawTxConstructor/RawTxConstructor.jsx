@@ -237,6 +237,7 @@ export default class RawTxConstructor extends Component {
       if (!utils.isEmptyObj(this.state['nonce'])) {
         nonceValue = this.getNumber(this.state['nonce']);
       }
+      const amountValue = this.getNumber(this.state['amount'] + zeros);
       const txInfo = {
         gasAssetId: this.getNumber(this.state['gasAssetId']),
         gasPrice: utils.isEmptyObj(this.state['gasPrice']) ? '' : this.getNumber(this.state['gasPrice'] + '0'.repeat(9)),
@@ -247,7 +248,7 @@ export default class RawTxConstructor extends Component {
           gasLimit: this.getNumber(this.state['gasLimit']), 
           toAccountName: this.state['toAccountName'], 
           assetId: assetIdValue, 
-          amount: '0x' + this.getNumber(this.state['amount'] + zeros).toString(16), 
+          amount: amountValue == 0 ? 0 : '0x' + amountValue.toString(16), 
           payload, 
           payloadDetailInfo: payloadDetailInfoList,
           remark: utils.isEmptyObj(this.state['remark']) ? '' : this.state['remark'], 
