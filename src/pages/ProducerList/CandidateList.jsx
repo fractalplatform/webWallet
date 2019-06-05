@@ -78,6 +78,10 @@ export default class CandidateList extends Component {
       votersOfMyAccount: {},     // 所有本地账户的投票信息
 
       syncInterval: 5000,
+
+      curSelectedCandidate: null,
+      curEpoch: 0,
+      duration: 0,
     };
   }
   onChange(ids, records) {
@@ -97,7 +101,7 @@ export default class CandidateList extends Component {
         break;
       }
     }
-    this.setState({ rowSelection: this.state.rowSelection, bMyProducer: this.state.bMyProducer });
+    this.setState({ curSelectedCandidate: records[0], rowSelection: this.state.rowSelection, bMyProducer: this.state.bMyProducer });
   }
 
   onSort(dataIndex, order) {
@@ -127,6 +131,7 @@ export default class CandidateList extends Component {
       this.updateInfo();
       
       this.state.dposInfo = await fractal.dpos.getDposInfo();
+      this.state.duration = utils.getDuration(this.state.dposInfo.epochInterval);
     } catch (error) {
       Feedback.toast.error(error);
       console.log(error);
@@ -142,6 +147,10 @@ export default class CandidateList extends Component {
         candidates.map(candidate => {
           candidate.isValid = this.state.votersOfAllCandidate[candidate.name] != null;
           candidate.isMyAccount = this.state.votersOfMyAccount[candidate.name] != null;
+          fractal.dpos.getEpochByHeight(candidate.number).then(epoch => {
+            candidate.lastOpEpoch = epoch;
+            this.setState({ producerList: candidates });
+          })          
         })
 
         validCandidates.activatedCandidateSchedule.map(validCandidate => {
@@ -151,11 +160,16 @@ export default class CandidateList extends Component {
         });
         
         this.setState({ producerList: candidates, validProducerList: validCandidates.activatedCandidateSchedule });
-      })
+      });
     });
   }
   updateInfo = () => {
-    fractal.ft.getCurrentBlock().then(block => this.state.curBlock = block);
+    fractal.ft.getCurrentBlock().then(block => {
+      this.state.curBlock = block;
+      fractal.dpos.getEpochByHeight(block.number).then(epoch => {
+        this.setState({curEpoch: epoch});
+      });
+    });
     this.updateCandidateInfo();
     setTimeout(() => { this.updateInfo(); }, this.state.syncInterval);
   }
@@ -242,7 +256,6 @@ export default class CandidateList extends Component {
     this.setState({ registerProducerVisible: false, txSendVisible: false })
   }
 
-  
   updateProducer = () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
       Feedback.toast.error('请选择需要更新的候选者账号');
@@ -296,14 +309,32 @@ export default class CandidateList extends Component {
       assetId: this.state.chainConfig.sysTokenID,
       amount: 0,
       payload: '0x'};
-    this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }});
+    this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }, sendResult: () => {this.setState({ txSendVisible: false })} });
   }
 
-  refundReposit = () => {
+  refundReposit = async () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
       Feedback.toast.error('请选择已注销的候选者账号');
       return;
     }
+
+    const freezeEpoch = await fractal.dpos.getEpochByHeight(this.state.curSelectedCandidate.number);
+    let passedEpochNum = 0;
+    try {
+      let nextEpoch = await fractal.dpos.getNextEpoch(freezeEpoch);
+      while (nextEpoch <= this.state.curEpoch) {
+        passedEpochNum++;
+        nextEpoch = await fractal.dpos.getNextEpoch(nextEpoch);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+
+    if (passedEpochNum < this.state.dposInfo.freezeEpochSize) {
+      Feedback.toast.error('当前周期无法提取抵押金，还需' + (this.state.dposInfo.freezeEpochSize - passedEpochNum) + '个周期后才能提取');
+      return;
+    }
+
     const accountName = this.state.rowSelection.selectedRowKeys[0];
     let txInfo = {actionType: Constant.REFUND_DEPOSIT, 
       accountName, 
@@ -311,7 +342,7 @@ export default class CandidateList extends Component {
       assetId: this.state.chainConfig.sysTokenID,
       amount: 0,
       payload: '0x'};
-    this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }});
+    this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }, sendResult: () => {this.setState({ txSendVisible: false })}});
   }
 
   getAccountFTBalance = (account) => {
@@ -349,7 +380,7 @@ export default class CandidateList extends Component {
     
     const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
     if (this.state.dposInfo.candidateMinQuantity > accountMaxStake) {
-      Feedback.toast.error('此账户无足够抵押票数，不可申请候选者，最低抵押票数为：' + this.state.dposInfo.candidateMinQuantity);
+      Feedback.toast.error('此账户无足够抵押票数，不可申请候选者，最低抵押票数为:' + this.state.dposInfo.candidateMinQuantity);
       return;
     }
     this.setState({ maxStakeTooltip: this.state.dposInfo.candidateMinQuantity + '<= 可抵押票数 <=' + accountMaxStake, accountMaxStake, txSendVisible: false });
@@ -366,7 +397,20 @@ export default class CandidateList extends Component {
     }
     const counterRatio = new BigNumber(record.actualCounter).div(new BigNumber(record.shouldCounter))
                         .multipliedBy(new BigNumber(100)).toFixed(2) + '%';
-    return value + '(出块率:' + counterRatio + ')'; 
+    return <view>{value}<p/>[出块率:{counterRatio}]</view>; 
+  }
+
+  typeRender = (value, index, record) => {
+    if (value == 'normal') {
+      return '正常';
+    }
+    if (value == 'freeze') {
+      return '已注销，尚未提取抵押金';
+    }
+  }
+
+  numberRender =  (value, index, record) => {
+    return <view>{value}<p/>[所在周期:{record.lastOpEpoch}]</view>;
   }
 
   nameRender = (value, index, record) => {
@@ -382,6 +426,7 @@ export default class CandidateList extends Component {
           <div>
             <Icon type="account" style={{ color: '#FF3333', marginRight: '10px' }} />
             <Icon type={iconType} style={{ color: processColor, marginRight: '10px' }} />
+            <p/>
             {value}
           </div>
         );
@@ -389,6 +434,7 @@ export default class CandidateList extends Component {
       return (
         <div>
           <Icon type={iconType} style={{ color: processColor, marginRight: '10px' }} />
+          <p/>
           {value}
         </div>
       );
@@ -398,6 +444,7 @@ export default class CandidateList extends Component {
         <div>
           <Icon type="account" style={{ color: '#FF3333', marginRight: '10px' }} />
           <Icon type="atm-away" style={{ color: '#FF3333', marginRight: '10px' }} />
+          <p/>
           {value}
         </div>
       );
@@ -405,6 +452,7 @@ export default class CandidateList extends Component {
       return (
         <div>
           <Icon type="atm-away" style={{ color: '#FF3333', marginRight: '10px' }} />
+          <p/>
           {value}
         </div>
       );
@@ -427,7 +475,7 @@ export default class CandidateList extends Component {
     return (
       <div className="progress-table">
         <p>
-          <Button type="primary" onClick={this.vote.bind(this)}>
+          <Button type="primary" onClick={this.vote.bind(this)} disabled={this.state.bUnRegProducer}>
               投票
           </Button>
             &nbsp;&nbsp;
@@ -446,19 +494,22 @@ export default class CandidateList extends Component {
           <Button type="primary" onClick={this.refundReposit.bind(this)} disabled={!this.state.bMyProducer || !this.state.bUnRegProducer}>
               取回抵押金
           </Button>
+            &nbsp;&nbsp;
+          当前周期:{this.state.curEpoch}, 一个周期时长:{this.state.duration}
         </p>
         <Table primaryKey="name"
           dataSource={this.state.producerList}
           rowSelection={this.state.rowSelection}
           onSort={this.onSort.bind(this)}
         >
-          <Table.Column title="候选者账号" dataIndex="name" width={150} cell={this.nameRender.bind(this)} />
-          <Table.Column title="URL" dataIndex="url" width={150} />
-          <Table.Column title="抵押票数" dataIndex="quantity" width={100} sortable />
-          <Table.Column title="总投票数" dataIndex="totalQuantity" width={100} sortable />
-          <Table.Column title="生效区块高度" dataIndex="number" width={150} sortable />
-          <Table.Column title="实出块数" dataIndex="actualCounter" width={150} sortable cell={this.counterRender.bind(this)} />
-          <Table.Column title="应出块数" dataIndex="shouldCounter" width={150} sortable />
+          <Table.Column title="候选者账号" dataIndex="name" width={100} cell={this.nameRender.bind(this)} />
+          <Table.Column title="URL" dataIndex="url" width={100} />
+          <Table.Column title="状态" dataIndex="type" width={100} cell={this.typeRender.bind(this)}/>
+          <Table.Column title="抵押票数" dataIndex="quantity" width={60} sortable />
+          <Table.Column title="总投票数" dataIndex="totalQuantity" width={60} sortable />
+          <Table.Column title="最近一次操作的区块高度" dataIndex="number" width={130} cell={this.numberRender.bind(this)} />
+          <Table.Column title="实出块数" dataIndex="actualCounter" width={130} sortable cell={this.counterRender.bind(this)} />
+          <Table.Column title="应出块数" dataIndex="shouldCounter" width={100} sortable />
           <Table.Column title="我的投票" dataIndex="name" width={200} cell={this.renderMyVote.bind(this)} />
         </Table>
         <Icon type="process" style={{ color: '#FF3333', marginRight: '10px' }} />--可出块节点
@@ -581,3 +632,16 @@ export default class CandidateList extends Component {
     );
   }
 }
+
+const styles = {
+  item: {
+    height: '40px',
+    lineHeight: '40px',
+  },
+  label: {
+    display: 'inline-block',
+    fontWeight: '500',
+    minWidth: '74px',
+    width: '150px',
+  },
+};

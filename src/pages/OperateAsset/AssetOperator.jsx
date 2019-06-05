@@ -8,6 +8,7 @@ import AssetIncrease from './AssetIncrease';
 import AssetFounderSet from './AssetFounderSet';
 import AssetOwnerSet from './AssetOwnerSet';
 import AssetDestroy from './AssetDestroy';
+import AssetContractSet from './AssetContractSet';
 import * as utils from '../../utils/utils';  
 import * as AssetUtils from './AssetUtils';
 
@@ -91,6 +92,15 @@ export default class AssetOperator extends Component {
           bodyHeight={this.state.cardHeight}
         >
           <AssetFounderSet accountName={this.state.selectedAccountName} assetInfoSet={this.state.assetInfoSet} />
+        </Card>
+
+        <Card
+          style={styles.card}
+          title="设置协议资产"
+          language="en-us"
+          bodyHeight={this.state.cardHeight}
+        >
+          <AssetContractSet accountName={this.state.selectedAccountName} assetInfoSet={this.state.assetInfoSet} />
         </Card>
 
         <Card

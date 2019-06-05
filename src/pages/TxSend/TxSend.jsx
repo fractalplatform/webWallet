@@ -272,6 +272,10 @@ export default class TxSend extends Component {
 
   onTxConfirmClose = () => {
     this.setState({ txConfirmVisible: false });
+
+    if (this.props.sendResult != null) {
+      this.props.sendResult();
+    }
   }
 
   processTxSendResult = (txInfo, txHash) => {

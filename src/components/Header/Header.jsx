@@ -48,10 +48,10 @@ export default class Header extends PureComponent {
     this.state.port = v;
   }
   onConfigNodeOK = () => {
-    if (!utils.checkIpVaild(this.state.ip)) {
-      Feedback.toast.error('请输入合法的IP地址');
-      return;
-    }
+    // if (!utils.checkIpVaild(this.state.ip)) {
+    //   Feedback.toast.error('请输入合法的IP地址');
+    //   return;
+    // }
     if (this.state.port === '') {
       Feedback.toast.error('请输入端口');
       return;
@@ -96,7 +96,7 @@ export default class Header extends PureComponent {
               addonBefore="IP"
               size="medium"
               defaultValue={this.state.ip}
-              maxLength={15}
+              maxLength={150}
               hasLimitHint
             />
             <br />

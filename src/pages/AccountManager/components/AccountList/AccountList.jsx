@@ -799,7 +799,7 @@ export default class AccountList extends Component {
       } else if (this.state.accountReg.test(owner)) {
         ownerType = AuthorOwnerType.AccountName;
       }
-      authorUpdateList.push({status: author.status, detailInfo: {ownerType, owner, weight: author.weight}});
+      authorUpdateList.push([author.status, [ownerType, owner, author.weight]]);
     });
 
     const payload = '0x' + encode([threshold, updateAuthorThreshold, [...authorUpdateList]]).toString('hex');

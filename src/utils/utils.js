@@ -408,8 +408,33 @@ function checkIpVaild(ip) {
   return ipReg.test(ip);                        
 }
 
+function getDuration(my_time) {  
+  var days    = my_time / 1000 / 60 / 60 / 24;
+  var daysRound = Math.floor(days);
+  var hours = my_time / 1000 / 60 / 60 - (24 * daysRound);
+  var hoursRound = Math.floor(hours);
+  var minutes = my_time / 1000 / 60 - (24 * 60 * daysRound) - (60 * hoursRound);
+  var minutesRound = Math.floor(minutes);
+  var seconds = my_time / 1000 - (24 * 60 * 60 * daysRound) - (60 * 60 * hoursRound) - (60 * minutesRound);
+  console.log('转换时间:', daysRound + '天', hoursRound + '小时', minutesRound + '分', seconds + '秒');
+  var time = '';
+  if (daysRound > 0) {
+    time += daysRound + '天';
+  }
+  if (hoursRound > 0) {
+    time += hoursRound + '小时';
+  }
+  if (minutesRound > 0) {
+    time += minutesRound + '分';
+  }
+  if (seconds > 0) {
+    time += seconds + '秒';
+  }
+  return time;
+}
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, str2Hex,
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
          removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, 
-         getGasEarned, getValidTime, checkIpVaild };
+         getGasEarned, getValidTime, checkIpVaild, getDuration };

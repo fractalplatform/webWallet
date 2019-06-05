@@ -12,6 +12,7 @@ export const DESTORY_ASSET = 514;
 export const SET_ASSET_OWNER = 515;
 export const SET_ASSET_FOUNDER = 516;
 export const TRANSFER = 517;
+export const UPDATE_ASSET_CONTRACT = 518;
 
 export const REG_CANDIDATE = 768;
 export const UPDATE_CANDIDATE = 769;
