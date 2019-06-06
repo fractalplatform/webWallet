@@ -181,7 +181,7 @@ class BlockTxLayout extends Component {
           </Col>
           <Col xxs="24" s="12" l="6" style={styles.item}>
             <div style={styles.title} className="title">
-              交易信息
+            交易信息
             </div>
             <div style={styles.count} className="count">
               {this.state.maxTPS} TPS

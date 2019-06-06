@@ -35,7 +35,7 @@ export default class AccountList extends Component {
       creator: '',
       fractalAccount: '',
       selfAccount: '',
-      accountReg: new RegExp('^[a-z0-9]{7,16}(\\.[a-z0-9]{1,8}){0,1}$'),
+      accountReg: new RegExp('^([a-z][a-z0-9]{6,15})(?:\.([a-z0-9]{2,16})){0,1}(?:\.([a-z0-9]{2,16})){0,1}$'),
       numberReg: new RegExp('^[0-9][0-9]*(\\.[0-9]*){0,1}$'),
       idReg: new RegExp('^[1-9][0-9]*'),
       fractalPublicKey: '',
@@ -151,7 +151,7 @@ export default class AccountList extends Component {
     this.setState({ importAccountVisible: true });
   }
   onApplyForAccount = () => {
-    Feedback.toast.success('请向 support@fractalproject.com 发送邮件申请测试账号');
+    Feedback.toast.success('请在公链电报群中申请账号');
   }
   onImportAccountOK = async () => {
     if (this.state.importAccountName == '') {
@@ -1597,7 +1597,7 @@ export default class AccountList extends Component {
             + 导入账户
           </div>
           <Feedback title="提示" type="help" visible={this.state.helpVisible}>
-          首个主网账户请找第三方申请，如是首个测试网账户可上 http://t.ft.im/apply 进行申请，申请成功后请将私钥和账户导入即可使用。
+          首个主网账户请找第三方申请，如是首个测试网账户可上公链电报群进行申请，申请成功后请将私钥和账户导入即可使用。
           </Feedback>
         </IceContainer>
         <Dialog
