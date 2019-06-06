@@ -60,6 +60,7 @@
   },
   "devDependencies": {
     "babel-eslint": "^8.0.3",
+    "babel-plugin-react-v-html": "^1.0.4",
     "babel-plugin-syntax-dynamic-import": "^6.18.0",
     "eslint": "^4.13.1",
     "eslint-config-airbnb": "^16.1.0",
@@ -96,6 +97,9 @@
   "engines": {
     "node": ">=8.0.0"
   },
+  "plugins": [
+    "react-v-html"
+  ],
   "title": "fractal",
   "proxyConfig": {}
 }

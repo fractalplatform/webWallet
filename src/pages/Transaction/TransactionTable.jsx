@@ -6,7 +6,7 @@ import { Search, Grid, Table, Feedback } from '@icedesign/base';
 import { Tag, Balloon } from '@alifd/next';
 import IceContainer from '@icedesign/container';
 import * as fractal from 'fractal-web3'
-import * as txParser from '../../utils/transactionParser';
+import formatHighlight from 'json-format-highlight';
 import TransactionList from '../../TransactionList';
 
 const { Row, Col } = Grid;
@@ -21,6 +21,7 @@ export default class TransactionTable extends Component {
       assetInfos: {},
       actions: [],
       txFrom: {},
+      txRawData: '',
     };
   }
 
@@ -28,9 +29,14 @@ export default class TransactionTable extends Component {
     const hash = value.key;
     if (hash.indexOf('0x') === 0) {
       let txInfo = await fractal.ft.getTransactionByHash(hash);
-      if (txInfo !== undefined) {
+      if (txInfo != null) {
+        const txReceiptData = formatHighlight(await fractal.ft.getTransactionReceipt(hash), COLOR_OPTION);
+        const txRawData = formatHighlight(txInfo, COLOR_OPTION);
+
         this.setState({
           txFrom: { txHashArr: [hash] },
+          txRawData,
+          txReceiptData
         });
       } else {
         Feedback.toast.error('无法获取到交易信息');
@@ -69,6 +75,16 @@ export default class TransactionTable extends Component {
         </IceContainer>
         <br /><br />
         <TransactionList txFrom={this.state.txFrom}/>
+        <br />
+        <IceContainer style={styles.container}>
+          <h4 style={styles.title}>交易原始信息</h4>
+          <div dangerouslySetInnerHTML={{__html: this.state.txRawData}} />
+        </IceContainer>
+        <br />
+        <IceContainer style={styles.container}>
+          <h4 style={styles.title}>交易Receipt信息</h4>
+          <div dangerouslySetInnerHTML={{__html: this.state.txReceiptData}} />
+        </IceContainer>
       </div>
     );
   }
@@ -103,4 +119,9 @@ const styles = {
     minWidth: '74px',
     width: '150px',
   },
+};
+const COLOR_OPTION = {
+  keyColor: 'red',
+  numberColor: '#ff8c00',
+  stringColor: 'green'
 };

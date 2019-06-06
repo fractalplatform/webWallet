@@ -433,6 +433,8 @@ function getDuration(my_time) {  
   return time;
 }
 
+
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, str2Hex,
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 

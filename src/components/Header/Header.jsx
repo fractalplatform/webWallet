@@ -21,42 +21,34 @@ export const history = createHashHistory();
 export default class Header extends PureComponent {
   constructor(props) {
     super(props);
-    let ip = '127.0.0.1';
-    let port = 8545;
     const nodeInfoCookie = cookie.load('nodeInfo');
 
-    if (nodeInfoCookie != null && nodeInfoCookie !== '') {
-      const nodeInfos = nodeInfoCookie.split('/')[2].split(':');
-      ip = nodeInfos[0];
-      port = nodeInfos[1];
+    let nodeInfo = '';
+    if (!utils.isEmptyObj(nodeInfoCookie)) {
+      nodeInfo = nodeInfoCookie.split('/')[2].split(':');
     }
 
     this.state = {
       nodeConfigVisible: false,
-      ip,
-      port,
-      nodeInfo: 'http://' + ip + ':' + port,
+      nodeInfo,
     };
   }
   openSetDialog = () => {
     this.setState({ nodeConfigVisible: true });
   }
-  handleIPChange = (v) => {
-    this.state.ip = v;
-  }
-  handlePortChange = (v) => {
-    this.state.port = v;
+  handleNodeInfoChange = (v) => {
+    this.state.nodeInfo = v;
   }
   onConfigNodeOK = () => {
     // if (!utils.checkIpVaild(this.state.ip)) {
     //   Feedback.toast.error('请输入合法的IP地址');
     //   return;
     // }
-    if (this.state.port === '') {
-      Feedback.toast.error('请输入端口');
-      return;
-    }
-    const nodeInfo = 'http://' + this.state.ip + ':' + this.state.port;
+    // if (this.state.port === '') {
+    //   Feedback.toast.error('请输入端口');
+    //   return;
+    // }
+    const nodeInfo = this.state.nodeInfo.indexOf('http://') == 0 ? this.state.nodeInfo : 'http://' + this.state.nodeInfo;
     cookie.save('nodeInfo', nodeInfo);
     axios.defaults.baseURL = nodeInfo;
     this.setState({ nodeConfigVisible: false, nodeInfo });
@@ -91,15 +83,15 @@ export default class Header extends PureComponent {
             onClose={() => this.setState({ nodeConfigVisible: false })}
           >
             <Input hasClear
-              onChange={this.handleIPChange.bind(this)}
+              onChange={this.handleNodeInfoChange.bind(this)}
               style={{ width: 400 }}
-              addonBefore="IP"
+              addonBefore="RPC URL"
               size="medium"
-              defaultValue={this.state.ip}
+              defaultValue={this.state.nodeInfo}
               maxLength={150}
               hasLimitHint
             />
-            <br />
+            {/* <br />
             <br />
             <Input hasClear
               onChange={this.handlePortChange.bind(this)}
@@ -110,7 +102,7 @@ export default class Header extends PureComponent {
               maxLength={5}
               hasLimitHint
               onPressEnter={this.onConfigNodeOK.bind(this)}
-            />
+            /> */}
           </Dialog>
 
           {/* <Search
