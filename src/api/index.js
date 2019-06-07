@@ -7,11 +7,10 @@ import cookie from 'react-cookies';
 import { encode } from 'rlp';
 import { Feedback } from '@icedesign/base';
 import * as utils from '../utils/utils';
-
-let provider = 'http://127.0.0.1:8545';
+import { BASE_URL } from '../utils/constant';
 
 async function postToNode(dataToNode) {
-  return fetch(provider, {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToNode});
+  return fetch(BASE_URL, {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToNode});
   // const data = await response.json();
   // if (data.data.error != null) {
   //   throw data.data.error.message;
