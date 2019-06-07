@@ -13,6 +13,7 @@ import '@icedesign/base/reset.scss';
 
 import router from './router';
 import configureStore from './configureStore';
+import { BASE_URL } from './utils/constant';
 
 // Create redux store with history
 const initialState = {};
@@ -20,7 +21,7 @@ const history = createHashHistory();
 const store = configureStore(initialState, history);
 const ICE_CONTAINER = document.getElementById('ice-container');
 axios.defaults.headers.post['Content-Type'] = 'application/json';
-axios.defaults.baseURL = 'http://127.0.0.1:8545';
+axios.defaults.baseURL = BASE_URL;
 const nodeInfo = cookie.load('nodeInfo');
 if (nodeInfo != null && nodeInfo !== '') {
   axios.defaults.baseURL = nodeInfo;

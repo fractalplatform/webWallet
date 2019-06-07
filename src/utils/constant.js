@@ -1,3 +1,9 @@
+/**
+ * 默认链接本地节点（http://127.0.0.1:8545）
+ * 如需链接FT公链的测试网络请更改链接为：http://node.pub-fractal.com
+ */
+export const BASE_URL = 'http://127.0.0.1:8545';
+
 export const CALL_CONTRACT = 0;
 export const CREATE_CONTRACT = 1;
 
