@@ -23,9 +23,9 @@ export default class Header extends PureComponent {
     super(props);
     const nodeInfoCookie = cookie.load('nodeInfo');
 
-    let nodeInfo = '';
-    if (!utils.isEmptyObj(nodeInfoCookie)) {
-      nodeInfo = nodeInfoCookie.split('/')[2].split(':');
+    let nodeInfo = nodeInfoCookie;
+    if (utils.isEmptyObj(nodeInfo)) {
+      nodeInfo = 'http://127.0.0.1:8545';
     }
 
     this.state = {

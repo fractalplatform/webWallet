@@ -116,7 +116,7 @@ export default class AssetOwnerSet extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="管理者:"
+                  addonBefore="管理者"
                   name="owner"
                   size="large"
                 />

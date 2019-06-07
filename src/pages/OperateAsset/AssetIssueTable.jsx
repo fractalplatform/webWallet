@@ -39,7 +39,7 @@ export default class AssetIssueTable extends Component {
       password: '',
       txSendVisible: false,
       txInfo: {},
-      assetReg: new RegExp('^([a-z][a-z0-9]{1,15})(?:\\.([a-z0-9]{1,8})){0,1}$'),
+      assetReg: new RegExp('^([a-z][a-z0-9]{1,15})(?:\\.([a-z0-9]{1,8})){0,1}(?:\\.([a-z0-9]{1,8})){0,1}$'),
       assetInfoSet: [],
       curAccountName: '',
     };
@@ -68,7 +68,7 @@ export default class AssetIssueTable extends Component {
       Feedback.toast.error('请选择需要操作资产的账户');
       return;
     }
-    if (!this.state.assetReg.test(value.assetName)) {
+    if (!this.state.assetReg.test(value.assetName) && value.assetName.length > 31) {
       Feedback.toast.error('资产名称错误');
       return;
     }
@@ -162,7 +162,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="请输入正确的资产名称">
                 <Input hasClear
-                  addonBefore="名称:" // "^[a-z0-9]{2,16}$"
+                  addonBefore="名称" // "^[a-z0-9]{2,16}$"
                   name="assetName"
                   size="large"
                   placeholder="不可跟已有的资产和账户名冲突"
@@ -173,7 +173,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="请输入正确的资产符号">
                 <Input hasClear
-                  addonBefore="符号:" // "^[a-z0-9]{2,16}$"
+                  addonBefore="符号" // "^[a-z0-9]{2,16}$"
                   name="symbol"
                   size="large"
                   placeholder="a~z、0~9.组成，2-16位"
@@ -184,7 +184,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="请输入正确金额">
                 <Input hasClear
-                  addonBefore="金额:"
+                  addonBefore="金额"
                   name="amount"
                   size="large"
                 />
@@ -193,7 +193,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="请输入正确精度">
                 <Input hasClear
-                  addonBefore="精度:"
+                  addonBefore="精度"
                   name="decimals"
                   size="large"
                   maxLength={2}
@@ -203,7 +203,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required>
                 <Input hasClear
-                  addonBefore="管理者:"
+                  addonBefore="管理者"
                   name="owner"
                   size="large"
                   placeholder="可对此资产进行管理"
@@ -214,7 +214,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required>
                 <Input hasClear
-                  addonBefore="创办者:"
+                  addonBefore="创办者"
                   name="founder"
                   size="large"
                   placeholder="可收取相关手续费"
@@ -225,7 +225,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required>
                 <Input hasClear
-                  addonBefore="增发上限:"
+                  addonBefore="增发上限"
                   name="upperLimit"
                   size="large"
                   placeholder="资产增发上限,0表示无上限"
@@ -235,7 +235,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder>
                 <Input hasClear
-                  addonBefore="合约账户:"
+                  addonBefore="合约账户"
                   name="contract"
                   size="large"
                   placeholder="留空表示非协议资产"
@@ -246,7 +246,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder>
                 <Input hasClear autoHeight
-                  addonBefore="资产描述:"
+                  addonBefore="资产描述"
                   name="desc"
                   size="large"
                   //maxLength={255}

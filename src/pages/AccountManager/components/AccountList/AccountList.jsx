@@ -990,7 +990,7 @@ export default class AccountList extends Component {
       Feedback.toast.error('请选择创建者账号');
       return;
     }
-    if (!this.state.accountReg.test(this.state.newAccountName)) {
+    if (!this.state.accountReg.test(this.state.newAccountName) && this.state.newAccountName.length > 31) {
       console.log(this.state.newAccountName);
       Feedback.toast.error('账号格式错误');
       return;

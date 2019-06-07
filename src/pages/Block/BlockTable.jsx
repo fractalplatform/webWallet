@@ -55,7 +55,7 @@ export default class BlockTable extends Component {
     }
 
     if (blockInfo != null) {
-      this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number} });
+      this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number}, txNum: blockInfo.transactions.length });
     } else {
         Feedback.toast.prompt('区块不存在');
     }
