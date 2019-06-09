@@ -164,7 +164,7 @@ export default class CandidateList extends Component {
     });
   }
   updateInfo = () => {
-    fractal.ft.getCurrentBlock().then(block => {
+    fractal.ft.getCurrentBlock(false).then(block => {
       this.state.curBlock = block;
       fractal.dpos.getEpochByHeight(block.number).then(epoch => {
         this.setState({curEpoch: epoch});

@@ -25,93 +25,51 @@ class BlockTxLayout extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      blockInfoList: [],
       curBlockInfo: {},
       latestEpchoInfo: {},
       irreversible: {},
       curProducerList: [],
       activeProducers: [],
-      totalTxNumInOneHour: 0,
-      maxTPS: 0,
+      txNum: 0,
+      curTps:  0,
       txInfos: [],
       dposInfo: {},
+      intervalId: 0,
     };
   }
 
-  componentDidMount = async () => {
-    await this.updateBlockChainInfo();
+  componentDidMount = () => {
+    this.state.intervalId = setInterval(() => {
+      this.updateBlockChainInfo();
+    }, 3000);
   }
 
-  updateBlockChainInfo = async () => {
+  componentWillUnmount = () => {
+    clearInterval(this.state.intervalId);
+  }
+
+  updateBlockChainInfo = () => {
     try {
-      const curBlockInfo = await fractal.ft.getCurrentBlock(false);
-      const irreversibleInfo = await fractal.dpos.getDposIrreversibleInfo();
-      //console.log(curBlockInfo.proposedIrreversible + '<->' + irreversibleInfo.proposedIrreversible)
-      const latestEpchoInfo = await fractal.dpos.getValidCandidates(0);
-      const candidates = await fractal.dpos.getCandidates(0, false);
-      const dposInfo = await fractal.dpos.getDposInfo();
       const self = this;
-      const curHeight = curBlockInfo.number;
-      eventProxy.trigger('curHeight', curHeight);
-
-      const maxSpan = dposInfo.blockFrequency * dposInfo.candidateScheduleSize;
-      const interval = 1;
-
-      if (self.state.txInfos.length > 12) {
-        self.state.txInfos = self.state.txInfos.slice(self.state.txInfos.length - 12);
-      }
-
-      let lastMaxHeight = 0;
-      if (self.state.txInfos.length > 0) {
-        lastMaxHeight = self.state.txInfos[self.state.txInfos.length - 1].blockHeight;
-      }
-      let totalNum = self.state.totalTxNumInOneHour;
-      let maxTxNum = self.state.maxTPS * dposInfo.blockInterval / 1000;
-      if (curHeight - lastMaxHeight >= interval) {
-        totalNum = 0;
-        maxTxNum = 0;
-        let promiseArr = [];
-        let blockHeights = [];
-        let fromHeight = curHeight - maxSpan;
-        if (fromHeight < 0) {
-          fromHeight = 0;
-        }
-        for (; fromHeight <= curHeight; fromHeight++) {
-          promiseArr.push(fractal.ft.getBlockByNum(fromHeight, false));
-          blockHeights.push(fromHeight);
-        }
-        Promise.all(promiseArr).then(blocks => {
-          for (let i = 0; i < blocks.length; i++) {
-            const block = blocks[i];
-            if (block == null) {
-              continue;
-            }
-            const txNumber = block.transactions.length;
-            self.state.txInfos.push({ blockHeight: blockHeights[i], txNum: txNumber });
-            totalNum += txNumber;
-            if (txNumber > maxTxNum) {
-              maxTxNum = txNumber;
-            }
-          }
-          eventProxy.trigger('txInfos', self.state.txInfos);
-
-          self.setState({
-            curBlockInfo,
-            irreversible: irreversibleInfo,
-            totalTxNumInOneHour: totalNum,
-            maxTPS: Math.round(maxTxNum * 1000 / dposInfo.blockInterval),
-            latestEpchoInfo,
-            curProducerList: candidates,
-            activeProducers: latestEpchoInfo.activatedCandidateSchedule,
-          });
-          
-        }).catch(error => {
-          console.log(error);
-          Feedback.toast.error(error);
+      fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => {
+        this.setState({ irreversible: irreversibleInfo });
+      });
+      fractal.dpos.getValidCandidates(0).then(latestEpchoInfo => {
+        this.setState({ latestEpchoInfo, activeProducers: latestEpchoInfo.activatedCandidateSchedule });
+      });
+      fractal.dpos.getCandidates(0, false).then(candidates => {
+        this.setState({ curProducerList: candidates });
+      });
+      fractal.dpos.getDposInfo().then(dposInfo => {
+        fractal.ft.getCurrentBlock(false).then(curBlockInfo => {
+          const txNum = curBlockInfo.transactions.length;
+          const curTps = Math.round(txNum * 1000 / dposInfo.blockInterval);
+          this.setState({ curTps, txNum, curBlockInfo });
         });
-      }
-      setTimeout(() => { this.updateBlockChainInfo(); }, 3000);
+      });
     } catch (error) {
-      Feedback.toast.error(error);
+      Feedback.toast.error(error.message || error);
     }
   }
 
@@ -184,7 +142,7 @@ class BlockTxLayout extends Component {
             交易信息
             </div>
             <div style={styles.count} className="count">
-              {this.state.maxTPS} TPS
+              {this.state.curTps} TPS
               <span style={styles.extraIcon}>
                 <Balloon
                   trigger={
@@ -198,12 +156,12 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                  两轮出块周期内最高TPS
+                  最新区块的TPS
                 </Balloon>
               </span>
             </div>
             <div style={styles.smallCount} className="count">
-              {this.state.totalTxNumInOneHour} Txns
+              {this.state.txNum} Txns
               <span style={styles.extraIcon}>
                 <Balloon
                   trigger={
@@ -217,7 +175,7 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                 最近两轮的交易数
+                 最新区块的交易量
                 </Balloon>
               </span>
             </div>

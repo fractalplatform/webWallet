@@ -12,43 +12,61 @@ export default class TransactionsTable extends Component {
     super(props);
 
     this.state = {
-      dataSource: [],
+      txHashArr: [],
       current: 1,
       assetInfos: {},
       txFrom: {},
+      intervalId: 0,
     };
   }
 
   componentDidMount() {
-  	this.updateTxInfo();
+    this.state.intervalId = setInterval(() => {
+      this.updateTxInfo();
+    }, 3000);
+  }
+
+  componentWillUnmount = () => {
+    console.log('TransactionsTable componentWillUnMount');
+    clearInterval(this.state.intervalId);
   }
 
   updateTxInfo = () => {
-    fractal.ft.getCurrentBlock().then(async (block) => {
-      var curHeight = block.number;
-      var maxLookbackNum = 1000;
+    fractal.ft.getCurrentBlock(false).then(async (block) => {
+      let txNum = 0;
       var maxTxNum = 20;
-      var txNum = 0;
-      
-      let txHashArr = [];
-      for (var height = curHeight; height > curHeight - maxLookbackNum && height > 0; height--) {
-        if (txNum >= maxTxNum) {
-          break;
+      if (this.state.txHashArr.length > 0) {
+        txNum = this.state.txHashArr.length;
+        if (txNum + block.transactions.length > maxTxNum) {
+          const leftNum = txNum + block.transactions.length - maxTxNum;
+          this.state.txHashArr = this.state.txHashArr.slice(0, txNum - leftNum);
         }
-        const blockInfo = await fractal.ft.getBlockByNum(height, false);
-        if (blockInfo == null || blockInfo.transactions == null) {
-          continue;
-        }
-        for (let txHash of blockInfo.transactions) {
-          txHashArr.push(txHash);
-          txNum++;
+        this.state.txHashArr = [...block.transactions, ...this.state.txHashArr];
+      } else {
+        var curHeight = block.number;
+        var maxLookbackNum = 20;
+        
+        for (var height = curHeight; height > curHeight - maxLookbackNum && height > 0; height--) {
           if (txNum >= maxTxNum) {
+            console.log('get tx from block:' + height + '~' + curHeight);
             break;
+          }
+          const blockInfo = await fractal.ft.getBlockByNum(height, false);
+          if (blockInfo == null || blockInfo.transactions == null) {
+            continue;
+          }
+          for (let txHash of blockInfo.transactions) {
+            this.state.txHashArr.push(txHash);
+            txNum++;
+            if (txNum >= maxTxNum) {
+              break;
+            }
           }
         }
       }
-      this.setState({txFrom: { txHashArr }});
-      setTimeout(() => { this.updateTxInfo(); }, 3000);
+      
+      this.setState({txFrom: { txHashArr: this.state.txHashArr, maxTxNum }});
+      //setTimeout(() => { this.updateTxInfo(); }, 30000);
     });
   }
 

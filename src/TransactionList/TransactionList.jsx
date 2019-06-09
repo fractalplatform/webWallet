@@ -17,11 +17,13 @@ export default class TransactionList extends Component {
     super(props);
 
     this.state = {
+      txHashSet: {},
       transactions: [],
       current: 1,
       assetInfos: {},
       innerTxVisible: false,
       innerTxInfos: [],
+      maxTxNum: 0,
     };
   }
 
@@ -30,16 +32,31 @@ export default class TransactionList extends Component {
       this.state.assetInfos[0] = assetInfo;
     });
   }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.txFrom.maxTxNum != null) {
+      this.state.maxTxNum = nextProps.txFrom.maxTxNum;
+    }
+    if (nextProps.txFrom.blockHeight != null) {
+      this.getTxInfoByBlock(nextProps.txFrom.blockHeight);
+    } else if (nextProps.txFrom.txHashArr != null) {
+      this.getTxInfoByTxHash(nextProps.txFrom.txHashArr);
+    }
+  }
+
   getTxInfoByBlock(blockHeight) {
     fractal.ft.getBlockByNum(blockHeight, true).then(async(curBlockInfo) => {
       this.processTxs(curBlockInfo.transactions);
     });
   }
+
   getTxInfoByTxHash(txHashArr) {
     let txPromiseArr = [];
     txHashArr.map(txHash => {
-      txPromiseArr.push(fractal.ft.getTransactionByHash(txHash));
-    })
+      if (this.state.txHashSet[txHash] == null) {
+        txPromiseArr.push(fractal.ft.getTransactionByHash(txHash));
+      }
+    });
     Promise.all(txPromiseArr).then(txInfos => {
       this.processTxs(txInfos);
     })
@@ -83,19 +100,19 @@ export default class TransactionList extends Component {
           }
           transaction["actions"] = parsedActions;
           transactions.push(transaction);
+          this.state.txHashSet[transaction.txHash] = 1;
           if (transactions.length >= 20) {
             break;
           }
         }
-        _this.setState({ transactions });
+        if (this.state.maxTxNum > 0) {
+          const txNum = this.state.transactions.length + transactions.length;
+          if (txNum > this.state.maxTxNum) {
+            this.state.transactions = this.state.transactions.slice(0, this.state.transactions.length - (txNum - this.state.maxTxNum));
+          }
+        } 
+        _this.setState({ transactions: [...transactions, ...this.state.transactions] });
       });
-    }
-  }
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.txFrom.blockHeight != null) {
-      this.getTxInfoByBlock(nextProps.txFrom.blockHeight);
-    } else if (nextProps.txFrom.txHashArr != null) {
-      this.getTxInfoByTxHash(nextProps.txFrom.txHashArr);
     }
   }
 

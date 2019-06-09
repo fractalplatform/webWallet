@@ -1,6 +1,6 @@
 /* eslint no-mixed-operators:0 */
 import React, { Component } from 'react';
-import { Table, Progress, Pagination } from '@icedesign/base';
+import { Table, Progress, Feedback } from '@icedesign/base';
 import IceContainer from '@icedesign/container';
 import copy from 'copy-to-clipboard';
 
@@ -15,15 +15,23 @@ export default class BlocksTable extends Component {
 
     this.state = {
       blockList: [],
+      intervalId: 0,
     };
   }
 
   componentDidMount() {
-  	this.updateBlockInfo();
+    this.state.intervalId = setInterval(() => {
+      this.updateBlockInfo();
+    }, 3000);
+  }
+
+  componentWillUnmount = () => {
+    console.log('BlocksTable componentWillUnMount');
+    clearInterval(this.state.intervalId);
   }
 
   updateBlockInfo = () => {
-    fractal.ft.getCurrentBlock().then(async(block) => {
+    fractal.ft.getCurrentBlock(false).then(async(block) => {
       this.state.blockList = [block, ...this.state.blockList];
       block['txn'] = block.transactions.length;
       let length = this.state.blockList.length;
@@ -51,7 +59,7 @@ export default class BlocksTable extends Component {
       this.setState({
         blockList: this.state.blockList,
       });
-      setTimeout(() => { this.updateBlockInfo(); }, 3000);
+      //setTimeout(() => { this.updateBlockInfo(); }, 3000);
     });
   }
 
