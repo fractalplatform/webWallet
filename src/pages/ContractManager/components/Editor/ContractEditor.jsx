@@ -5,6 +5,7 @@ import { Button } from '@alifd/next';
 import * as monaco from 'monaco-editor';
 import 'monaco-editor/esm/vs/basic-languages/solidity/solidity.contribution.js';
 import 'monaco-editor/esm/vs/editor/contrib/find/findController.js';
+import { T } from '../../../../utils/lang'
 //import solc from 'solc';
 
 export default class ContractEditor extends Component {
@@ -67,14 +68,14 @@ export default class ContractEditor extends Component {
       <div>
         <p style={{display: 'none'}}>
           <Button type="primary" onClick={this.compile.bind(this)}>
-                      编译
+                      {T('编译')}
           </Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.sendToChain.bind(this)}>
-                      发布
+          {T('发布')}
           </Button>
         </p>
-        合约编辑器
+        {T('合约编辑器')}
         <div ref="editorContainer" style={{ height: 800, width: 800 }} />
       </div>
     );

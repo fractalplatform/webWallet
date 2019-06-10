@@ -6,7 +6,7 @@ import * as fractal from 'fractal-web3';
 import cookie from 'react-cookies';
 
 import * as utils from '../../utils/utils'
-import copy from 'copy-to-clipboard';
+import { T } from '../../utils/lang'
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 import ContractEditor from './components/Editor';
@@ -85,7 +85,7 @@ export default class ContractManager extends Component {
   parseABI = () => {
     if (utils.isEmptyObj(this.state.abiInfo) 
     || (!utils.isEmptyObj(this.state.abiInfo) && !fractal.utils.isValidABI(this.state.abiInfo))) {
-      Feedback.toast.error('ABI信息不符合规范，请检查后重新输入');
+      Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return;
     }
     this.state.contractFuncInfo = [];
@@ -121,17 +121,17 @@ export default class ContractManager extends Component {
 
   callContractFunc = async (funcName) => {
     if (utils.isEmptyObj(this.state.selectedAccountName)) {
-      Feedback.toast.error('请选择发起合约调用的账号');
+      Feedback.toast.error(T('请选择发起合约调用的账号'));
       return;
     }
 
     if (utils.isEmptyObj(this.state.contractAccount)) {
-      Feedback.toast.error('请输入合约账号名');
+      Feedback.toast.error(T('请输入合约账号名'));
       return;
     }
     const contractAccount = await fractal.account.getAccountByName(this.state.contractAccount);
     if (contractAccount == null) {
-      Feedback.toast.error('合约不存在，请检查合约名是否输入错误');
+      Feedback.toast.error(T('合约不存在，请检查合约名是否输入错误'));
       return;
     }
     const paraNames = this.state.funcParaNames[funcName];
@@ -139,7 +139,7 @@ export default class ContractManager extends Component {
     for (const paraName of paraNames) {
       const value = this.state.paraValue[funcName + '-' + paraName];
       if (value == null) {
-        Feedback.toast.error('参数' + paraName + '尚未输入值');
+        Feedback.toast.error(T('参数') + paraName + T('尚未输入值'));
         return;
       }
       values.push(value);
@@ -170,7 +170,7 @@ export default class ContractManager extends Component {
     let index = 0;
     let inputElements = [];
     let txReceiptBtns = [];
-    let callBtnName = '查询结果';
+    let callBtnName = T('查询结果');
     const self = this;
     parameterNames.forEach(paraName => {
       inputElements.push(<Input hasClear
@@ -183,7 +183,7 @@ export default class ContractManager extends Component {
       )
     });
     if (!this.state.funcParaConstant[funcName]) {
-      callBtnName = '发起合约交易';
+      callBtnName = T('发起合约交易');
       const transferTogether = this.state.transferTogether[funcName];
       this.state.visibilityValue[funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
       inputElements.push(
@@ -197,30 +197,30 @@ export default class ContractManager extends Component {
           self.setState({ transferTogether, visibilityValue, txSendVisible: false });
           var obj = document.getElementById(funcName + 'Container');
           obj.style.display= visibilityValue[funcName];
-        }}>附带转账</Checkbox>,<br />,<br />,
+        }}>{T('附带转账')}</Checkbox>,<br />,<br />,
       <Container id={funcName + 'Container'} style={{display: self.state.visibilityValue[funcName], height:'50'}}>
         <Input hasClear
           onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetId')}
           style={{ width: 600 }}
-          addonBefore='转账资产ID'
+          addonBefore={T('转账资产ID')}
           size="medium"
         /><br /><br />
         <Input hasClear
           onChange={this.handleParaValueChange.bind(this, funcName, 'transferAssetValue')}
           style={{ width: 600 }}
-          addonBefore='转账资产金额'
+          addonBefore={T('转账资产金额')}
           size="medium"
         />
       </Container>,);
 
       txReceiptBtns.push(<br />,<br />,
-        <Button type="primary" onClick={this.getTxInfo.bind(this, funcName)} style={{marginRight: '20px'}}>查询交易</Button>,
-        <Button type="primary" onClick={this.getReceiptInfo.bind(this, funcName)}>查询Receipt</Button>,<br />,<br />,
+        <Button type="primary" onClick={this.getTxInfo.bind(this, funcName)} style={{marginRight: '20px'}}>{T('查询交易')}</Button>,
+        <Button type="primary" onClick={this.getReceiptInfo.bind(this, funcName)}>{T('查询Receipt')}</Button>,<br />,<br />,
         <Input id={funcName + 'TxReceipt'} 
           multiple
           rows="5"
           style={{ width: 600 }}
-          addonBefore="交易/Receipt信息:"
+          addonBefore={T("交易/Receipt信息:")}
           size="medium"
         />
       );
@@ -230,7 +230,7 @@ export default class ContractManager extends Component {
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>{callBtnName}</Button>
                         <br />
                         <br />
-                        <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore='结果' size="medium"
+                        <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore={T('结果')} size="medium"
                           onClick={()=>{}}/>
                         {txReceiptBtns}
                       </Card>;
@@ -241,7 +241,7 @@ export default class ContractManager extends Component {
     const result = this.state.curTxResult[funcName];
     if (result != null) {
       if (result.indexOf('0x') != 0) {
-        Feedback.toast.error('非交易hash，无法查询');
+        Feedback.toast.error(T('非交易hash，无法查询'));
         return;
       }
       fractal.ft.getTransactionByHash(result).then(txInfo => {
@@ -255,7 +255,7 @@ export default class ContractManager extends Component {
     const result = this.state.curTxResult[funcName];
     if (result != null) {
       if (result.indexOf('0x') != 0) {
-        Feedback.toast.error('非交易hash，无法查询');
+        Feedback.toast.error(T('非交易hash，无法查询'));
         return;
       }
       fractal.ft.getTransactionReceipt(result).then(receipt => {
@@ -263,7 +263,7 @@ export default class ContractManager extends Component {
         obj.value= JSON.stringify(receipt);
         const actionResults = receipt.actionResults;
         if (actionResults[0].status == 0) {
-          Feedback.toast.error('Receipt表明本次交易执行失败，原因：' + actionResults[0].error);
+          Feedback.toast.error(T('Receipt表明本次交易执行失败，原因') + ':' + actionResults[0].error);
         }
       });
     }
@@ -271,7 +271,7 @@ export default class ContractManager extends Component {
 
   importABI = () => {
     if (utils.isEmptyObj(this.state.contractAccount)) {
-      Feedback.toast.error('请输入合约账号名');
+      Feedback.toast.error(T('请输入合约账号名'));
       return;
     }
 
@@ -281,7 +281,7 @@ export default class ContractManager extends Component {
       abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
       this.setState({ abiInfo: abiInfoStr });
     } else {
-      Feedback.toast.prompt('账号未保存ABI信息，无法导入');
+      Feedback.toast.prompt(T('账号未保存ABI信息，无法导入'));
     }
   }
   getTxResult = (result) => {
@@ -297,7 +297,7 @@ export default class ContractManager extends Component {
         <br />
         <Select
             style={{ width: 800 }}
-            placeholder="选择发起合约调用的账户"
+            placeholder={T("选择发起合约调用的账户")}
             onChange={this.onChangeAccount.bind(this)}
             dataSource={this.state.accounts}
           />
@@ -308,27 +308,27 @@ export default class ContractManager extends Component {
           style={{ width: 800 }}
           maxLength={50}
           hasLimitHint
-          addonBefore="合约账号:"
+          addonBefore={T("合约账号")}
           defaultValue={this.state.contractName}
           size="medium"
           onChange={this.handleContractAccountChange.bind(this)}
           onBlur={this.saveContractName.bind(this)}
         />
         &nbsp;&nbsp;
-        <Button type="primary" onClick={this.importABI.bind(this)}>导入ABI</Button>
+        <Button type="primary" onClick={this.importABI.bind(this)}>{T("导入ABI")}</Button>
         <br />
         <br />
         <Input multiple
           rows="13"
           style={{ width: 800 }}
-          addonBefore="ABI信息:"
+          addonBefore={T("ABI信息")}
           value={this.state.abiInfo}
           size="medium"
           onChange={this.handleABIInfoChange.bind(this)}
         />
         <br />
         <br />
-        <Button type="primary" onClick={this.parseABI.bind(this)}>解析ABI</Button>
+        <Button type="primary" onClick={this.parseABI.bind(this)}>{T("解析ABI")}</Button>
         <br />
         <br />
         {this.state.contractFuncInfo.map(item => item)}

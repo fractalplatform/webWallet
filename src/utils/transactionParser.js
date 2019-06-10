@@ -6,6 +6,7 @@ import * as fractal from 'fractal-web3'
 
 import * as actionTypes from './constant';
 import { bytes2Hex, bytes2Number, utf8ByteToUnicodeStr, getReadableNumber, getDataFromFile } from './utils';
+import { T } from './lang';
 
 
 function needParsePayload(actionType) {
@@ -70,7 +71,7 @@ function getActionTypeStr(actionTypeNum) {
     default:
       console.log('error action type:' + actionInfo.type);
   }
-  return actionType;
+  return T(actionType);
 }
 
 function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
@@ -92,20 +93,20 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
     switch (actionType) {
       case actionTypes.TRANSFER:
         actionParseInfo.actionType = '转账';
-        actionParseInfo.detailInfo = `${fromAccount}向${toAccount}转账${readableNum}${assetInfo.symbol}`;
+        actionParseInfo.detailInfo = `${fromAccount}->${toAccount}` + T('转账') + `${readableNum}${assetInfo.symbol}`;
         actionParseInfo.detailObj = { accountName: fromAccount, toAccountName: toAccount, amount: readableNum, symbol: assetInfo.symbol };
         break;
       case actionTypes.CREATE_CONTRACT:
         actionParseInfo.actionType = '创建合约';
-        actionParseInfo.detailInfo = '创建者:' + fromAccount;
+        actionParseInfo.detailInfo = T('创建者') + ':' + fromAccount;
         actionParseInfo.detailObj = { accountName: fromAccount };
         break;
       case actionTypes.CALL_CONTRACT:
-        actionParseInfo.actionType = '调用合约';
+        actionParseInfo.actionType = T('调用合约');
         const abiInfo = getDataFromFile(actionTypes.ContractABIFile);
         if (abiInfo != null && abiInfo[toAccount] != null) {
           const callFuncInfo = fractal.utils.parseContractTxPayload(abiInfo[toAccount], payloadInfo);
-          payloadInfo = '调用方法：' + callFuncInfo.funcName + '，参数信息：';
+          payloadInfo = T('调用方法') + ':' + callFuncInfo.funcName + ',' + T('参数信息');
           callFuncInfo.parameterInfos.map(parameterInfo => {
             payloadInfo += parameterInfo.name + '[' + parameterInfo.type + ']=' + parameterInfo.value + ',';
           })
@@ -122,20 +123,20 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           //const chargeRatio = payloadInfo[2].length === 0 ? 0 : payloadInfo[2][0];
           const publicKey = bytes2Hex(payloadInfo[2]);
           const accountDesc = utf8ByteToUnicodeStr(payloadInfo[3]);
-          actionParseInfo.detailInfo = `新账号:${newAccount}, 创建者:${founder}, 公钥:${publicKey}, 描述:${accountDesc}`;
+          actionParseInfo.detailInfo = T('新账号') + `:${newAccount}, ` + T('创建者') + `:${founder}, ` + T('公钥') + `:${publicKey}, ` + T('描述')+ `:${accountDesc}`;
           actionParseInfo.detailObj = { newAccount, founder, publicKey, accountDesc };
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.UPDATE_ACCOUNT:
-        actionParseInfo.actionType = '更新账户';
+        actionParseInfo.actionType = T('更新账户');
         if (payloadInfo.length >= 1) {
           const founder = String.fromCharCode.apply(null, payloadInfo[0]);
-          actionParseInfo.detailInfo = `创建者：${founder}`;
+          actionParseInfo.detailInfo = T('创建者') + `：${founder}`;
           actionParseInfo.detailObj = { founder };
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.UPDATE_ACCOUNT_AUTHOR:
@@ -148,15 +149,15 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           let owner = '';
           let weight = 0;
           if (!Array.isArray(payloadInfo[2][0])) {
-            actionParseInfo.detailInfo = '解析异常';
+            actionParseInfo.detailInfo = T('解析异常');
             return actionParseInfo;
           }
           let detailInfo = '';
           if (threshold != 0) {
-            detailInfo += '普通交易阈值:' + threshold + ',';
+            detailInfo += T('普通交易阈值') + ':' + threshold + ',';
           }
           if (updateAuthorThreshold != 0) {
-            detailInfo += '权限交易阈值:' + updateAuthorThreshold + ',';
+            detailInfo += T('权限交易阈值') + ':' + updateAuthorThreshold + ',';
           }
 
           const updateNum = payloadInfo[2].length;
@@ -182,13 +183,13 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
                       
             switch(updateAuthorType) {
               case 0:  // ADD
-                detailInfo += '[增加账户权限:权限所有者' + owner + ',权重' + weight + ']';
+                detailInfo += '[' + T('增加账户权限:权限所有者') + owner + ',' + T('权重') + weight + ']';
                 break;
               case 1:  // update
-                detailInfo += '[更新账户权限:将权限拥有者' + owner + '的权重更新为:' + weight + ']';
+                detailInfo += '[' + T('更新账户权限:将权限拥有者') + owner + T('的权重更新为') + ':' + weight + ']';
                 break;
               case 2:  // del
-                detailInfo += '[删除账户权限:权限拥有者' + owner + ',权重' + weight + ']';
+                detailInfo += '[' + T('删除账户权限:权限拥有者') + owner + ',' + T('权重') + weight + ']';
                 break;
             }
           }
@@ -196,7 +197,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           actionParseInfo.detailInfo = detailInfo;
           actionParseInfo.detailObj = { threshold, updateAuthorThreshold, updateAuthorType, owner, weight };
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.INCREASE_ASSET: 
@@ -214,13 +215,13 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           }
           const toAccount = String.fromCharCode.apply(null, payloadInfo[2]);
           if (addedAssetInfo != null) {
-            actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId},资产名称:${addedAssetInfo.assetName}, 增发数量=${amount}${addedAssetInfo.symbol}`;
+            actionParseInfo.detailInfo = T('向') + toAccount + T('增发资产:资产ID') + '=' + assetId + ',' + T('资产名称') + addedAssetInfo.assetName + T('增发数量') + amount + addedAssetInfo.symbol;
           } else {
-            actionParseInfo.detailInfo = `向${toAccount}增发资产:资产ID=${assetId}, 增发数量=${amount}`;
+            actionParseInfo.detailInfo = T('向') + toAccount + T('增发资产:资产ID') + '=' + assetId + ',' + T('增发数量') + '=' + amount;
           }
           actionParseInfo.detailObj = { assetId, assetName: assetInfo.assetname, amount, toAccount };
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.ISSUE_ASSET: {
@@ -240,17 +241,18 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
   
           amount = getReadableNumber(amount, decimals);
           upperLimit = getReadableNumber(upperLimit, decimals);
-  
-          actionParseInfo.detailInfo = `资产名:${assetName},符号:${symbol},初始发行金额:${amount}${symbol},发行上限:${upperLimit}${symbol},精度:${decimals}位,创办者账号:${founder},管理者账号:${owner},合约账号:${contract},资产描述:${desc}`;
+          actionParseInfo.detailInfo = T('资产名') + `:${assetName},` + T('符号') + `:${symbol},` + T('初始发行金额') + `:${amount}${symbol},` + T('发行上限') 
+                                    + `:${upperLimit}${symbol},` + T('精度') + `:${decimals},` + T('创办者账号') + `:${founder},` + T('管理者账号') 
+                                    + `:${owner},` + T('合约账号') + `:${contract},` + T('资产描述') + `:${desc}`;
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         
         break;
       }
       case actionTypes.DESTORY_ASSET:
         actionParseInfo.actionType = '销毁资产';
-        actionParseInfo.detailInfo = `资产ID:${actionInfo.assetId},数量:${readableNum}`;
+        actionParseInfo.detailInfo = T('资产ID') + `:${actionInfo.assetId},` + T('数量') + `:${readableNum}`;
         actionParseInfo.detailObj = { accountName: fromAccount, amount: readableNum, assetId: actionInfo.assetId };
         break;
       case actionTypes.SET_ASSET_OWNER: 
@@ -258,10 +260,10 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         if (payloadInfo.length >= 2) {
           const assetId = payloadInfo[0][0];
           const owner = String.fromCharCode.apply(null, payloadInfo[1]);
-          actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的管理者:' + owner;
+          actionParseInfo.detailInfo = T('资产ID') + ':' + assetId + ',' + T('新的管理者') + ':' + owner;
           actionParseInfo.detailObj = {};
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.SET_ASSET_FOUNDER: 
@@ -269,10 +271,10 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         if (payloadInfo.length >= 2) {
           const assetId = payloadInfo[0][0];
           const founder = String.fromCharCode.apply(null, payloadInfo[1]);
-          actionParseInfo.detailInfo = '资产ID:' + assetId + ', 新的创办者:' + founder;
+          actionParseInfo.detailInfo = T('资产ID') + ':' + assetId + ',' + T('新的创办者') + ':' + founder;
           actionParseInfo.detailObj = {};
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.REG_CANDIDATE:
@@ -282,13 +284,13 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
             const url = String.fromCharCode.apply(null, payloadInfo[0]);
             actionParseInfo.detailInfo = 'URL:' + url;
           } else {
-            actionParseInfo.detailInfo = 'URL为空';
+            actionParseInfo.detailInfo = T('URL为空');
           }
           const stake = getReadableNumber(amount, assetInfo.decimals);
-          actionParseInfo.detailInfo += ', 抵押票数:' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
+          actionParseInfo.detailInfo += ',' + T('抵押票数') + ':' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
           actionParseInfo.detailObj = {};
         } else {
-          actionParseInfo.detailInfo = 'payload信息不足，无法解析';
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
         }
         break;
       case actionTypes.UPDATE_CANDIDATE:
@@ -296,21 +298,21 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         if (payloadInfo.length >= 1) {
           if (Array.isArray(payloadInfo)) {
             const url = String.fromCharCode.apply(null, payloadInfo[0]);
-            actionParseInfo.detailInfo = 'URL更新为:' + url;
+            actionParseInfo.detailInfo = T('URL更新为') + ':' + url;
           } else {
-            actionParseInfo.detailInfo = 'URL更新为空';
+            actionParseInfo.detailInfo = T('URL更新为空');
           }
   
           const stake = getReadableNumber(amount, assetInfo.decimals);
-          actionParseInfo.detailInfo += ', 增加抵押票数:' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
+          actionParseInfo.detailInfo += ',' + T('增加抵押票数') + ':' + new BigNumber(stake).dividedBy(dposInfo.unitStake).toFixed(0);
           actionParseInfo.detailObj = {};
         } else {
-          actionParseInfo.detailInfo = 'URL为空';
+          actionParseInfo.detailInfo = T('URL为空');
         }
         break;
       case actionTypes.UNREG_CANDIDATE:
         actionParseInfo.actionType = '注销候选者';
-        actionParseInfo.detailInfo = '候选者:' + fromAccount;
+        actionParseInfo.detailInfo = T('候选者') + ':' + fromAccount;
         actionParseInfo.detailObj = {};
         break;
       case actionTypes.VOTE_CANDIDATE: 
@@ -319,7 +321,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
           const producerName = String.fromCharCode.apply(null, payloadInfo[0]);
           let stake = bytes2Number(payloadInfo[1]).dividedBy(new BigNumber(dposInfo.unitStake)).toNumber();
           stake = getReadableNumber(stake, actionTypes.FT_DECIMALS);
-          actionParseInfo.detailInfo = '候选者:' + producerName + ', 投票数:' + stake;
+          actionParseInfo.detailInfo = T('候选者') + ':' + producerName + ',' + T('投票数') + ':' + stake;
           actionParseInfo.detailObj = {};
         } else {
           actionParseInfo.detailInfo = 'URL为空';
@@ -327,19 +329,20 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         break;
       case actionTypes.REFUND_DEPOSIT:
         actionParseInfo.actionType = '取回抵押金';
-        actionParseInfo.detailInfo = '候选者:' + fromAccount;
+        actionParseInfo.detailInfo = T('候选者') + ':' + fromAccount;
         actionParseInfo.detailObj = {};
         break;
       default:
-        actionParseInfo.actionType = '未知类型：' + actionType;
+        actionParseInfo.actionType = T('未知类型') + ':' + actionType;
         console.log('error action type:' + actionInfo.actionType);
     }
     if (amount > 0 && actionInfo.actionType !== actionTypes.TRANSFER 
      && actionInfo.actionType !== actionTypes.DESTORY_ASSET 
      && actionInfo.actionType !== actionTypes.REG_CANDIDATE 
      && actionInfo.actionType !== actionTypes.UPDATE_CANDIDATE) {
-      actionParseInfo.detailInfo += ',新账号收到转账:' + readableNum + assetInfo.symbol;
+      actionParseInfo.detailInfo += ',' + T('新账号收到转账') + ':' + readableNum + assetInfo.symbol;
     }
+    actionParseInfo.actionType = T(actionParseInfo.actionType);
     return actionParseInfo;
   } catch (error) {
     Feedback.toast.error(error.message);

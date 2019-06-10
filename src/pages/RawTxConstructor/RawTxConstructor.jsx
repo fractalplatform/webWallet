@@ -838,7 +838,7 @@ export default class RawTxConstructor extends Component {
         </IceContainer>
         <br />
         <br />
-        <IceContainer style={styles.container} title='测试场景'>          
+        <IceContainer style={{display: 'none'}} title='测试场景'>          
           <Input 
             style={styles.halfElement}
             addonBefore="私钥"

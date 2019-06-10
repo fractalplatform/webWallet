@@ -8,6 +8,7 @@ import * as fractal from 'fractal-web3';
 import BigNumber from "bignumber.js"
 
 import * as utils from '../utils/utils';
+import { T } from '../utils/lang';
 import * as txParser from '../utils/transactionParser';
 
 export default class TransactionList extends Component {
@@ -91,7 +92,7 @@ export default class TransactionList extends Component {
               _this.state.assetInfos[actionInfo.assetID] = assetInfo;
             }
             var parsedAction = txParser.parseAction(actionInfo, _this.state.assetInfos[actionInfo.assetID], _this.state.assetInfos, dposInfo);
-            parsedAction['result'] = actionResults[i].status == 1 ? '成功' : '失败（' + actionResults[i].error + '）';
+            parsedAction['result'] = actionResults[i].status == 1 ? T('成功') : T('失败') + '（' + actionResults[i].error + '）';
             parsedAction['gasFee'] = utils.getGasEarned(transaction.gasPrice, actionResults[i].gasUsed, _this.state.assetInfos[transaction.gasAssetID]) + ' ft';
             parsedAction['fromAccount'] = actionInfo.from;
             parsedAction['gasAllot'] = actionResults[i].gasAllot;
@@ -134,7 +135,7 @@ export default class TransactionList extends Component {
     return parseActions.map((item)=>{
       let accountName = item.fromAccount;
       if (utils.isEmptyObj(accountName)) {
-        accountName = '无';
+        accountName = T('无');
       }
       var defaultTrigger = <Tag type="normal" size="small">{accountName}</Tag>;
       return <Balloon  trigger={defaultTrigger} closable={false}>{accountName}</Balloon>;
@@ -179,11 +180,11 @@ export default class TransactionList extends Component {
       return '';
     }
     return parseActions[0].gasAllot.map((gasAllot) => {
-      let reason = '作为矿工';
+      let reason = T('作为矿工');
       if (gasAllot.typeId === 0) {
-        reason = '资产的发行者';
+        reason = T('资产的发行者');
       } else if (gasAllot.typeId === 1) {
-        reason = '合约的发行者';
+        reason = T('合约的发行者');
       }
       const earnedGas = utils.getGasEarned(record.gasPrice, gasAllot.gas, this.state.assetInfos[record.gasAssetID]);
       const defaultTrigger = <Tag type="normal" size="small">{gasAllot.name}{reason}分到 {earnedGas}ft</Tag>;
@@ -193,16 +194,16 @@ export default class TransactionList extends Component {
 
   copyValue = (value) => {
     copy(value);
-    Feedback.toast.success('已复制到粘贴板');
+    Feedback.toast.success(T('已复制到粘贴板'));
   }
 
   renderHash = (value) => {
     const displayValue = value.substr(0, 6) + '...' + value.substr(value.length - 6);
-    return <address title={'点击可复制'} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
+    return <address title={T('点击可复制')} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
   }
 
   renderInnerActions = (internalActions, index, record) => {
-    return (internalActions == null || internalActions.length == 0) ? '无' : <Button type="primary" onClick={this.showInnerTxs.bind(this, internalActions)}>查看</Button>;
+    return (internalActions == null || internalActions.length == 0) ? T('无') : <Button type="primary" onClick={this.showInnerTxs.bind(this, internalActions)}>查看</Button>;
   }
 
   getValue = async (assetId, value) => {
@@ -254,27 +255,27 @@ export default class TransactionList extends Component {
   render() {
     return (
       <div className="progress-table">
-        <IceContainer className="tab-card" title="交易">
+        <IceContainer className="tab-card" title={T("交易")}>
           <Table primaryKey="txHash"
             dataSource={this.state.transactions}
           >
-            <Table.Column title="交易Hash" dataIndex="txHash" width={80} cell={this.renderHash.bind(this)}/>
-            <Table.Column title="区块Hash" dataIndex="blockHash" width={80} cell={this.renderHash.bind(this)}/>
-            <Table.Column title="区块高度" dataIndex="blockNumber" width={80}/>
-            <Table.Column title="发起账户" dataIndex="parsedActions" width={100} cell={this.renderFromAccount.bind(this)}/>
-            <Table.Column title="类型" dataIndex="parsedActions" width={100} cell={this.renderActionType.bind(this)}/>
-            <Table.Column title="内部交易" dataIndex="innerActions" width={80} cell={this.renderInnerActions.bind(this)} />
-            <Table.Column title="详情" dataIndex="parsedActions" width={100} cell={this.renderDetailInfo.bind(this)} />
-            <Table.Column title="结果" dataIndex="parsedActions" width={80} cell={this.renderResult.bind(this)} />
-            <Table.Column title="总手续费" dataIndex="parsedActions" width={100} cell={this.renderGasFee.bind(this)} />
-            <Table.Column title="手续费分配详情" dataIndex="parsedActions" width={150} cell={this.renderGasAllot.bind(this)} />
+            <Table.Column title={T("交易Hash")} dataIndex="txHash" width={80} cell={this.renderHash.bind(this)}/>
+            <Table.Column title={T("区块Hash")} dataIndex="blockHash" width={80} cell={this.renderHash.bind(this)}/>
+            <Table.Column title={T("区块高度")} dataIndex="blockNumber" width={80}/>
+            <Table.Column title={T("发起账户")} dataIndex="parsedActions" width={100} cell={this.renderFromAccount.bind(this)}/>
+            <Table.Column title={T("类型")} dataIndex="parsedActions" width={100} cell={this.renderActionType.bind(this)}/>
+            <Table.Column title={T("内部交易")} dataIndex="innerActions" width={80} cell={this.renderInnerActions.bind(this)} />
+            <Table.Column title={T("详情")} dataIndex="parsedActions" width={100} cell={this.renderDetailInfo.bind(this)} />
+            <Table.Column title={T("结果")} dataIndex="parsedActions" width={80} cell={this.renderResult.bind(this)} />
+            <Table.Column title={T("总手续费")} dataIndex="parsedActions" width={100} cell={this.renderGasFee.bind(this)} />
+            <Table.Column title={T("手续费分配详情")} dataIndex="parsedActions" width={150} cell={this.renderGasAllot.bind(this)} />
 
           </Table>
         </IceContainer>
         <Dialog
           style={{ width: 800 }}
           visible={this.state.innerTxVisible}
-          title="内部交易信息"
+          title={T("内部交易信息")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -285,12 +286,12 @@ export default class TransactionList extends Component {
           <div className="editable-table">
             <IceContainer>
               <Table dataSource={this.state.innerTxInfos} hasBorder={false} resizable>
-                <Table.Column title="类型" dataIndex="actionType" width={80} />
-                <Table.Column title="发起账号" dataIndex="fromAccount" width={100} />
-                <Table.Column title="接收账号" dataIndex="toAccount" width={80} />
-                <Table.Column title="资产ID" dataIndex="assetId" width={80} />
-                <Table.Column title="金额" dataIndex="value" width={80} />
-                <Table.Column title="额外信息" dataIndex="payload" width={150} />
+                <Table.Column title={T("类型")} dataIndex="actionType" width={80} />
+                <Table.Column title={T("发起账号")} dataIndex="fromAccount" width={100} />
+                <Table.Column title={T("接收账号")} dataIndex="toAccount" width={80} />
+                <Table.Column title={T("资产ID")} dataIndex="assetId" width={80} />
+                <Table.Column title={T("金额")} dataIndex="value" width={80} />
+                <Table.Column title={T("额外信息")} dataIndex="payload" width={150} />
               </Table>
             </IceContainer>
           </div>

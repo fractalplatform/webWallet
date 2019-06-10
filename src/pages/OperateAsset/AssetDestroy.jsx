@@ -10,6 +10,7 @@ import {
 import { encode } from 'rlp';
 import BigNumber from 'bignumber.js';
 import * as utils from '../../utils/utils';
+import { T } from '../../utils/lang';  
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 
@@ -51,12 +52,12 @@ export default class AssetFounderSet extends Component {
 
     const curAccountName = this.props.accountName;
     if (curAccountName === '') {
-      Feedback.toast.error('请选择需要操作资产的账户');
+      Feedback.toast.error(T('请选择需要操作资产的账户'));
       return;
     }
 
     if (value.assetId === '') {
-      Feedback.toast.error('请选择需要销毁的资产ID');
+      Feedback.toast.error(T('请选择需要销毁的资产ID'));
       return;
     }
 
@@ -68,14 +69,14 @@ export default class AssetFounderSet extends Component {
     }
 
     if (value.amount === '') {
-      Feedback.toast.error('请输入待销毁资产金额');
+      Feedback.toast.error(T('请输入待销毁资产金额'));
       return;
     }
 
     const amount = new BigNumber(value.amount).shiftedBy(this.state.selectedAsset.decimals);
     const curAmount = new BigNumber(this.state.selectedAsset.amount);
     if (amount.comparedTo(curAmount) > 0) {
-      Feedback.toast.error(`销毁金额不能超过您所拥有的资产总额：${curAmount.toNumber()}`);
+      Feedback.toast.error(T('销毁金额不能超过您所拥有的资产总额') + `：${curAmount.toNumber()}`);
       return;
     }
 
@@ -119,7 +120,7 @@ export default class AssetFounderSet extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-                        需销毁的资产:
+            {T('需销毁的资产')}:
               <IceFormBinder required message="Required!">
                 <Select
                   dataSource={this.state.assetInfoSet}
@@ -130,7 +131,7 @@ export default class AssetFounderSet extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="销毁金额:"
+                  addonBefore={T("销毁金额")}
                   name="amount"
                   size="large"
                 />
@@ -139,14 +140,14 @@ export default class AssetFounderSet extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="销毁说明:"
+                  addonBefore={T("销毁说明")}
                   name="desc"
                   size="large"
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <Button type="normal" onClick={this.onSubmit}>提交</Button>
+              <Button type="normal" onClick={this.onSubmit}>{T("提交")}</Button>
             </Row>
           </div>
         </IceFormBinderWrapper>

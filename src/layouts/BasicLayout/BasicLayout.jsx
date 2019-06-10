@@ -10,6 +10,8 @@ import { enquire } from 'enquire-js';
 import { connect } from 'react-redux';
 import { compose } from 'redux';
 
+import cookie from 'react-cookies';
+import { setLang, T } from '../../utils/lang';
 import injectReducer from '../../utils/injectReducer';
 import Authorized from './../../utils/Authorized';
 import profileReducer from '../../store/userProfile/reducer';
@@ -25,6 +27,10 @@ import './scss/light.scss';
 import './scss/dark.scss';
 
 const { AuthorizedRoute } = Authorized;
+const defaultLang = cookie.load('defaultLang');
+if (defaultLang != null) {
+  setLang(defaultLang);
+}
 /**
  * 根据菜单取得重定向地址.
  */
@@ -140,7 +146,7 @@ class BasicLayout extends Component {
   };
 
   getMenuItemPath = (item) => {
-    return <Link to={item.path}>{item.name}</Link>;
+    return <Link to={item.path}>{T(item.name)}</Link>;
   };
 
   /**
@@ -159,7 +165,7 @@ class BasicLayout extends Component {
                 {item.icon ? (
                   <FoundationSymbol size="small" type={item.icon} />
                 ) : null}
-                <span className="ice-menu-collapse-hide">{item.name}</span>
+                <span className="ice-menu-collapse-hide">{T(item.name)}</span>
               </span>
             }
           >
@@ -176,7 +182,7 @@ class BasicLayout extends Component {
               {item.icon ? (
                 <FoundationSymbol size="small" type={item.icon} />
               ) : null}
-              <span className="ice-menu-collapse-hide">{item.name}</span>
+              <span className="ice-menu-collapse-hide">{T(item.name)}</span>
             </span>
           </Link>
         </MenuItem>

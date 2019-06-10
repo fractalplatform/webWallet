@@ -1,7 +1,7 @@
 /* eslint-disable prefer-template */
 /* eslint jsx-a11y/no-noninteractive-element-interactions:0 */
 import React, { PureComponent } from 'react';
-import { Icon, Input, Dialog, Feedback } from '@icedesign/base';
+import { Icon, Input, Dialog, Feedback, Select } from '@icedesign/base';
 import Layout from '@icedesign/layout';
 import Menu from '@icedesign/menu';
 import FoundationSymbol from 'foundation-symbol';
@@ -15,6 +15,7 @@ import * as fractal from 'fractal-web3'
 import { headerMenuConfig } from '../../menuConfig';
 import Logo from '../Logo';
 import * as utils from '../../utils/utils';
+import { T, setLang } from '../../utils/lang';
 
 export const history = createHashHistory();
 
@@ -22,6 +23,7 @@ export default class Header extends PureComponent {
   constructor(props) {
     super(props);
     const nodeInfoCookie = cookie.load('nodeInfo');
+    const defaultLang = cookie.load('defaultLang');
 
     let nodeInfo = nodeInfoCookie;
     if (utils.isEmptyObj(nodeInfo)) {
@@ -31,13 +33,27 @@ export default class Header extends PureComponent {
     this.state = {
       nodeConfigVisible: false,
       nodeInfo,
+      chainId: 0,
+      languages: [{value: 'ch', label:'中文'}, {value: 'en', label:'English'}],
+      defaultLang: (defaultLang == null || defaultLang == 'ch') ? 'ch' : 'en',
     };
+    setLang(this.state.defaultLang);
+  }
+  componentDidMount = () => {
+    fractal.ft.getChainConfig().then(chainConfig => {
+      this.setState({chainId: chainConfig.chainId});
+    })
   }
   openSetDialog = () => {
     this.setState({ nodeConfigVisible: true });
   }
   handleNodeInfoChange = (v) => {
     this.state.nodeInfo = v;
+  }
+  onChangeLanguage = (v) => {
+    cookie.save('defaultLang', v);
+    setLang(v);
+    history.push('/');
   }
   onConfigNodeOK = () => {
     // if (!utils.checkIpVaild(this.state.ip)) {
@@ -53,10 +69,11 @@ export default class Header extends PureComponent {
     axios.defaults.baseURL = nodeInfo;
     this.setState({ nodeConfigVisible: false, nodeInfo });
     fractal.utils.setProvider(nodeInfo);
+    this.state.chainId = fractal.ft.getChainId();
     history.push('/');
   }
   render() {
-    const defaultTrigger = <Button type="primary" className="btrigger" onClick={this.openSetDialog.bind(this)}><Icon type="set" />设置节点</Button>;
+    const defaultTrigger = <Button type="primary" className="btrigger" onClick={this.openSetDialog.bind(this)}><Icon type="set" />{T('设置节点')}</Button>;
     const { isMobile, theme, width, className, style } = this.props;
     return (
       <Layout.Header
@@ -69,12 +86,20 @@ export default class Header extends PureComponent {
           className="ice-design-layout-header-menu"
           style={{ display: 'flex' }}
         >
+          <Select
+            style={{ width: 100 }}
+            placeholder={T("语言")}
+            onChange={this.onChangeLanguage.bind(this)}
+            dataSource={this.state.languages}
+            defaultValue={this.state.defaultLang}
+          />
+          &nbsp;&nbsp;
           <Balloon trigger={defaultTrigger} closable={false}>
-            当前连接的节点:{this.state.nodeInfo}
+            {T('当前连接的节点')}:{this.state.nodeInfo}, ChainId:{this.state.chainId}
           </Balloon>
           <Dialog
             visible={this.state.nodeConfigVisible}
-            title="配置节点"
+            title={T("配置节点")}
             footerActions="ok"
             footerAlign="center"
             closeable="true"

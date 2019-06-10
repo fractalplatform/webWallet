@@ -10,6 +10,7 @@ import AssetOwnerSet from './AssetOwnerSet';
 import AssetDestroy from './AssetDestroy';
 import AssetContractSet from './AssetContractSet';
 import * as utils from '../../utils/utils';  
+import { T } from '../../utils/lang';  
 import * as AssetUtils from './AssetUtils';
 
 export default class AssetOperator extends Component {
@@ -49,18 +50,18 @@ export default class AssetOperator extends Component {
   render() {
     return (
       <IceContainer style={styles.container}>
-        <h4 style={styles.title}>资产操作</h4>
+        <h4 style={styles.title}>{T("资产操作")}</h4>
         <IceContainer style={styles.subContainer}>
           <Select
             style={{ width: 350 }}
-            placeholder="选择发起资产操作的账户"
+            placeholder={T("选择发起资产操作的账户")}
             onChange={this.onChangeAccount.bind(this)}
             dataSource={this.state.accounts}
           />
         </IceContainer>
         <Card
           style={styles.card}
-          title="发行资产"
+          title={T("发行资产")}
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
@@ -69,7 +70,7 @@ export default class AssetOperator extends Component {
 
         <Card
           style={styles.card}
-          title="增发资产"
+          title={T("增发资产")}
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
@@ -78,7 +79,7 @@ export default class AssetOperator extends Component {
 
         <Card
           style={styles.card}
-          title="设置资产管理者"
+          title={T("设置资产管理者")}
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
@@ -87,7 +88,7 @@ export default class AssetOperator extends Component {
 
         <Card
           style={styles.card}
-          title="设置资产创办者"
+          title={T("设置资产创办者")}
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
@@ -96,7 +97,7 @@ export default class AssetOperator extends Component {
 
         <Card
           style={styles.card}
-          title="设置协议资产"
+          title={T("设置协议资产")}
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
@@ -105,7 +106,7 @@ export default class AssetOperator extends Component {
 
         <Card
           style={styles.card}
-          title="销毁资产"
+          title={T("销毁资产")}
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >

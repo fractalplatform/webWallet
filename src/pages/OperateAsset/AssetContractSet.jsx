@@ -13,6 +13,7 @@ import * as fractal from 'fractal-web3';
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 import * as utils from '../../utils/utils';
+import { T } from '../../utils/lang';  
 
 const { Row } = Grid;
 
@@ -51,12 +52,12 @@ export default class AssetContractSet extends Component {
 
     const curAccountName = this.props.accountName;
     if (curAccountName === '') {
-      Feedback.toast.error('请选择需要操作资产的账户');
+      Feedback.toast.error(T('请选择需要操作资产的账户'));
       return;
     }
 
     if (value.assetId === '') {
-      Feedback.toast.error('请选择需要更新关联合约的资产ID');
+      Feedback.toast.error(T('请选择需要更新关联合约的资产ID'));
       return;
     }
 
@@ -70,7 +71,7 @@ export default class AssetContractSet extends Component {
     if (!utils.isEmptyObj(value.contractAccount)) {
       const bExist = await fractal.account.isAccountExist(value.contractAccount);
       if (bExist === false) {
-        Feedback.toast.error('合约账户不存在');
+        Feedback.toast.error(T('合约账户不存在'));
         return;
       }
     } else {
@@ -114,7 +115,7 @@ export default class AssetContractSet extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-                        需改变创办者的资产:
+                        {T('需改变合约的资产')}:
               <IceFormBinder required message="Required!">
                 <Select
                   dataSource={this.state.assetInfoSet}
@@ -125,15 +126,15 @@ export default class AssetContractSet extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="合约账号:"
+                  addonBefore={T("合约账号")}
                   name="contractAccount"
                   size="large"
-                  placeholder='置空则为非协议资产'
+                  placeholder={T('置空则为非协议资产')}
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <Button type="normal" onClick={this.onSubmit}>提交</Button>
+              <Button type="normal" onClick={this.onSubmit}>{T('提交')}</Button>
             </Row>
           </div>
         </IceFormBinderWrapper>

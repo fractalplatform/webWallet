@@ -12,6 +12,7 @@ import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
+import { T } from '../../utils/lang';
 
 const { Row } = Grid;
 
@@ -50,12 +51,12 @@ export default class AssetFounderSet extends Component {
 
     const curAccountName = this.props.accountName;
     if (curAccountName === '') {
-      Feedback.toast.error('请选择需要操作资产的账户');
+      Feedback.toast.error(T('请选择需要操作资产的账户'));
       return;
     }
 
     if (value.assetId === '') {
-      Feedback.toast.error('请选择需要改变创办者的资产ID');
+      Feedback.toast.error(T('请选择需要改变创办者的资产ID'));
       return;
     }
 
@@ -67,13 +68,13 @@ export default class AssetFounderSet extends Component {
     }
 
     if (value.founder === '') {
-      Feedback.toast.error('请输入创办者的账户名称');
+      Feedback.toast.error(T('请输入创办者的账户名称'));
       return;
     }
 
     const bExist = await fractal.account.isAccountExist(value.founder);
     if (bExist === false) {
-      Feedback.toast.error('创办者不存在');
+      Feedback.toast.error(T('创办者不存在'));
       return;
     }
 
@@ -114,7 +115,7 @@ export default class AssetFounderSet extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-                        需改变创办者的资产:
+                        {T('需改变创办者的资产')}:
               <IceFormBinder required message="Required!">
                 <Select
                   dataSource={this.state.assetInfoSet}
@@ -125,14 +126,14 @@ export default class AssetFounderSet extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="创办者:"
+                  addonBefore={T("创办者")}
                   name="founder"
                   size="large"
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <Button type="normal" onClick={this.onSubmit}>提交</Button>
+              <Button type="normal" onClick={this.onSubmit}>{T("提交")}</Button>
             </Row>
           </div>
         </IceFormBinderWrapper>

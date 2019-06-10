@@ -1,3 +1,4 @@
+import { T } from './utils/lang'
 // 菜单配置
 // headerMenuConfig：头部导航配置
 // asideMenuConfig：侧边导航配置
@@ -20,7 +21,7 @@ const headerMenuConfig = [
 
 const asideMenuConfig = [
   {
-    name: '概览',
+    name: T('概览'),
     path: '/dashboard',
     icon: 'home2',
   },
@@ -42,49 +43,49 @@ const asideMenuConfig = [
   //   ],
   // },
   {
-    name: '账户管理',
+    name: T('账户管理'),
     path: '/table',
     icon: 'coupons',
     // authority: 'admin',
     children: [
       {
-        name: '密钥',
+        name: T('密钥'),
         path: '/KeystoreManager',
         authority: 'admin',
       },
       {
-        name: '账号',
+        name: T('账号'),
         path: '/AccountManager',
         authority: 'admin',
       },
     ],
   },
   {
-    name: '区块 & 交易查询',
+    name: T('区块 & 交易查询'),
     path: '/list',
     icon: 'search',
     children: [
       {
-        name: '区块',
+        name: T('区块'),
         path: '/Block',
       },
       {
-        name: '交易',
+        name: T('交易'),
         path: '/Transaction',
       },
     ],
   },
   {
-    name: '资产管理',
+    name: T('资产管理'),
     path: '/portlets',
     icon: 'ul-list',
     children: [
       {
-        name: '资产搜索',
+        name: T('资产搜索'),
         path: '/assetSearch',
       },
       {
-        name: '资产操作',
+        name: T('资产操作'),
         path: '/assetOperator',
       },
     ],
@@ -95,28 +96,28 @@ const asideMenuConfig = [
     icon: 'repair',
     children: [
       {
-        name: '候选者列表',
+        name: T('候选者列表'),
         path: '/producerList',
       },
     ],
   },
   {
-    name: '开发者',
+    name: T('开发者'),
     path: '/portlets',
     icon: 'code',
     children: [
       {
-        name: '合约调用',
+        name: T('合约调用'),
         path: '/contractManager',
       },
       {
-        name: '交易构造',
+        name: T('原始交易构造'),
         path: '/rawTxConstructor',
       },
-      {
-        name: '自动化测试',
-        path: '/autoTest',
-      },
+      // {
+      //   name: T('自动化测试'),
+      //   path: '/autoTest',
+      // },
     ],
   },
 ];

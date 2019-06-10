@@ -8,6 +8,7 @@ import IceContainer from '@icedesign/container';
 import * as fractal from 'fractal-web3'
 import formatHighlight from 'json-format-highlight';
 import TransactionList from '../../TransactionList';
+import { T } from '../../utils/lang';
 
 const { Row, Col } = Grid;
 
@@ -39,10 +40,10 @@ export default class TransactionTable extends Component {
           txReceiptData
         });
       } else {
-        Feedback.toast.error('无法获取到交易信息');
+        Feedback.toast.error(T('无法获取到交易信息'));
       }
     } else {
-      Feedback.toast.prompt('请输入十六进制的hash值');
+      Feedback.toast.prompt(T('请输入十六进制的hash值'));
     }
   }
 
@@ -67,7 +68,7 @@ export default class TransactionTable extends Component {
                 size="large"
                 autoWidth="true"
                 onSearch={this.onSearch.bind(this)}
-                placeholder="交易hash"
+                placeholder={T("交易hash")}
                 onFilterChange={this.onFilterChange.bind(this)}
               />
             </Col>
@@ -77,12 +78,12 @@ export default class TransactionTable extends Component {
         <TransactionList txFrom={this.state.txFrom}/>
         <br />
         <IceContainer style={styles.container}>
-          <h4 style={styles.title}>交易原始信息</h4>
+          <h4 style={styles.title}>{T('交易原始信息')}</h4>
           <div dangerouslySetInnerHTML={{__html: this.state.txRawData}} />
         </IceContainer>
         <br />
         <IceContainer style={styles.container}>
-          <h4 style={styles.title}>交易Receipt信息</h4>
+          <h4 style={styles.title}>{T('交易Receipt信息')}</h4>
           <div dangerouslySetInnerHTML={{__html: this.state.txReceiptData}} />
         </IceContainer>
       </div>

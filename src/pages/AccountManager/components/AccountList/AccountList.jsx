@@ -12,7 +12,8 @@ import { encode } from 'rlp';
 import './AccountList.scss';
 
 import * as txParser from '../../../../utils/transactionParser';
-import * as utils from '../../../../utils/utils';  //{ utils.hex2Bytes, utils.isEmptyObj, utils.getPublicKeyWithPrefix }
+import * as utils from '../../../../utils/utils'; 
+import { T } from '../../../../utils/lang'; 
 import * as Constant from '../../../../utils/constant';
 import TxSend from "../../../TxSend";
 
@@ -64,7 +65,7 @@ export default class AccountList extends Component {
       txInfos: [],
       accountIndex: 0,
       inputOtherPK: false,
-      inputOtherPKStr: '输入其它公钥',
+      inputOtherPKStr: T('输入其它公钥'),
       dposInfo: {},
       chainConfig: {},
       irreversibleInfo: {},
@@ -93,22 +94,22 @@ export default class AccountList extends Component {
       syncTxInterval: 60000,
       syncTxTimeoutId: 0,
       innerTxInfos: [],
-      txFeeTypes: [{value:TxFeeType.Asset, label:'资产'}, {value:TxFeeType.Contract, label:'合约'}, {value:TxFeeType.Coinbase, label:'挖矿'}],
-      feeTypeName: '名称',
+      txFeeTypes: [{value:TxFeeType.Asset, label:T('资产')}, {value:TxFeeType.Contract, label:T('合约')}, {value:TxFeeType.Coinbase, label:T('挖矿')}],
+      feeTypeName: T('名称'),
       withdrawFooter: (<view>
-                        <Button type='primary' onClick={this.onWithdrawTxFeeOK.bind(this)}>提取</Button>
-                        <Button type='normal' onClick={this.getTxFee.bind(this)}>查询</Button>
+                        <Button type='primary' onClick={this.onWithdrawTxFeeOK.bind(this)}>{T('提取')}</Button>
+                        <Button type='normal' onClick={this.getTxFee.bind(this)}>{T('查询')}</Button>
                        </view>),
       authorListFooter: (<view>
-                        <Button type='primary' onClick={this.submitAllAuthorUpdate.bind(this)}>提交所有修改</Button>
+                        <Button type='primary' onClick={this.submitAllAuthorUpdate.bind(this)}>{T('提交所有修改')}</Button>
                       </view>),
       txListFooter: (<view>
-                        <Button type='primary' onClick={this.onUpdateTx.bind(this)}>刷新</Button>
-                        <Button type='normal' onClick={this.onTxClose.bind(this)}>取消</Button>
+                        <Button type='primary' onClick={this.onUpdateTx.bind(this)}>{T('刷新')}</Button>
+                        <Button type='normal' onClick={this.onTxClose.bind(this)}>{T('取消')}</Button>
                       </view>),
       txFeeInfo: '',
       helpVisible: false,
-      thresholdTypes: [{value: 1, label:'普通交易所需阈值'}, {value: 2, label:'修改权限所需阈值'}],
+      thresholdTypes: [{value: 1, label:T('普通交易所需阈值')}, {value: 2, label:T('修改权限所需阈值')}],
     };
   }
 
@@ -151,15 +152,15 @@ export default class AccountList extends Component {
     this.setState({ importAccountVisible: true });
   }
   onApplyForAccount = () => {
-    Feedback.toast.success('请在公链电报群中申请账号');
+    Feedback.toast.success(T('请在公链电报群中申请账号'));
   }
   onImportAccountOK = async () => {
     if (this.state.importAccountName == '') {
-      Feedback.toast.error('请输入账号');
+      Feedback.toast.error(T('请输入账号'));
       return;
     }
     if (!this.state.accountReg.test(this.state.importAccountName) && !this.state.idReg.test(this.state.importAccountName)) {
-      Feedback.toast.error('账号格式错误');
+      Feedback.toast.error(T('账号格式错误'));
       return;
     }
     const self = this;
@@ -167,7 +168,7 @@ export default class AccountList extends Component {
       const accountId = parseInt(this.state.importAccountName);
       for (const account of this.state.accountInfos) {
         if (account.accountID == accountId) {
-          Feedback.toast.error('账号已存在，不可重复导入!');
+          Feedback.toast.error(T('账号已存在，不可重复导入!'));
           return;
         }
       }
@@ -179,7 +180,7 @@ export default class AccountList extends Component {
             self.setState({ accountInfos, importAccountVisible: false });
             self.saveAccountsToLS();
           } else {
-            Feedback.toast.error('账户不存在');
+            Feedback.toast.error(T('账户不存在'));
           }
         });
       } catch (error) {
@@ -188,7 +189,7 @@ export default class AccountList extends Component {
     } else {
       for (const account of this.state.accountInfos) {
         if (account.accountName == this.state.importAccountName) {
-          Feedback.toast.error('账号已存在，不可重复导入!');
+          Feedback.toast.error(T('账号已存在，不可重复导入!'));
           return;
         }
       }
@@ -200,7 +201,7 @@ export default class AccountList extends Component {
             self.setState({ accountInfos, importAccountVisible: false });
             self.saveAccountsToLS();
           } else {
-            Feedback.toast.error('账户不存在');
+            Feedback.toast.error(T('账户不存在'));
           }
         });
       } catch (error) {
@@ -327,7 +328,7 @@ export default class AccountList extends Component {
             }
             const parsedAction = txParser.parseAction(actionInfo, this.state.assetInfos[actionInfo.assetID], this.state.assetInfos, this.state.dposInfo);
             if (txInfo.txStatus != Constant.TxStatus.SendError && txInfo.txStatus != Constant.TxStatus.NotExecute) {
-              parsedAction.result = actionInfo.status == 1 ? '成功' : `失败（${actionInfo.error}）`;
+              parsedAction.result = actionInfo.status == 1 ? T('成功') : `${T('失败')}（${actionInfo.error}）`;
               parsedAction.gasFee = actionInfo.gasUsed;
               parsedAction.gasAllot = actionInfo.gasAllot;
             } else {
@@ -653,7 +654,7 @@ export default class AccountList extends Component {
   }
 
   renderInnerActions = (internalActions, index, record) => {
-    return (internalActions == null || internalActions.length == 0) ? '无' : <Button type="primary" onClick={this.showInnerTxs.bind(this, internalActions)}>查看</Button>;
+    return (internalActions == null || internalActions.length == 0) ? T('无') : <Button type="primary" onClick={this.showInnerTxs.bind(this, internalActions)}>{T('查看')}</Button>;
   }
 
   renderActionType = (value, index, record) => {
@@ -672,30 +673,30 @@ export default class AccountList extends Component {
    
   copyValue = (value) => {
     copy(value);
-    Feedback.toast.success('已复制到粘贴板');
+    Feedback.toast.success(T('已复制到粘贴板'));
   }
 
   renderHash = (value) => {
     const displayValue = value.substr(0, 6) + '...' + value.substr(value.length - 6);
-    return <address title={'点击可复制'} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
+    return <address title={T('点击可复制')} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
   }
   renderTxStatus = (value, index, record) => {
     let status = '';
     switch(value) {
       case Constant.TxStatus.SendError:
-        status = <b>发送失败</b>;
+        status = <b>{T('发送失败')}</b>;
         break;
       case Constant.TxStatus.NotExecute:
-        status = <b>尚未执行</b>;
+        status = <b>{T('尚未执行')}</b>;
         break;
       case Constant.TxStatus.ExecuteFail:
       case Constant.TxStatus.InnerFail:
-        const defaultTrigger = <font color='red'><b>执行失败</b></font>;
+        const defaultTrigger = <font color='red'><b>{T('执行失败')}</b></font>;
         status = <Balloon trigger={defaultTrigger} closable={false}>{record.actions[0].error}</Balloon>;
         break;
       case Constant.TxStatus.ExecuteSuccess:
       case Constant.TxStatus.InnerSuccess:
-        status = '执行成功';
+        status = T('执行成功');
         break;        
     }
     return status;
@@ -706,12 +707,12 @@ export default class AccountList extends Component {
     const confirmBlockNum = this.state.curBlock.number - record.blockNumber;
     switch(value) {
       case Constant.BlockStatus.Rollbacked:
-        return '已回滚';
+        return T('已回滚');
       case Constant.BlockStatus.Irreversible:
-        status = '不可逆';
+        status = T('不可逆');
         break;
       case Constant.BlockStatus.Reversible:
-        status = '可逆';
+        status = T('可逆');
         break;  
       case Constant.BlockStatus.Unknown:
         return '';
@@ -719,7 +720,7 @@ export default class AccountList extends Component {
         return '';  
     }
     const defaultTrigger = <Tag type="normal" size="small">{status} +{confirmBlockNum}</Tag>;
-    return <Balloon trigger={defaultTrigger} closable={false}>已确认区块数: {confirmBlockNum}</Balloon>;
+    return <Balloon trigger={defaultTrigger} closable={false}>{T('已确认区块数')}: {confirmBlockNum}</Balloon>;
   }
 
   renderDetailInfo = (value, index, record) => {
@@ -735,9 +736,9 @@ export default class AccountList extends Component {
 
     return parseActions.map((item) => {
       if (utils.isEmptyObj(item.error)) {
-        return '成功';
+        return T('成功');
       }
-      const defaultTrigger = <Tag type="normal" size="small">失败</Tag>;
+      const defaultTrigger = <Tag type="normal" size="small">{T('失败')}</Tag>;
       return <Balloon trigger={defaultTrigger} closable={false}>{item.error}</Balloon>;
     });
   }
@@ -748,7 +749,7 @@ export default class AccountList extends Component {
       if (utils.isEmptyObj(item.gasFee)) {
         return '';
       }
-      const earnedGasFee = utils.getGasEarned(record.gasPrice, item.gasFee, this.state.assetInfos[record.gasAssetId]) + 'ft';
+      const earnedGasFee = utils.getGasEarned(record.gasPrice, item.gasFee, this.state.assetInfos[record.gasAssetID]) + 'ft';
       const defaultTrigger = <Tag type="normal" size="small">{earnedGasFee}</Tag>;
       return <Balloon trigger={defaultTrigger} closable={false}>{earnedGasFee}</Balloon>;
     });
@@ -760,15 +761,15 @@ export default class AccountList extends Component {
       return '';
     }
     return parseActions[0].gasAllot.map((gasAllot) => {
-      let reason = '作为矿工';
+      let reason = T('作为矿工');
       if (gasAllot.typeId === 0) {
-        reason = '资产的发行者';
+        reason = T('资产的发行者');
       } else if (gasAllot.typeId === 1) {
-        reason = '合约的发行者';
+        reason = T('合约的发行者');
       }
-      const earnedGasFee = utils.getGasEarned(record.gasPrice, gasAllot.gas, this.state.assetInfos[record.gasAssetId]) + 'ft';
-      const defaultTrigger = <Tag type="normal" size="small">{gasAllot.name}{reason}分到 {earnedGasFee}</Tag>;
-      return <Balloon trigger={defaultTrigger} closable={false}>{gasAllot.name}{reason}分到 {earnedGasFee}</Balloon>;
+      const earnedGasFee = utils.getGasEarned(record.gasPrice, gasAllot.gas, this.state.assetInfos[record.gasAssetID]) + 'ft';
+      const defaultTrigger = <Tag type="normal" size="small">{gasAllot.name}{reason}{T('分到')} {earnedGasFee}</Tag>;
+      return <Balloon trigger={defaultTrigger} closable={false}>{gasAllot.name}{reason}{T('分到')} {earnedGasFee}</Balloon>;
     });
   }
   showAuthors = (index) => {
@@ -835,30 +836,30 @@ export default class AccountList extends Component {
     let setByteCodeBtn = '';
     let abiBtn = '';
     if (this.state.accountInfos[index].codeSize > 0) {
-      abiBtn = <Button type="primary" onClick={this.addContractABI.bind(this, index)}>设置ABI</Button>
+      abiBtn = <Button type="primary" onClick={this.addContractABI.bind(this, index)}>{T('设置ABI')}</Button>
     } else {
-      setByteCodeBtn = <Button type="primary" onClick={this.addByteCode.bind(this, index)}>添加合约代码</Button>
+      setByteCodeBtn = <Button type="primary" onClick={this.addByteCode.bind(this, index)}>{T('添加合约代码')}</Button>
     }
     return (
       <view>
         <Button type="primary" onClick={this.deleteAccount.bind(this, index)}>
-          解除绑定
+          {T('解除绑定')}
         </Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.showAssets.bind(this, index)}>
-          资产/转账
+        {T('资产/转账')}
         </Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.showTxs.bind(this, index)}>
-          交易列表
+        {T('交易列表')}
         </Button>
         <p /><p />
         <Button type="primary" onClick={this.showAuthors.bind(this, index)}>
-          权限管理
+        {T('权限管理')}
         </Button>
         &nbsp;&nbsp;
         <Button type="primary" onClick={this.withdrawTxFee.bind(this, index)}>
-          手续费
+        {T('手续费')}
         </Button>
         &nbsp;&nbsp;
         {abiBtn}{setByteCodeBtn}
@@ -902,7 +903,7 @@ export default class AccountList extends Component {
       return value;
     }
     const displayValue = value.substr(0, 6) + '...' + value.substr(value.length - 6);
-    return <address title={'点击可复制'} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
+    return <address title={T('点击可复制')} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
   }
   renderStatus = (value) => {
     let status = '未改变';
@@ -919,7 +920,7 @@ export default class AccountList extends Component {
           status = '待修改';
         break;
     }
-    return status;
+    return T(status);
   }
   renderAuthorOperation = (value, index) => {
     const curAuthor = this.state.authorList[index];
@@ -927,11 +928,11 @@ export default class AccountList extends Component {
       return (
         <view>
           <Button type="primary" onClick={this.deleteAuthor.bind(this, index)}>
-            删除
+          {T('删除')}
           </Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.updateWeight.bind(this, index)}>
-            修改
+          {T('修改')}
           </Button>
         </view>
       );
@@ -939,15 +940,15 @@ export default class AccountList extends Component {
       return (
         <view>
           <Button type="primary" onClick={this.deleteAuthor.bind(this, index)}>
-            删除
+            {T('删除')}
           </Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.updateWeight.bind(this, index)}>
-            修改
+            {T('修改')}
           </Button>
           <p /><p />
           <Button type="primary" onClick={this.undoOperator.bind(this, index)}>
-            重置
+            {T('重置')}
           </Button>
         </view>
       );
@@ -959,15 +960,15 @@ export default class AccountList extends Component {
 
   onSystemCreatAccountOK = () => {
     if (!this.state.accountReg.test(this.state.fractalAccount)) {
-      Feedback.toast.error('账号格式错误');
+      Feedback.toast.error(T('账号格式错误'));
       return;
     }
     if (this.state.fractalPublicKey == '') {
-      Feedback.toast.error('请选择公钥');
+      Feedback.toast.error(T('请选择公钥'));
       return;
     }
     if (!this.state.emailReg.test(this.state.email)) {
-      Feedback.toast.error('邮箱格式错误');
+      Feedback.toast.error(T('邮箱格式错误'));
       return;
     }
     // this.props.createAccountBySystem({ accountName: this.state.fractalAccount, publicKey: this.state.fractalPublicKey, email: this.state.email });
@@ -987,22 +988,22 @@ export default class AccountList extends Component {
   }
   onSelfCreateAccountOK = async () => {
     if (this.state.creator == '') {
-      Feedback.toast.error('请选择创建者账号');
+      Feedback.toast.error(T('请选择创建者账号'));
       return;
     }
     if (!this.state.accountReg.test(this.state.newAccountName) && this.state.newAccountName.length > 31) {
       console.log(this.state.newAccountName);
-      Feedback.toast.error('账号格式错误');
+      Feedback.toast.error(T('账号格式错误'));
       return;
     }
     const exist = await fractal.account.isAccountExist(this.state.newAccountName);
     if (exist) {
-      Feedback.toast.error('账号已存在，不可重复创建');
+      Feedback.toast.error(T('账号已存在，不可重复创建'));
       return;
     }
 
     if (this.state.selfPublicKey == '' && this.state.otherPublicKey == '') {
-      Feedback.toast.error('请选择或输入公钥');
+      Feedback.toast.error(T('请选择或输入公钥'));
       return;
     }
     let publicKey = this.state.otherPublicKey;
@@ -1015,14 +1016,14 @@ export default class AccountList extends Component {
     }
     publicKey = utils.getPublicKeyWithPrefix(publicKey);
     if (!ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(publicKey)), true)) {
-      Feedback.toast.error('无效公钥，请重新输入');
+      Feedback.toast.error(T('无效公钥，请重新输入'));
       return;
     }
 
     if (this.state.transferAmount == null || this.state.transferAmount == '') {
       this.state.transferAmount = 0;
     } else if (!this.state.numberReg.test(this.state.transferAmount)) {
-      Feedback.toast.error('附带转账金额数有误，请重新输入');
+      Feedback.toast.error(T('附带转账金额数有误，请重新输入'));
       return;
     }
     this.state.curAccount = await fractal.account.getAccountByName(this.state.creator);
@@ -1108,18 +1109,18 @@ export default class AccountList extends Component {
     }
 
     if (ownerType == AuthorOwnerType.Error) {
-      Feedback.toast.error('请输入有效的账号、公钥或地址');
+      Feedback.toast.error(T('请输入有效的账号、公钥或地址'));
       return;
     }
     if (newOwner.indexOf('.') > 0 || newOwner.length <= 8) {
       const exist = await fractal.account.isAccountExist(newOwner);
       if (!exist) {
-        Feedback.toast.error('账号不存在');
+        Feedback.toast.error(T('账号不存在'));
         return;
       }
     }
     if (utils.isEmptyObj(this.state.weight)) {
-      Feedback.toast.error('请输入权重');
+      Feedback.toast.error(T('请输入权重'));
       return;
     }
 
@@ -1168,11 +1169,11 @@ export default class AccountList extends Component {
   }
   onWithdrawTxFeeOK = async () => {
     if (this.state.txFeeType == null) {
-      Feedback.toast.error('请选择手续费类型');
+      Feedback.toast.error(T('请选择手续费类型'));
       return;
     }
     if (this.state.assetName == null) {
-      Feedback.toast.error('请输入名称');
+      Feedback.toast.error(T('请输入名称'));
       return;
     }
     const txFeeName = this.state.txFeeType == TxFeeType.Asset ? this.state.assetName : this.state.curAccount.accountName;
@@ -1205,24 +1206,24 @@ export default class AccountList extends Component {
     const txFeeInfoObj = await fractal.fee.getObjectFeeByName(txFeeName, this.state.txFeeType);
     //console.log(txFeeInfo);
     if (txFeeInfoObj == null) {
-      Feedback.toast.prompt('无手续费信息');
+      Feedback.toast.prompt(T('无手续费信息'));
     } else {
       let txFeeDetail = await this.getValue(this.state.chainConfig.sysTokenID, txFeeInfoObj.assetFees[0].remainFee);
       if (this.state.txFeeType == TxFeeType.Asset) {
         const assetInfo = await fractal.account.getAssetInfoByName(txFeeName);
-        txFeeDetail = '此资产创办者[' + assetInfo.founder + ']可提取手续费:' + txFeeDetail;
+        txFeeDetail = T('此资产创办者[') + assetInfo.founder + T(']可提取手续费:') + txFeeDetail;
       } else if (this.state.txFeeType == TxFeeType.Contract) {
         const accountInfo = await fractal.account.getAccountByName(txFeeName);
-        txFeeDetail = '此合约创办者[' + accountInfo.founder + ']可提取手续费:' + txFeeDetail;
+        txFeeDetail = T('此合约创办者[') + accountInfo.founder + T(']可提取手续费:') + txFeeDetail;
       } else {
-        txFeeDetail = '矿工[' + txFeeName + ']可提取手续费:' + txFeeDetail;
+        txFeeDetail = T('矿工[') + txFeeName + T(']可提取手续费:') + txFeeDetail;
       }
       this.setState({ txFeeInfo : txFeeDetail, txSendVisible: false });
     }
   }
   onChangeTxFeeTypeAccount = (value) => {
     this.state.txFeeType = value;
-    const feeTypeName = this.state.txFeeType == TxFeeType.Asset ? '资产名' : (this.state.txFeeType == TxFeeType.Contract ? '合约账号' : '矿工账号');
+    const feeTypeName = this.state.txFeeType == TxFeeType.Asset ? T('资产名') : (this.state.txFeeType == TxFeeType.Contract ? T('合约账号') : T('矿工账号'));
     this.setState({ txSendVisible: false, txFeeInfo: '', feeTypeName });
   }
   onChangeAssetName = (value) => {
@@ -1267,13 +1268,13 @@ export default class AccountList extends Component {
     return (
       <view>
         <Button type="primary" onClick={this.transfer.bind(this, index)}>
-          转账
+          {T('转账')}
         </Button>
       </view>
     );
   };
   renderContract = (value, index) => {
-    return value > 0 ? '是' : '否';
+    return value > 0 ? T('是') : T('否');
   }
 
   transfer = (index) => {
@@ -1295,7 +1296,7 @@ export default class AccountList extends Component {
 
   processTxSendResult = (txInfo, txHash) => {
     if (txHash != null) {
-      Feedback.toast.success('交易发送成功');
+      Feedback.toast.success(T('交易发送成功'));
 
       txInfo.txHash = txHash;
       this.addSendSuccessTxToFile(txInfo);
@@ -1303,7 +1304,7 @@ export default class AccountList extends Component {
       clearTimeout(this.state.syncTxTimeoutId);
       this.state.syncTxTimeoutId = setTimeout(() => { this.syncTxFromNode(); }, this.state.syncTxInterval);
     } else {
-      Feedback.toast.error('交易发送失败');
+      Feedback.toast.error(T('交易发送失败'));
       this.addSendErrorTxToFile(txInfo);
     }
   }
@@ -1383,26 +1384,26 @@ export default class AccountList extends Component {
 
   onTransferOK = () => {
     if (this.state.transferToAccount == '') {
-      Feedback.toast.error('请输入账号');
+      Feedback.toast.error(T('请输入账号'));
       return;
     }
     if (!this.state.accountReg.test(this.state.transferToAccount)) {
-      Feedback.toast.error('账号格式错误');
+      Feedback.toast.error(T('账号格式错误'));
       return;
     }
     const self = this;
     fractal.account.isAccountExist(this.state.transferToAccount).then(exist => {
       if (!exist) {
-        Feedback.toast.error('目标账号不存在');
+        Feedback.toast.error(T('目标账号不存在'));
         return;
       }
   
       if (self.state.transferValue == '') {
-        Feedback.toast.error('请输入转账金额');
+        Feedback.toast.error(T('请输入转账金额'));
         return;
       }
       if (!self.state.numberReg.test(self.state.transferValue)) {
-        Feedback.toast.error('请输入正确的金额');
+        Feedback.toast.error(T('请输入正确的金额'));
         return;
       }
   
@@ -1410,7 +1411,7 @@ export default class AccountList extends Component {
       const value = new BigNumber(self.state.transferValue).shiftedBy(decimals);
       const maxValue = new BigNumber(self.state.curBalance.balance);
       if (value.comparedTo(maxValue) > 0) {
-        Feedback.toast.error('余额不足');
+        Feedback.toast.error(T('余额不足'));
         return;
       }
   
@@ -1504,11 +1505,11 @@ export default class AccountList extends Component {
   
   onAddContractABIOK = () => {
     if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(this.state.contractABI)) {
-      Feedback.toast.error('ABI信息不符合规范，请检查后重新输入');
+      Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return;
     }
     this.storeContractABI(this.state.curAccount.accountName, this.state.contractABI);
-    Feedback.toast.success('添加成功');
+    Feedback.toast.success(T('添加成功'));
     this.setState({ contractInfoVisible: false });
   }
 
@@ -1522,7 +1523,7 @@ export default class AccountList extends Component {
 
   onAddContractByteCodeOK = () => {
     if (utils.isEmptyObj(this.state.contractByteCode)) {
-      Feedback.toast.error('请输入bytecode');
+      Feedback.toast.error(T('请输入bytecode'));
       return;
     }
     const payload = '0x' + this.state.contractByteCode;
@@ -1556,48 +1557,49 @@ export default class AccountList extends Component {
             />
             <Table.Column
               width={80}
-              title="账号"
+              title={T("账号")}
               dataIndex="accountName"
             />
             <Table.Column
               width={80}
-              title="创建者"
+              title={T("创建者")}
               dataIndex="founder"
             />
             <Table.Column
               width={100}
-              title="权限交易阈值"
+              title={T("权限交易阈值")}
               dataIndex="updateAuthorThreshold"
             />
             <Table.Column
               width={100}
-              title="普通交易阈值"
+              title={T("普通交易阈值")}
               dataIndex="threshold"
             />
             <Table.Column
               width={80}
-              title="区块高度"
+              title={T("区块高度")}
               dataIndex="number"
             />
             <Table.Column
               width={80}
-              title="合约账户"
+              width={80}
+              title={T("合约账户")}
               dataIndex="codeSize"
               cell={this.renderContract.bind(this)}
             />
-            <Table.Column title="操作" width={500} cell={this.renderOperation} />
+            <Table.Column title={T("操作")} width={500} cell={this.renderOperation} />
           </Table>
           {/* <div onClick={this.addAccountBySystem.bind(this)} style={styles.addNewItem}>
             + 新增账户(第三方免费帮您创建)
           </div> */}
           <div onClick={this.addAccountBySelf.bind(this)} style={styles.addNewItem}>
-            + 新增账户
+            + {T('新增账户')}
           </div>
           <div onClick={this.onImportAccount.bind(this)} style={styles.addNewItem}>
-            + 导入账户
+            + {T('导入账户')}
           </div>
-          <Feedback title="提示" type="help" visible={this.state.helpVisible}>
-          首个主网账户请找第三方申请，如是首个测试网账户可上公链电报群进行申请，申请成功后请将私钥和账户导入即可使用。
+          <Feedback title={T("提示")} type="help" visible={this.state.helpVisible}>
+          {T('首个主网账户请找第三方申请，如是首个测试网账户可上公链电报群进行申请，申请成功后请将私钥和账户导入即可使用。')}
           </Feedback>
         </IceContainer>
         <Dialog
@@ -1605,12 +1607,12 @@ export default class AccountList extends Component {
           onOk={this.onSelfCreateAccountOK.bind(this)}
           onCancel={this.onSelfCreateAccountClose.bind(this)}
           onClose={this.onSelfCreateAccountClose.bind(this)}
-          title="账户创建"
+          title={T("账户创建")}
           footerAlign="center"
         >
           <Select
             style={{ width: 400 }}
-            placeholder="选择您拥有的账户(此账户用于创建新账户)"
+            placeholder={T("选择您拥有的账户(此账户用于创建新账户)")}
             onChange={this.onChangeCreatorAccount.bind(this)}
             dataSource={this.state.accountNames}
           />
@@ -1619,19 +1621,19 @@ export default class AccountList extends Component {
           <Input hasClear
             onChange={this.handleNewAccountNameChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="待创建账号"
+            addonBefore={T("待创建账号")}
             size="medium"
             defaultValue=""
             maxLength={25}
             hasLimitHint
-            placeholder="由a-z0-9.组成，长度8~25位"
+            placeholder={T("由a-z0-9.组成，长度8~25位")}
           />
           <br />
           <br />
 
           <Select
             style={{ width: 400 }}
-            placeholder="选择绑定本地已有公钥或在下面输入其它公钥"
+            placeholder={T("选择绑定本地已有公钥或在下面输入其它公钥")}
             onChange={this.handleSelfPublicKeyChange.bind(this)}
           >
             {
@@ -1643,26 +1645,26 @@ export default class AccountList extends Component {
             }
           </Select>
           <br />
-          (如无公钥，请前往“账户管理”->“密钥”页面创建公私钥)
+          {T("如无公钥，请前往“账户管理”->“密钥”页面创建公私钥")}
           <br />
           <br />
           <Input hasClear
             onChange={this.handleOthersPublicKeyChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="其它公钥"
+            addonBefore={T("其它公钥")}
             size="medium"
             defaultValue=""
             maxLength={132}
             hasLimitHint
             disabled={!this.state.inputOtherPK}
-            placeholder="若此处填入公钥，创建时将以此公钥为准"
+            placeholder={T("若此处填入公钥，创建时将以此公钥为准")}
           />
           <br />
           <br />
           <Input hasClear
             onChange={this.handleTAccountDetailChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="账号描述"
+            addonBefore={T("账号描述")}
             size="medium"
             defaultValue=""
             maxLength={255}
@@ -1674,12 +1676,12 @@ export default class AccountList extends Component {
             onChange={this.handleTransferAmountChange.bind(this)}
             onPressEnter={this.onSelfCreateAccountOK.bind(this)}
             style={{ width: 400 }}
-            addonBefore="附带转账金额(单位:FT)"
+            addonBefore={T("附带转账金额(单位:FT)")}
             size="medium"
             defaultValue=""
             maxLength={10}
             hasLimitHint
-            placeholder="创建新账号的同时，可向此账号转账，默认为0"
+            placeholder={T("创建新账号的同时，可向此账号转账，默认为0")}
           />
         </Dialog>
 
@@ -1688,22 +1690,22 @@ export default class AccountList extends Component {
           onOk={this.onBindNewAuthorOK.bind(this)}
           onCancel={this.onBindNewAuthorClose.bind(this)}
           onClose={this.onBindNewAuthorClose.bind(this)}
-          title="绑定新的权限拥有者"
+          title={T("绑定新的权限拥有者")}
           footerAlign="center"
         >
           <Input hasClear
             onChange={this.handleNewOwnerChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="权限拥有者"
+            addonBefore={T("权限拥有者")}
             size="medium"
             defaultValue=""
             maxLength={133}
             hasLimitHint
-            placeholder='可输入账户名/公钥/地址'
+            placeholder={T('可输入账户名/公钥/地址')}
           />
           <br />
           <br />
-          权重:
+          {T('权重')}:
           <NumberPicker
             onChange={this.handleWeightChange.bind(this)}
             style={{ width: 400 }}
@@ -1717,18 +1719,18 @@ export default class AccountList extends Component {
           onOk={this.onModifyThresholdOK.bind(this)}
           onCancel={this.onModifyThresholdClose.bind(this)}
           onClose={this.onModifyThresholdClose.bind(this)}
-          title="修改阈值"
+          title={T("修改阈值")}
           footerAlign="center"
         >
           <Select
             style={{ width: 400 }}
-            placeholder="选择阈值类型"
+            placeholder={T("选择阈值类型")}
             onChange={this.onChangeThresholdType.bind(this)}
             dataSource={this.state.thresholdTypes}
           />
           <br />
           <br />
-          新阈值:
+          {T('新阈值')}:
           <NumberPicker
             onChange={this.handleThresholdChange.bind(this)}
             style={{ width: 400 }}
@@ -1742,7 +1744,7 @@ export default class AccountList extends Component {
           onOk={this.onUpdateWeightOK.bind(this)}
           onCancel={this.onUpdateWeightClose.bind(this)}
           onClose={this.onUpdateWeightClose.bind(this)}
-          title="更新权重"
+          title={T("更新权重")}
           footerAlign="center"
         >
           <NumberPicker
@@ -1757,13 +1759,13 @@ export default class AccountList extends Component {
           onOk={this.onWithdrawTxFeeOK.bind(this)}
           onCancel={this.onWithdrawTxFeeClose.bind(this)}
           onClose={this.onWithdrawTxFeeClose.bind(this)}
-          title={"提取手续费--" + this.state.curAccount.accountName}
+          title={T("提取手续费--") + this.state.curAccount.accountName}
           footerAlign="center"
           footer={this.state.withdrawFooter}
         >
           <Select
             style={{ width: 400 }}
-            placeholder="选择手续费类型"
+            placeholder={T("选择手续费类型")}
             onChange={this.onChangeTxFeeTypeAccount.bind(this)}
             dataSource={this.state.txFeeTypes}
           />
@@ -1782,7 +1784,7 @@ export default class AccountList extends Component {
         </Dialog>
         <Dialog
           visible={this.state.importAccountVisible}
-          title="导入账户"
+          title={T("导入账户")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1793,7 +1795,7 @@ export default class AccountList extends Component {
           <Input hasClear
             onChange={this.handleImportAccountChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="账号名/ID"
+            addonBefore={T("账号名/ID")}
             size="medium"
             defaultValue=""
             maxLength={16}
@@ -1804,7 +1806,7 @@ export default class AccountList extends Component {
         <Dialog
           style={{ width: 600 }}
           visible={this.state.authorListVisible}
-          title="权限管理"
+          title={T("权限管理")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1816,21 +1818,21 @@ export default class AccountList extends Component {
           <div className="editable-table">
             <IceContainer>
               <Table primaryKey="owner" dataSource={this.state.authorList} hasBorder={false} resizable>
-                <Table.Column title="所有者" dataIndex="owner" width={100} cell={this.renderOwner.bind(this)}/>
-                <Table.Column title="权重" dataIndex="weight" width={100} />
-                <Table.Column title="当前状态" dataIndex="status" width={100} cell={this.renderStatus.bind(this)}/>
-                <Table.Column title="操作" width={150} cell={this.renderAuthorOperation.bind(this)} />
+                <Table.Column title={T("所有者")} dataIndex="owner" width={100} cell={this.renderOwner.bind(this)}/>
+                <Table.Column title={T("权重")} dataIndex="weight" width={100} />
+                <Table.Column title={T("当前状态")} dataIndex="status" width={100} cell={this.renderStatus.bind(this)}/>
+                <Table.Column title={T("操作")} width={150} cell={this.renderAuthorOperation.bind(this)} />
               </Table>
 
               <div onClick={this.bindNewAuthor.bind(this)} style={styles.addNewItem}>
-                + 绑定新权限
+                + {T("绑定新权限")}
               </div>
               <br />
               <br />
               <Input
                 onChange={this.handleAuthorThresholdChange.bind(this)}
                 style={{ width: 500 }}
-                addonBefore="权限交易阈值"
+                addonBefore={T("权限交易阈值")}
                 size="medium"
                 defaultValue={this.state.curAccount.updateAuthorThreshold}
               />
@@ -1839,7 +1841,7 @@ export default class AccountList extends Component {
               <Input
                 onChange={this.handleThresholdChange.bind(this)}
                 style={{ width: 500 }}
-                addonBefore="普通交易阈值"
+                addonBefore={T("普通交易阈值")}
                 defaultValue={this.state.curAccount.threshold}
                 size="medium"
               />
@@ -1850,7 +1852,7 @@ export default class AccountList extends Component {
         <Dialog
           style={{ width: 450 }}
           visible={this.state.assetVisible}
-          title="资产信息"
+          title={T("资产信息")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1861,10 +1863,10 @@ export default class AccountList extends Component {
           <div className="editable-table">
             <IceContainer>
               <Table primaryKey="assetID" dataSource={this.state.balanceInfos} hasBorder={false} resizable>
-                <Table.Column title="资产ID" dataIndex="assetID" width={100} />
-                <Table.Column title="资产符号" dataIndex="assetID" width={100} cell={this.symbolRender.bind(this)} />
-                <Table.Column title="可用金额" dataIndex="balance" width={100} cell={this.balanceRender.bind(this)} />
-                <Table.Column title="操作" width={150} cell={this.assetRender.bind(this)} />
+                <Table.Column title={T("资产ID")} dataIndex="assetID" width={100} />
+                <Table.Column title={T("资产符号")} dataIndex="assetID" width={100} cell={this.symbolRender.bind(this)} />
+                <Table.Column title={T("可用金额")} dataIndex="balance" width={100} cell={this.balanceRender.bind(this)} />
+                <Table.Column title={T("操作")} width={150} cell={this.assetRender.bind(this)} />
               </Table>
             </IceContainer>
           </div>
@@ -1873,7 +1875,7 @@ export default class AccountList extends Component {
         <Dialog
           style={{ width: 1200 }}
           visible={this.state.txVisible}
-          title="交易信息"
+          title={T("交易信息")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1885,19 +1887,19 @@ export default class AccountList extends Component {
           <div className="editable-table">
             <IceContainer>
               <Table fixedHeader primaryKey="date" dataSource={this.state.txInfos} hasBorder={false} resizable onSort={this.onSort.bind(this)} isZebra={true}>
-                <Table.Column title="时间" dataIndex="date" width={65} cell={this.renderDate.bind(this)} sortable />
-                <Table.Column title="交易Hash" dataIndex="txHash" width={60} cell={this.renderHash.bind(this)} />
-                <Table.Column title="交易状态" dataIndex="txStatus" width={50} cell={this.renderTxStatus.bind(this)} />
-                <Table.Column title="区块Hash" dataIndex="blockHash" width={60} cell={this.renderHash.bind(this)} />
-                <Table.Column title="区块高度" dataIndex="blockNumber" width={50} sortable />
-                <Table.Column title="区块状态" dataIndex="blockStatus" width={100} cell={this.renderBlockStatus.bind(this)} />
-                <Table.Column title="内部交易" dataIndex="innerActions" width={80} cell={this.renderInnerActions.bind(this)} />
+                <Table.Column title={T("时间")} dataIndex="date" width={65} cell={this.renderDate.bind(this)} sortable />
+                <Table.Column title={T("交易Hash")} dataIndex="txHash" width={60} cell={this.renderHash.bind(this)} />
+                <Table.Column title={T("交易状态")} dataIndex="txStatus" width={50} cell={this.renderTxStatus.bind(this)} />
+                <Table.Column title={T("区块Hash")} dataIndex="blockHash" width={60} cell={this.renderHash.bind(this)} />
+                <Table.Column title={T("区块高度")} dataIndex="blockNumber" width={50} sortable />
+                <Table.Column title={T("区块状态")} dataIndex="blockStatus" width={100} cell={this.renderBlockStatus.bind(this)} />
+                <Table.Column title={T("内部交易")} dataIndex="innerActions" width={80} cell={this.renderInnerActions.bind(this)} />
 
-                <Table.Column title="类型" dataIndex="parsedActions" width={80} cell={this.renderActionType.bind(this)} />
-                <Table.Column title="详情" dataIndex="parsedActions" width={100} cell={this.renderDetailInfo.bind(this)} />
+                <Table.Column title={T("类型")} dataIndex="parsedActions" width={80} cell={this.renderActionType.bind(this)} />
+                <Table.Column title={T("详情")} dataIndex="parsedActions" width={100} cell={this.renderDetailInfo.bind(this)} />
                 {/* <Table.Column title="Action结果" dataIndex="parsedActions" width={80} cell={this.renderResult.bind(this)} /> */}
-                <Table.Column title="总手续费" dataIndex="parsedActions" width={80} cell={this.renderGasFee.bind(this)} />
-                <Table.Column title="手续费分配详情" dataIndex="parsedActions" width={150} cell={this.renderGasAllot.bind(this)} />
+                <Table.Column title={T("总手续费")} dataIndex="parsedActions" width={80} cell={this.renderGasFee.bind(this)} />
+                <Table.Column title={T("手续费分配详情")} dataIndex="parsedActions" width={150} cell={this.renderGasAllot.bind(this)} />
               </Table>
             </IceContainer>
           </div>
@@ -1905,7 +1907,7 @@ export default class AccountList extends Component {
         <Dialog
           style={{ width: 800 }}
           visible={this.state.innerTxVisible}
-          title="内部交易信息"
+          title={T("内部交易信息")} 
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1916,19 +1918,19 @@ export default class AccountList extends Component {
           <div className="editable-table">
             <IceContainer>
               <Table dataSource={this.state.innerTxInfos} hasBorder={false} resizable>
-                <Table.Column title="类型" dataIndex="actionType" width={80} />
-                <Table.Column title="发起账号" dataIndex="fromAccount" width={100} />
-                <Table.Column title="接收账号" dataIndex="toAccount" width={80} />
-                <Table.Column title="资产ID" dataIndex="assetId" width={80} />
-                <Table.Column title="金额" dataIndex="value" width={80} />
-                <Table.Column title="额外信息" dataIndex="payload" width={150} />
+                <Table.Column title={T("类型")}  dataIndex="actionType" width={80} />
+                <Table.Column title={T("发起账号")}  dataIndex="fromAccount" width={100} />
+                <Table.Column title={T("接收账号")}  dataIndex="toAccount" width={80} />
+                <Table.Column title={T("资产ID")}  dataIndex="assetId" width={80} />
+                <Table.Column title={T("金额")}  dataIndex="value" width={80} />
+                <Table.Column title={T("额外信息")}  dataIndex="payload" width={150} />
               </Table>
             </IceContainer>
           </div>
         </Dialog>
         <Dialog
           visible={this.state.transferVisible}
-          title="转账信息"
+          title={T("转账信息")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1939,7 +1941,7 @@ export default class AccountList extends Component {
           <Input hasClear
             onChange={this.handleTransferToAccountChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="收款账号"
+            addonBefore={T("收款账号")}
             size="medium"
             defaultValue=""
             maxLength={16}
@@ -1950,7 +1952,7 @@ export default class AccountList extends Component {
           <Input hasClear
             onChange={this.handleTransferValueChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="金额"
+            addonBefore={T("金额")}
             onPressEnter={this.onTransferOK.bind(this)}
             addonAfter={this.state.transferAssetSymbol}
             size="medium"
@@ -1959,7 +1961,7 @@ export default class AccountList extends Component {
         </Dialog>
         <Dialog
           visible={this.state.contractInfoVisible}
-          title="本地添加合约ABI信息"
+          title={T("本地添加合约ABI信息")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1970,7 +1972,7 @@ export default class AccountList extends Component {
           <Input hasClear multiple
             onChange={this.handleContractABIChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="ABI信息"
+            addonBefore={T("ABI信息")}
             size="medium"
             defaultValue={this.state.originalABI}
             hasLimitHint
@@ -1978,7 +1980,7 @@ export default class AccountList extends Component {
         </Dialog>
         <Dialog
           visible={this.state.contractByteCodeVisible}
-          title="设置合约byteCode"
+          title={T("设置合约byteCode")}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
@@ -1989,7 +1991,7 @@ export default class AccountList extends Component {
           <Input hasClear multiple
             onChange={this.handleContractByteCodeChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="合约byteCode"
+            addonBefore={T("合约byteCode")}
             size="medium"
             hasLimitHint
           />

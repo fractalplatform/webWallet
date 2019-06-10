@@ -10,6 +10,7 @@ import {
 import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 import * as action from '../../utils/constant';
+import { T } from '../../utils/lang';
 import TxSend from "../TxSend";
 
 const { Row } = Grid;
@@ -65,17 +66,17 @@ export default class AssetIssueTable extends Component {
     const { value } = this.state;
 
     if (this.state.curAccountName === '') {
-      Feedback.toast.error('请选择需要操作资产的账户');
+      Feedback.toast.error(T('请选择需要操作资产的账户'));
       return;
     }
     if (!this.state.assetReg.test(value.assetName) && value.assetName.length > 31) {
-      Feedback.toast.error('资产名称错误');
+      Feedback.toast.error(T('资产名称错误'));
       return;
     }
     try {
       const assetInfo = await fractal.account.getAssetInfoByName(value.assetName);
       if (assetInfo != null) {
-        Feedback.toast.error('资产已存在');
+        Feedback.toast.error(T('资产已存在'));
         return;
       }
     } catch (error) {
@@ -83,7 +84,7 @@ export default class AssetIssueTable extends Component {
     }
     const accountInfo = await fractal.account.getAccountByName(value.assetName);
     if (accountInfo != null) {
-      Feedback.toast.error('资产名同账号名冲突，不可用');
+      Feedback.toast.error(T('资产名同账号名冲突，不可用'));
       return;
     }
     const dotIndex = value.assetName.indexOf('.');
@@ -96,41 +97,41 @@ export default class AssetIssueTable extends Component {
         }
       })
       if (!bExistAsset) {
-        Feedback.toast.error('由于父资产的管理者不属于此账户，因此无法创建此子资产');
+        Feedback.toast.error(T('由于父资产的管理者不属于此账户，因此无法创建此子资产'));
         return;
       }
     }
 
     if (!this.state.assetReg.test(value.symbol)) {
-      Feedback.toast.error('资产符号错误');
+      Feedback.toast.error(T('资产符号错误'));
       return;
     }
     const zero = new BigNumber(0);
     const amount = new BigNumber(value.amount);
     if (amount.comparedTo(zero) < 0) {
-      Feedback.toast.error('资产金额必须大于0');
+      Feedback.toast.error(T('资产金额必须大于0'));
       return;
     }
 
     const decimals = parseInt(value.decimals, 10);
     if (decimals == null) {
-      Feedback.toast.error('请输入正确的精度');
+      Feedback.toast.error(T('请输入正确的精度'));
       return;
     }
 
     let bExist = await fractal.account.isAccountExist(value.owner);
     if (!bExist) {
-      Feedback.toast.error('管理者账户不存在');
+      Feedback.toast.error(T('管理者账户不存在'));
       return;
     }
     bExist = await fractal.account.isAccountExist(value.founder);
     if (!bExist) {
-      Feedback.toast.error('创办者不存在');
+      Feedback.toast.error(T('创办者不存在'));
       return;
     }
     const upperLimit = new BigNumber(value.upperLimit);
     if (upperLimit.comparedTo(amount) < 0) {
-      Feedback.toast.error('资产上限必须大于等于资产发行金额');
+      Feedback.toast.error(T('资产上限必须大于等于资产发行金额'));
       return;
     }
 
@@ -160,40 +161,40 @@ export default class AssetIssueTable extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-              <IceFormBinder required message="请输入正确的资产名称">
+              <IceFormBinder required message={T("请输入正确的资产名称")}>
                 <Input hasClear
-                  addonBefore="名称" // "^[a-z0-9]{2,16}$"
+                  addonBefore={T("名称")} // "^[a-z0-9]{2,16}$"
                   name="assetName"
                   size="large"
-                  placeholder="不可跟已有的资产和账户名冲突"
+                  placeholder={T("不可跟已有的资产和账户名冲突")}
                   maxLength={16}
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <IceFormBinder required message="请输入正确的资产符号">
+              <IceFormBinder required message={T("请输入正确的资产符号")}>
                 <Input hasClear
-                  addonBefore="符号" // "^[a-z0-9]{2,16}$"
+                  addonBefore={T("符号")} // "^[a-z0-9]{2,16}$"
                   name="symbol"
                   size="large"
-                  placeholder="a~z、0~9.组成，2-16位"
+                  placeholder={T("a~z、0~9.组成，2-16位")}
                   maxLength={16}
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <IceFormBinder required message="请输入正确金额">
+              <IceFormBinder required message={T("请输入正确金额")}>
                 <Input hasClear
-                  addonBefore="金额"
+                  addonBefore={T("金额")}
                   name="amount"
                   size="large"
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <IceFormBinder required message="请输入正确精度">
+              <IceFormBinder required message={T("请输入正确精度")}>
                 <Input hasClear
-                  addonBefore="精度"
+                  addonBefore={T("精度")}
                   name="decimals"
                   size="large"
                   maxLength={2}
@@ -203,10 +204,10 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required>
                 <Input hasClear
-                  addonBefore="管理者"
+                  addonBefore={T("管理者")}
                   name="owner"
                   size="large"
-                  placeholder="可对此资产进行管理"
+                  placeholder={T("可对此资产进行管理")}
                   maxLength={16}
                 />
               </IceFormBinder>
@@ -214,10 +215,10 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required>
                 <Input hasClear
-                  addonBefore="创办者"
+                  addonBefore={T("创办者")}
                   name="founder"
                   size="large"
-                  placeholder="可收取相关手续费"
+                  placeholder={T("可收取相关手续费")}
                   maxLength={16}
                 />
               </IceFormBinder>
@@ -225,20 +226,20 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required>
                 <Input hasClear
-                  addonBefore="增发上限"
+                  addonBefore={T("增发上限")}
                   name="upperLimit"
                   size="large"
-                  placeholder="资产增发上限,0表示无上限"
+                  placeholder={T("资产增发上限,0表示无上限")}
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
               <IceFormBinder>
                 <Input hasClear
-                  addonBefore="合约账户"
+                  addonBefore={T("合约账户")}
                   name="contract"
                   size="large"
-                  placeholder="留空表示非协议资产"
+                  placeholder={T("留空表示非协议资产")}
                   //maxLength={16}
                 />
               </IceFormBinder>
@@ -246,7 +247,7 @@ export default class AssetIssueTable extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder>
                 <Input hasClear autoHeight
-                  addonBefore="资产描述"
+                  addonBefore={T("资产描述")}
                   name="desc"
                   size="large"
                   //maxLength={255}
@@ -254,7 +255,7 @@ export default class AssetIssueTable extends Component {
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <Button type="normal" onClick={this.onSubmit.bind(this)}>提交</Button>
+              <Button type="normal" onClick={this.onSubmit.bind(this)}>{T("提交")}</Button>
             </Row>
           </div>
         </IceFormBinderWrapper>

@@ -5,6 +5,7 @@ import BigNumber from 'bignumber.js';
 import EthCrypto from 'eth-crypto';
 import * as Constant from './constant';
 import * as fractal from 'fractal-web3';
+import { T } from './lang';
 /**
  * 格式化菜单数据结构，如果子菜单有权限配置，则子菜单权限优先于父级菜单的配置
  * 如果子菜单没有配置，则继承自父级菜单的配置
@@ -419,16 +420,16 @@ function getDuration(my_time) {  
   console.log('转换时间:', daysRound + '天', hoursRound + '小时', minutesRound + '分', seconds + '秒');
   var time = '';
   if (daysRound > 0) {
-    time += daysRound + '天';
+    time += daysRound + T('天');
   }
   if (hoursRound > 0) {
-    time += hoursRound + '小时';
+    time += hoursRound + T('小时');
   }
   if (minutesRound > 0) {
-    time += minutesRound + '分';
+    time += minutesRound + T('分');
   }
   if (seconds > 0) {
-    time += seconds + '秒';
+    time += seconds + T('秒');
   }
   return time;
 }

@@ -5,6 +5,7 @@ import BigNumber from 'bignumber.js';
 import { encode } from 'rlp';
 import * as fractal from 'fractal-web3';
 import * as utils from '../../utils/utils';
+import { T } from '../../utils/lang';
 import * as Constant from '../../utils/constant';
 import TxSend from "../TxSend";
 
@@ -176,7 +177,7 @@ export default class CandidateList extends Component {
 
   vote = () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
-      Feedback.toast.error('请选择需要投票的候选者账号');
+      Feedback.toast.error(T('请选择需要投票的候选者账号'));
       return;
     }
 
@@ -187,12 +188,12 @@ export default class CandidateList extends Component {
 
   onVoteOK = () => {
     if (this.state.curAccount.accountName == '') {
-      Feedback.toast.error('请选择投票账户');
+      Feedback.toast.error(T('请选择投票账户'));
       return;
     }
     let stake = parseInt(this.state.stake);
     if (stake <= 0 || stake > this.state.accountMaxStake) {
-      Feedback.toast.error('请输入有效的投票数');
+      Feedback.toast.error(T('请输入有效的投票数'));
       return;
     }
     const candidateName = this.state.rowSelection.selectedRowKeys[0];
@@ -230,13 +231,13 @@ export default class CandidateList extends Component {
 
   onRegisterProducerOK = () => {
     if (this.state.curAccount.accountName == '') {
-      Feedback.toast.error('请选择注册账户');
+      Feedback.toast.error(T('请选择注册账户'));
       return;
     }
 
     let stake = parseInt(this.state.stake);
     if (stake < this.state.dposInfo.candidateMinQuantity || stake > this.state.accountMaxStake) {
-      Feedback.toast.error('请输入有效的抵押票数');
+      Feedback.toast.error(T('请输入有效的抵押票数'));
       return;
     }
 
@@ -258,7 +259,7 @@ export default class CandidateList extends Component {
 
   updateProducer = () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
-      Feedback.toast.error('请选择需要更新的候选者账号');
+      Feedback.toast.error(T('请选择需要更新的候选者账号'));
       return;
     }
     const candidateName = this.state.rowSelection.selectedRowKeys[0];
@@ -271,14 +272,14 @@ export default class CandidateList extends Component {
     fractal.account.getAccountByName(candidateName).then(account => {
       const ftBalance = this.getAccountFTBalance(account);
       const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(this.state.dposInfo.unitStake).toNumber();
-      this.setState({ updateProducerVisible: true, curAccount: { accountName: candidateName }, stake: 0, maxStakeTooltip: '最多可增加的抵押票数：' + accountMaxStake, accountMaxStake, txSendVisible: false });
+      this.setState({ updateProducerVisible: true, curAccount: { accountName: candidateName }, stake: 0, maxStakeTooltip: T('最多可增加的抵押票数') + ':' + accountMaxStake, accountMaxStake, txSendVisible: false });
     });
   }
 
   onUpdateProducerOK = () => {
     let stake = parseInt(this.state.stake);
     if (stake > this.state.accountMaxStake) {
-      Feedback.toast.error('新增抵押票数不可超过最大可抵押票数');
+      Feedback.toast.error(T('新增抵押票数不可超过最大可抵押票数'));
       return;
     }
     stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toNumber();
@@ -299,7 +300,7 @@ export default class CandidateList extends Component {
 
   unRegisterProducer = () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
-      Feedback.toast.error('请选择需要注销的候选者账号');
+      Feedback.toast.error(T('请选择需要注销的候选者账号'));
       return;
     }
     const accountName = this.state.rowSelection.selectedRowKeys[0];
@@ -314,7 +315,7 @@ export default class CandidateList extends Component {
 
   refundReposit = async () => {
     if (this.state.rowSelection.selectedRowKeys.length === 0) {
-      Feedback.toast.error('请选择已注销的候选者账号');
+      Feedback.toast.error(T('请选择已注销的候选者账号'));
       return;
     }
 
@@ -331,7 +332,7 @@ export default class CandidateList extends Component {
     }
 
     if (passedEpochNum < this.state.dposInfo.freezeEpochSize) {
-      Feedback.toast.error('当前周期无法提取抵押金，还需' + (this.state.dposInfo.freezeEpochSize - passedEpochNum) + '个周期后才能提取');
+      Feedback.toast.error(T('当前周期无法提取抵押金，还需') + (this.state.dposInfo.freezeEpochSize - passedEpochNum) + T('个周期后才能提取'));
       return;
     }
 
@@ -362,7 +363,7 @@ export default class CandidateList extends Component {
     
     const ftBalance = this.getAccountFTBalance(this.state.curAccount);    
     const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
-    this.setState({ maxStakeTooltip: '最大可投票数' + accountMaxStake, accountMaxStake, txSendVisible: false });
+    this.setState({ maxStakeTooltip: T('最大可投票数') + accountMaxStake, accountMaxStake, txSendVisible: false });
   };
 
   handleStakeChange = (v) => {
@@ -380,10 +381,10 @@ export default class CandidateList extends Component {
     
     const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
     if (this.state.dposInfo.candidateMinQuantity > accountMaxStake) {
-      Feedback.toast.error('此账户无足够抵押票数，不可申请候选者，最低抵押票数为:' + this.state.dposInfo.candidateMinQuantity);
+      Feedback.toast.error(T('此账户无足够抵押票数，不可申请候选者，最低抵押票数为:') + this.state.dposInfo.candidateMinQuantity);
       return;
     }
-    this.setState({ maxStakeTooltip: this.state.dposInfo.candidateMinQuantity + '<= 可抵押票数 <=' + accountMaxStake, accountMaxStake, txSendVisible: false });
+    this.setState({ maxStakeTooltip: this.state.dposInfo.candidateMinQuantity + T('<= 可抵押票数 <=') + accountMaxStake, accountMaxStake, txSendVisible: false });
   }
 
   onVoterChange = (v) => {
@@ -402,15 +403,15 @@ export default class CandidateList extends Component {
 
   typeRender = (value, index, record) => {
     if (value == 'normal') {
-      return '正常';
+      return T('正常');
     }
     if (value == 'freeze') {
-      return '已注销，尚未提取抵押金';
+      return T('已注销，尚未提取抵押金');
     }
   }
 
   numberRender =  (value, index, record) => {
-    return <view>{value}<p/>[所在周期:{record.lastOpEpoch}]</view>;
+    return <view>{value}<p/>[{T('所在周期')}:{record.lastOpEpoch}]</view>;
   }
 
   nameRender = (value, index, record) => {
@@ -463,8 +464,8 @@ export default class CandidateList extends Component {
     Object.keys(this.state.votersOfMyAccount).forEach(accountName => {
       for (const voteInfo of this.state.votersOfMyAccount[accountName]) {
         if (voteInfo.candidate == candidateName) {
-          const defaultTrigger = <Tag type="normal" size="small">{voteInfo.name}投{voteInfo.quantity}票</Tag>;
-          render.push(<div><Balloon trigger={defaultTrigger} closable={false}>我的投票账户:{voteInfo.name}, 投票数:{voteInfo.quantity}</Balloon><p/></div>);
+          const defaultTrigger = <Tag type="normal" size="small">{voteInfo.name}{T('投')}{voteInfo.quantity}{T('票')}</Tag>;
+          render.push(<div><Balloon trigger={defaultTrigger} closable={false}>{T('我的投票账户')}:{voteInfo.name}, {T('投票数')}:{voteInfo.quantity}</Balloon><p/></div>);
           break;
         }
       }
@@ -476,52 +477,52 @@ export default class CandidateList extends Component {
       <div className="progress-table">
         <p>
           <Button type="primary" onClick={this.vote.bind(this)} disabled={this.state.bUnRegProducer}>
-              投票
+          {T('投票')}
           </Button>
             &nbsp;&nbsp;
           <Button type="primary" onClick={this.registerProducer.bind(this)}>
-              注册候选者
+          {T('注册候选者')}
           </Button>
             &nbsp;&nbsp;
           <Button type="primary" onClick={this.updateProducer.bind(this)} disabled={!this.state.bMyProducer || this.state.bUnRegProducer}>
-              更新候选者
+          {T('更新候选者')}
           </Button>
             &nbsp;&nbsp;
           <Button type="primary" onClick={this.unRegisterProducer.bind(this)} disabled={!this.state.bMyProducer || this.state.bUnRegProducer}>
-              注销候选者
+          {T('注销候选者')}
           </Button>
             &nbsp;&nbsp;
           <Button type="primary" onClick={this.refundReposit.bind(this)} disabled={!this.state.bMyProducer || !this.state.bUnRegProducer}>
-              取回抵押金
+          {T('取回抵押金')}
           </Button>
             &nbsp;&nbsp;
-            <b>当前周期:{this.state.curEpoch}, 一个周期时长:{this.state.duration}</b>
+            <b>{T('当前周期')}:{this.state.curEpoch}, {T('一个周期时长')}:{this.state.duration}</b>
         </p>
         <Table primaryKey="name"
           dataSource={this.state.producerList}
           rowSelection={this.state.rowSelection}
           onSort={this.onSort.bind(this)}
         >
-          <Table.Column title="候选者账号" dataIndex="name" width={100} cell={this.nameRender.bind(this)} />
+          <Table.Column title={T("候选者账号")} dataIndex="name" width={100} cell={this.nameRender.bind(this)} />
           <Table.Column title="URL" dataIndex="url" width={100} />
-          <Table.Column title="状态" dataIndex="type" width={100} cell={this.typeRender.bind(this)}/>
-          <Table.Column title="抵押票数" dataIndex="quantity" width={60} sortable />
-          <Table.Column title="总投票数" dataIndex="totalQuantity" width={60} sortable />
-          <Table.Column title="最近一次操作的区块高度" dataIndex="number" width={130} cell={this.numberRender.bind(this)} />
-          <Table.Column title="实出块数" dataIndex="actualCounter" width={130} sortable cell={this.counterRender.bind(this)} />
-          <Table.Column title="应出块数" dataIndex="shouldCounter" width={100} sortable />
-          <Table.Column title="我的投票" dataIndex="name" width={200} cell={this.renderMyVote.bind(this)} />
+          <Table.Column title={T("状态")} dataIndex="type" width={100} cell={this.typeRender.bind(this)}/>
+          <Table.Column title={T("抵押票数")} dataIndex="quantity" width={60} sortable />
+          <Table.Column title={T("总投票数")} dataIndex="totalQuantity" width={60} sortable />
+          <Table.Column title={T("最近一次操作的区块高度")} dataIndex="number" width={130} cell={this.numberRender.bind(this)} />
+          <Table.Column title={T("实出块数")} dataIndex="actualCounter" width={130} sortable cell={this.counterRender.bind(this)} />
+          <Table.Column title={T("应出块数")} dataIndex="shouldCounter" width={100} sortable />
+          <Table.Column title={T("我的投票")} dataIndex="name" width={200} cell={this.renderMyVote.bind(this)} />
         </Table>
-        <Icon type="process" style={{ color: '#FF3333', marginRight: '10px' }} />--可出块节点
+        <Icon type="process" style={{ color: '#FF3333', marginRight: '10px' }} />--{T("可出块节点")}
         &nbsp;&nbsp;&nbsp;&nbsp;
-        <Icon type="loading" style={{ color: '#1A5CFE', marginRight: '10px' }} />--正在出块的节点
+        <Icon type="loading" style={{ color: '#1A5CFE', marginRight: '10px' }} />--{T("正在出块的节点")}
         &nbsp;&nbsp;&nbsp;&nbsp;
-        <Icon type="account" style={{ color: '#FF3333', marginRight: '10px' }} />--我的节点
+        <Icon type="account" style={{ color: '#FF3333', marginRight: '10px' }} />--{T("我的节点")}
         &nbsp;&nbsp;&nbsp;&nbsp;
-        <Icon type="atm-away" style={{ color: '#FF3333', marginRight: '10px' }} />--备选节点
+        <Icon type="atm-away" style={{ color: '#FF3333', marginRight: '10px' }} />--{T("备选节点")}
         <Dialog
           visible={this.state.voteVisible}
-          title="投票"
+          title={T("投票")}
           footerActions={['ok', 'cancel']}
           footerAlign="center"
           closeable="true"
@@ -531,7 +532,7 @@ export default class CandidateList extends Component {
         >
           <Select
             style={{ width: 400 }}
-            placeholder="选择您可投票的账户"
+            placeholder={T("选择您可投票的账户")}
             onChange={this.onAccountChange.bind(this)}
             dataSource={this.state.canVoteAccounts}
           />
@@ -542,7 +543,7 @@ export default class CandidateList extends Component {
             placeholder={this.state.maxStakeTooltip}
             onChange={this.handleStakeChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="投票数"
+            addonBefore={T("投票数")}
             size="medium"
             defaultValue=""
             maxLength={20}
@@ -553,7 +554,7 @@ export default class CandidateList extends Component {
 
         <Dialog
           visible={this.state.registerProducerVisible}
-          title="注册候选者"
+          title={T("注册候选者")}
           footerActions={['ok', 'cancel']}
           footerAlign="center"
           closeable="true"
@@ -563,7 +564,7 @@ export default class CandidateList extends Component {
         >
           <Select
             style={{ width: 400 }}
-            placeholder="选择待注册为候选者的账户"
+            placeholder={T("选择待注册为候选者的账户")}
             onChange={this.onProducerChange.bind(this)}
             dataSource={this.state.canRegisterAccounts}
           />
@@ -572,7 +573,7 @@ export default class CandidateList extends Component {
           <Input hasClear
             onChange={this.handleURLChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="URL(可选)"
+            addonBefore={T("URL(可选)")}
             size="medium"
             defaultValue=""
             maxLength={this.state.dposInfo.maxURLLen}
@@ -585,7 +586,7 @@ export default class CandidateList extends Component {
             placeholder={this.state.maxStakeTooltip}
             onChange={this.handleStakeChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="抵押票数"
+            addonBefore={T("抵押票数")}
             size="medium"
             defaultValue=""
             maxLength={20}
@@ -595,7 +596,7 @@ export default class CandidateList extends Component {
         </Dialog>
         <Dialog
           visible={this.state.updateProducerVisible}
-          title="更新候选者"
+          title={T("更新候选者")}
           footerActions={['ok', 'cancel']}
           footerAlign="center"
           closeable="true"
@@ -619,7 +620,7 @@ export default class CandidateList extends Component {
             placeholder={this.state.maxStakeTooltip}
             onChange={this.handleStakeChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="增加抵押票数"
+            addonBefore={T("增加抵押票数")}
             size="medium"
             defaultValue=""
             maxLength={20}

@@ -12,8 +12,7 @@ import { encode } from 'rlp';
 import BigNumber from 'bignumber.js';
 import * as fractal from 'fractal-web3';
 import * as Constant from '../../utils/constant';
-import * as utils from '../../utils/utils';
-import * as AssetUtils from './AssetUtils';
+import { T } from '../../utils/lang';
 import TxSend from "../TxSend";
 
 const { Row } = Grid;
@@ -55,17 +54,17 @@ export default class AssetIncrease extends Component {
 
     const curAccountName = this.props.accountName;
     if (curAccountName === '') {
-      Feedback.toast.error('请选择需要操作资产的账户');
+      Feedback.toast.error(T('请选择需要操作资产的账户'));
       return;
     }
 
     if (value.assetId === '') {
-      Feedback.toast.error('请选择待增发的资产ID');
+      Feedback.toast.error(T('请选择待增发的资产ID'));
       return;
     }
 
     if (value.amount === '' || value.amount === '0') {
-      Feedback.toast.error('请输入大于0的增发金额');
+      Feedback.toast.error(T('请输入大于0的增发金额'));
       return;
     }
 
@@ -82,22 +81,22 @@ export default class AssetIncrease extends Component {
     const addIssue = new BigNumber(selectedAsset.addIssue);
     const upperLimit = new BigNumber(selectedAsset.upperLimit);
     if (addAmount.plus(addIssue).comparedTo(upperLimit) > 0) {
-      Feedback.toast.error('已超过可增发的总金额');
+      Feedback.toast.error(T('已超过可增发的总金额'));
       return;
     }
     if (amount.plus(addIssue).comparedTo(upperLimit) > 0) {
-      Feedback.toast.error('已超过可发行的上限');
+      Feedback.toast.error(T('已超过可发行的上限'));
       return;
     }
 
     if (value.toAccount === '') {
-      Feedback.toast.error('请输入增发对象的账户名称');
+      Feedback.toast.error(T('请输入增发对象的账户名称'));
       return;
     }
 
     const bAccountExist = await fractal.account.isAccountExist(value.toAccount);
     if (bAccountExist === false) {
-      Feedback.toast.error('增发对象不存在');
+      Feedback.toast.error(T('增发对象不存在'));
       return;
     }
 
@@ -140,10 +139,10 @@ export default class AssetIncrease extends Component {
         >
           <div style={styles.formContent}>
             <Row style={styles.formRow} justify="center">
-                        待增发的资产:
+                        {T('待增发的资产')}:
               <IceFormBinder required message="Required!">
                 <Select
-                  placeholder="选择需要增发的资产ID"
+                  placeholder={T("选择需要增发的资产ID")}
                   dataSource={this.state.assetInfoSet}
                   name="assetId"
                 />
@@ -152,7 +151,7 @@ export default class AssetIncrease extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="增发金额:"
+                  addonBefore={T("增发金额")}
                   name="amount"
                   size="large"
                 />
@@ -161,15 +160,15 @@ export default class AssetIncrease extends Component {
             <Row style={styles.formRow} justify="center">
               <IceFormBinder required message="Required!">
                 <Input hasClear
-                  addonBefore="增发对象:"
+                  addonBefore={T("增发对象")}
                   name="toAccount"
                   size="large"
-                  placeholder="将资产增发给此账号"
+                  placeholder={T("将资产增发给此账号")}
                 />
               </IceFormBinder>
             </Row>
             <Row style={styles.formRow} justify="center">
-              <Button type="normal" onClick={this.onSubmit}>提交</Button>
+              <Button type="normal" onClick={this.onSubmit}>{T("提交")}</Button>
             </Row>
           </div>
         </IceFormBinderWrapper>

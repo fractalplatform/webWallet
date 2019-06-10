@@ -21,13 +21,13 @@ export default class TransactionsTable extends Component {
   }
 
   componentDidMount() {
+    this.updateTxInfo();
     this.state.intervalId = setInterval(() => {
       this.updateTxInfo();
     }, 3000);
   }
 
   componentWillUnmount = () => {
-    console.log('TransactionsTable componentWillUnMount');
     clearInterval(this.state.intervalId);
   }
 
@@ -66,7 +66,6 @@ export default class TransactionsTable extends Component {
       }
       
       this.setState({txFrom: { txHashArr: this.state.txHashArr, maxTxNum }});
-      //setTimeout(() => { this.updateTxInfo(); }, 30000);
     });
   }
 

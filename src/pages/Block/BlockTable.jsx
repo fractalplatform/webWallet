@@ -7,6 +7,7 @@ import { Table, Pagination, Feedback } from '@icedesign/base';
 import BigNumber from "bignumber.js";
 import TransactionList from '../../TransactionList';
 import * as utils from '../../utils/utils';
+import { T } from '../../utils/lang';
 
 const { Row, Col } = Grid;
 
@@ -18,11 +19,11 @@ export default class BlockTable extends Component {
     this.state = {
         filter: [
             {
-              text: "区块高度",
+              text: T("区块高度"),
               value: "height"
             },
             {
-              text: "区块Hash值",
+              text: T("区块Hash值"),
               value: "hash"
             }
         ],
@@ -48,7 +49,7 @@ export default class BlockTable extends Component {
       blockInfo = await fractal.ft.getBlockByHash(value.key, true);
       blockInfo2 = await fractal.ft.getBlockByNum(blockInfo.number, false);
       if (blockInfo.hash != blockInfo2.hash) {
-        Feedback.toast.prompt('注意：此区块已被回滚');
+        Feedback.toast.prompt(T('注意：此区块已被回滚'));
       }
     } else {
       blockInfo = await fractal.ft.getBlockByNum(value.key, true);
@@ -57,7 +58,7 @@ export default class BlockTable extends Component {
     if (blockInfo != null) {
       this.setState({ blockInfo, txFrom: {blockHeight: blockInfo.number}, txNum: blockInfo.transactions.length });
     } else {
-        Feedback.toast.prompt('区块不存在');
+        Feedback.toast.prompt(T('区块不存在'));
     }
   }
 
@@ -104,35 +105,35 @@ export default class BlockTable extends Component {
         </IceContainer>
 
         <IceContainer style={styles.container}>
-            <h4 style={styles.title}>区块信息</h4>
+            <h4 style={styles.title}>{T('区块信息')}</h4>
             <ul style={styles.summary}>
               <li style={styles.item}>
-                <span style={styles.label}>高度：</span>
+                <span style={styles.label}>{T('高度')}：</span>
                 <span style={styles.value}>
                   {this.state.blockInfo.number}
                 </span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>不可逆高度：</span>
+                <span style={styles.label}>{T('不可逆高度')}：</span>
                 <span style={styles.value}>
                   {this.state.blockInfo.proposedIrreversible}
                 </span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>时间戳：</span>
+                <span style={styles.label}>{T('时间戳')}：</span>
                 <span style={styles.value}>{this.state.blockInfo.timestamp != null ? 
                                             utils.getValidTime(this.state.blockInfo.timestamp) : ''}</span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>交易数：</span>
+                <span style={styles.label}>{T('交易数')}：</span>
                 <span style={styles.value}>{this.state.txNum}</span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>Hash：</span>
+                <span style={styles.label}>{T('Hash')}：</span>
                 <span style={styles.value}>{this.state.blockInfo.hash}</span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>父区块Hash：</span>
+                <span style={styles.label}>{T('父区块Hash')}：</span>
                 <span style={styles.value}>{this.state.blockInfo.parentHash}</span>
               </li>
               <li style={styles.item}>
@@ -148,11 +149,11 @@ export default class BlockTable extends Component {
                 <span style={styles.value}>{this.state.blockInfo.transactionsRoot}</span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>生产者：</span>
+                <span style={styles.label}>{T('生产者')}：</span>
                 <span style={styles.value}>{this.state.blockInfo.miner}</span>
               </li>
               <li style={styles.item}>
-                <span style={styles.label}>大小：</span>
+                <span style={styles.label}>{T('大小')}：</span>
                 <span style={styles.value}>{this.state.blockInfo.size}</span>
               </li>
               <li style={styles.item}>

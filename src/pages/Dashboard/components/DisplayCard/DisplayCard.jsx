@@ -11,7 +11,7 @@ import './DisplayCard.scss';
 import injectReducer from '../../../../utils/injectReducer';
 import { getLatestBlock, getTransactionsNum } from './actions';
 import reducer from './reducer';
-import eventProxy from '../../../../utils/eventProxy';
+import { T } from '../../../../utils/lang';
 
 const { Row, Col } = Grid;
 
@@ -40,6 +40,7 @@ class BlockTxLayout extends Component {
   }
 
   componentDidMount = () => {
+    this.updateBlockChainInfo();
     this.state.intervalId = setInterval(() => {
       this.updateBlockChainInfo();
     }, 3000);
@@ -96,7 +97,7 @@ class BlockTxLayout extends Component {
         <Row wrap>
           <Col xxs="24" s="12" l="6" style={styles.item}>
             <div style={styles.title} className="title">
-              最新区块
+              {T('最新区块')}
             </div>
             <div className="count" style={styles.count}>
               {this.state.curBlockInfo.number}
@@ -113,7 +114,7 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                  最新区块高度
+                  {T('最新区块高度')}
                 </Balloon>
               </span>
             </div>
@@ -132,14 +133,14 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                  不可逆区块高度
+                  {T('不可逆区块高度')}
                 </Balloon>
               </span>
             </div>
           </Col>
           <Col xxs="24" s="12" l="6" style={styles.item}>
             <div style={styles.title} className="title">
-            交易信息
+            {T('交易信息')}
             </div>
             <div style={styles.count} className="count">
               {this.state.curTps} TPS
@@ -156,7 +157,7 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                  最新区块的TPS
+                  {T('最新区块的TPS')}
                 </Balloon>
               </span>
             </div>
@@ -175,14 +176,14 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                 最新区块的交易量
+                 {T('最新区块的交易量')}
                 </Balloon>
               </span>
             </div>
           </Col>
           <Col xxs="24" s="12" l="6" style={styles.item}>
             <div style={styles.title} className="title">
-              生产者
+            {T('生产者')}
             </div>
             <div style={styles.count} className="count">
               {this.state.curProducerList.length}
@@ -199,7 +200,7 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                  注册为生产者的节点数量
+                  {T('注册为生产者的节点数量')}
                 </Balloon>
               </span>
             </div>
@@ -218,14 +219,14 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                 出块节点数量
+                 {T('出块节点数量')}
                 </Balloon>
               </span>
             </div>
           </Col>
           <Col xxs="24" s="12" l="6" style={styles.item}>
             <div style={styles.title} className="title">
-              投票数
+            {T('投票数')}
             </div>
             <div style={styles.count} className="count">
               {this.state.latestEpchoInfo.totalQuantity} FT
@@ -242,7 +243,7 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                  总投出的票数
+                  {T('总投出的票数')}
                 </Balloon>
               </span>
             </div>
@@ -261,7 +262,7 @@ class BlockTxLayout extends Component {
                   triggerType="hover"
                   closable={false}
                 >
-                 出块节点获得的总票数
+                 {T('出块节点获得的总票数')}
                 </Balloon>
               </span>
             </div>

@@ -5,6 +5,7 @@ import IceContainer from '@icedesign/container';
 import copy from 'copy-to-clipboard';
 
 import * as utils from '../../../../utils/utils';
+import { T } from '../../../../utils/lang';
 import * as fractal from 'fractal-web3';
 
 export default class BlocksTable extends Component {
@@ -20,13 +21,13 @@ export default class BlocksTable extends Component {
   }
 
   componentDidMount() {
+    this.updateBlockInfo();
     this.state.intervalId = setInterval(() => {
       this.updateBlockInfo();
     }, 3000);
   }
 
   componentWillUnmount = () => {
-    console.log('BlocksTable componentWillUnMount');
     clearInterval(this.state.intervalId);
   }
 
@@ -59,7 +60,6 @@ export default class BlocksTable extends Component {
       this.setState({
         blockList: this.state.blockList,
       });
-      //setTimeout(() => { this.updateBlockInfo(); }, 3000);
     });
   }
 
@@ -72,12 +72,12 @@ export default class BlocksTable extends Component {
   }
   copyValue = (value) => {
     copy(value);
-    Feedback.toast.success('已复制到粘贴板');
+    Feedback.toast.success(T('已复制到粘贴板'));
   }
 
   renderHash = (value) => {
     const displayValue = value.substr(0, 6) + '...' + value.substr(value.length - 6);
-    return <address title={'点击可复制'} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
+    return <address title={T('点击可复制')} onClick={ () => this.copyValue(value) }>{displayValue}</address>;
   }
 
   renderTimeStamp = (value) => {
@@ -92,13 +92,13 @@ export default class BlocksTable extends Component {
             dataSource={this.state.blockList}
             primaryKey="number"
           >
-            <Table.Column title="时间" dataIndex="timestamp" width={100} cell={this.renderTimeStamp.bind(this)}/>
-            <Table.Column title="高度" dataIndex="number" width={100} />
-            <Table.Column title="Hash" dataIndex="hash" width={150} cell={this.renderHash.bind(this)}/>
-            <Table.Column title="交易数" dataIndex="txn" width={100} />
-            <Table.Column title="Gas消耗" dataIndex="gasUsed" width={100} />
-            <Table.Column title="区块大小(B)" dataIndex="size" width={100}/>
-            <Table.Column title="生产者" dataIndex="miner" width={100} />
+            <Table.Column title={T("时间")} dataIndex="timestamp" width={100} cell={this.renderTimeStamp.bind(this)}/>
+            <Table.Column title={T("高度")} dataIndex="number" width={100} />
+            <Table.Column title={T("Hash")} dataIndex="hash" width={150} cell={this.renderHash.bind(this)}/>
+            <Table.Column title={T("交易数")} dataIndex="txn" width={100} />
+            <Table.Column title={T("Gas消耗")} dataIndex="gasUsed" width={100} />
+            <Table.Column title={T("区块大小(B)")} dataIndex="size" width={100}/>
+            <Table.Column title={T("生产者")} dataIndex="miner" width={100} />
           </Table>
         </IceContainer>
       </div>
