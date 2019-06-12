@@ -241,7 +241,12 @@ export default class CandidateList extends Component {
       return;
     }
 
-    stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toNumber();
+    stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake));
+    if (stake.compareTo(new BigNumber(0)) > 0) {
+      stake = stake.toString(16);
+    } else {
+      stake = 0;
+    }
     const payload = '0x' + (!utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
 
     let txInfo = {actionType: Constant.REG_CANDIDATE, 
@@ -282,7 +287,12 @@ export default class CandidateList extends Component {
       Feedback.toast.error(T('新增抵押票数不可超过最大可抵押票数'));
       return;
     }
-    stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake)).toNumber();
+    stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake));
+    if (stake.compareTo(new BigNumber(0)) > 0) {
+      stake = stake.toString(16);
+    } else {
+      stake = 0;
+    }
     const payload = '0x' + (!utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
 
     let txInfo = {actionType: Constant.UPDATE_CANDIDATE, 

@@ -394,6 +394,7 @@ export default class TxSend extends Component {
     return totalWeight < threshold ? [] : myKeystores;
   }
   onSignOK = () => {
+    const self = this;
     const txInfo = JSON.parse(this.state.txToBeSigned);
     let multiSigInfos = [];
     this.state.indexesList.map(indexes => {

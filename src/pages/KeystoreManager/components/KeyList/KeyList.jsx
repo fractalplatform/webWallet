@@ -2,7 +2,7 @@
 /* eslint-disable no-restricted-syntax */
 import React, { Component } from 'react';
 import IceContainer from '@icedesign/container';
-import { Table, Button, Input, Dialog, Feedback } from '@icedesign/base';
+import { Table, Button, Input, Dialog, Feedback, Select } from '@icedesign/base';
 import { Tag } from '@alifd/next';
 import { ethers } from 'ethers';
 import EthCrypto, { sign } from 'eth-crypto';
@@ -22,7 +22,7 @@ const history = createHashHistory();
 
 const { Group: TagGroup, Selectable: SelectableTag } = Tag;
 const ActionType = { CreateFirstAccountByMnemonic: 0, CreateNewAccount: 1, ExportPrivateKey: 2, ExportKeyStoreInfo: 3, ExportMnemonic: 4,
-                     DeleteAccount: 5, ImportKeystore: 6, ImportPrivateKey: 7, SignTxInfo: 8 };
+                     DeleteAccount: 5, ImportKeystore: 6, ImportPrivateKey: 7, SignTxInfo: 8, CryptoInfo: 9 };
 const MnemonicPath = "m/44'/550'/0'/0/";
 const ConfusePwd = '*&^()!@863';
 const ConfuseMnemonic = '*&^() !@863 sdfs* (*^d';
@@ -62,7 +62,10 @@ export default class KeyList extends Component {
       bip32path: '',
       reMnemonicVisible: false,
       signVisible: false,
+      cryptoVisible: false,
+      chainIdVisible: false,
       signResult: '',
+      cryptoResult: '',
       reMnemonicWords: '',
       mnemonicWordTagList: [],
       keystoreInfo: '',
@@ -76,32 +79,67 @@ export default class KeyList extends Component {
     };
   }
 
-  testEcc = async (publicKey, privateKey, msg) => {
-    EccCrypto.encrypt(Buffer.from(utils.hex2Bytes(publicKey)), Buffer.from(msg)).then(encrypted => {
-      console.log(encrypted);
-      EccCrypto.decrypt(Buffer.from(utils.hex2Bytes(privateKey)), encrypted).then(function(plaintext) {
+  testEcc = (publicKey, privateKey, msg) => {
+    EthCrypto.encryptWithPublicKey(publicKey, msg).then(encrypted => {
+      EthCrypto.decryptWithPrivateKey(privateKey, encrypted).then(function(plaintext) {
         console.log("Message to part A:", plaintext.toString());
       });
     })
   }
 
-  componentDidMount = async () => {
-    try {
-      const chainConfig = await fractal.ft.getChainConfig();
-      fractal.ft.setChainId(chainConfig.chainId);
-      const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
-      if (keystoreInfoObj == null) {
-        return;
-      }
-      for (const ksInfoObj of keystoreInfoObj.keyList) {
-        const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : NonMnemonicGenerate;
-        const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
-        this.state.dataSource.push(displayKeyObj);
-      }
-      this.setState({ dataSource: this.state.dataSource });
+  componentDidMount = () => {
+     try {
+      //  this.testEcc('5e60891624f78fa06978dbb7852628303349b38b288408779db09a290e2906c0229bc83421bb0b1b4947c870201a6d126e6568633110b4198432b9e6d85a209d', 
+      //               '0xc5c995e7a894688c0347ea1235a09b977263314f783141dea7366b925657fbc9', 'test');
+      let rpcIsOK = false;
+      const chainIds = this.getStoredChainIds();
+      setTimeout(() => {
+        if (!rpcIsOK) {
+          this.setState({chainIds, chainIdVisible: true});
+        }
+      }, 3000);
+      
+      fractal.ft.getChainConfig().then(chainConfig => {
+        rpcIsOK = true;
+        this.setState({chainIdVisible: false});
+        fractal.ft.setChainId(chainConfig.chainId);
+        this.loadKeyInfo();
+      }).catch(error => {
+        console.log(error.message);
+        if (error.message.indexOf('Failed to fetch') >= 0) {
+          console.log(T('无法连接节点'));
+        }
+      });
     } catch (error) {
-      Feedback.toast.error(error);
+      Feedback.toast.error(error.message || error);
     }
+  }
+
+  getStoredChainIds = () => {
+    const chainIds = [];
+    const data = global.localStorage.getItem(KeyStoreFile);
+    if (data != null) {
+      const dataObj = JSON.parse(data);
+      const chainIdInfos = Object.keys(dataObj);
+      chainIdInfos.map(chainIdInfo => {
+        chainIds.push(chainIdInfo.split('-')[1]);
+      });
+    }
+    return chainIds;
+  }
+
+  loadKeyInfo = () => {
+    const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
+    if (keystoreInfoObj == null) {
+      return;
+    }
+    this.state.dataSource = [];
+    for (const ksInfoObj of keystoreInfoObj.keyList) {
+      const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : NonMnemonicGenerate;
+      const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
+      this.state.dataSource.push(displayKeyObj);
+    }
+    this.setState({ dataSource: this.state.dataSource });
   }
 
   renderOrder = (value, index) => {
@@ -139,6 +177,14 @@ export default class KeyList extends Component {
     history.push({ pathname: '/AccountManager', state: { publicKey: this.state.curData.publicKey, selfCreateAccountVisible: true } });
   };
 
+  cryptoInfo = (index) => {
+    this.state.method = ActionType.CryptoInfo;
+    this.state.curData = this.state.dataSource[index];
+    this.setState({
+      pwdDialogVisible: true,
+    });
+  };
+
   signTx = (index) => {
     this.state.method = ActionType.SignTxInfo;
     this.state.curData = this.state.dataSource[index];
@@ -159,7 +205,62 @@ export default class KeyList extends Component {
     } catch (error) {
       Feedback.toast.error(error.message || error);
     }
+  };
 
+  verifySignInfo = () => {
+    try {
+      const txInfoObj = JSON.parse(this.state.txInfo);
+      if (utils.isEmptyObj(this.state.signResult)) {
+        Feedback.toast.error(T('请输入签名信息'));
+        return;
+      }
+      if (utils.isEmptyObj(this.state.signAddr)) {
+        const publicKey = EthCrypto.publicKeyByPrivateKey(this.state.msgContent);
+        this.state.signAddr = EthCrypto.publicKey.toAddress(publicKey);
+      }
+      fractal.ft.recoverSignedTx(txInfoObj, this.state.signResult).then(address => {
+        if (address == this.state.signAddr) {
+          Feedback.toast.error(T('验证通过'));
+        } else {
+          Feedback.toast.error(T('验证失败'));
+        }
+      })
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
+    }
+  };
+
+  encryptoInfo = () => {
+    try {
+      if (utils.isEmptyObj(this.state.cryptoInfo)) {
+        Feedback.toast.error(T('请输入待加密的信息'));
+        return;
+      }
+      const publicKey = EthCrypto.publicKeyByPrivateKey(this.state.msgContent);
+      EthCrypto.encryptWithPublicKey(publicKey, this.state.cryptoInfo).then(encryptedInfo => {
+        this.setState({cryptoResult: JSON.stringify(encryptedInfo)});        
+      }).catch(error => {
+        Feedback.toast.error(error.message || error);
+      });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
+    }
+  };
+
+  decryptoInfo = () => {
+    try {
+      if (utils.isEmptyObj(this.state.cryptoInfo)) {
+        Feedback.toast.error(T('请输入待解密的信息'));
+        return;
+      }
+      EthCrypto.decryptWithPrivateKey(this.state.msgContent, JSON.parse(this.state.cryptoInfo)).then(plaintext => {
+        this.setState({cryptoResult: plaintext.toString()});
+      }).catch(error => {
+        Feedback.toast.error(error.message || error);
+      });
+    } catch (error) {
+      Feedback.toast.error(error.message || error);
+    }
   };
 
   modifyPwd = (index) => {
@@ -215,7 +316,11 @@ export default class KeyList extends Component {
           </Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.signTx.bind(this, index)}>
-          {T('签名')}
+          {T('签名/验签')}
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.cryptoInfo.bind(this, index)}>
+          {T('加密/解密')}
           </Button>
         </view>
       );
@@ -243,7 +348,11 @@ export default class KeyList extends Component {
           </Button>
           &nbsp;&nbsp;
           <Button type="primary" onClick={this.signTx.bind(this, index)}>
-          {T('签名')}
+          {T('签名/验签')}
+          </Button>
+          &nbsp;&nbsp;
+          <Button type="primary" onClick={this.cryptoInfo.bind(this, index)}>
+          {T('加密/解密')}
           </Button>
         </view>
       );
@@ -531,6 +640,15 @@ export default class KeyList extends Component {
           pwdDialogVisible: false,
         });
       });
+    } else if (this.state.method === ActionType.CryptoInfo) {
+      this.processAction(item => item.address === this.state.curData.address, T('密码验证中'), wallet => {
+        Feedback.toast.hide();
+        this.state.msgContent = wallet.privateKey;
+        this.setState({
+          cryptoVisible: true,
+          pwdDialogVisible: false,
+        });
+      });
     }
   };
 
@@ -684,10 +802,37 @@ export default class KeyList extends Component {
     this.state.txInfo = v;
   }
 
+  onCryptoInfoChange(v) {
+    this.state.cryptoInfo = v;
+  }
+
+  onCryptoResultChange(v) {
+    this.setState({cryptoResult: v});
+  }
+  onSignResultChange(v) {
+    this.setState({signResult: v});
+  }
+
+  onSignAddrChange(v) {
+    this.state.signAddr = v;
+  }
+
   onSignClose = () => {
     this.setState({signVisible: false});
   }
 
+  onCryptoClose = () => {
+    this.setState({cryptoVisible: false});
+  }
+
+  onChainIdClose = () => {
+    this.setState({chainIdVisible: false});
+  }
+
+  onChangeChainId = (chainId) => {
+    fractal.ft.setChainId(chainId);
+    this.loadKeyInfo();
+  }
 
   onTagChange = (word, checked) => {
     if (this.state.reMnemonicWords.indexOf(word) < 0) {
@@ -781,9 +926,26 @@ export default class KeyList extends Component {
     );
     const signFooter = (
       <div>
-        <Button onClick={this.signTxInfo.bind(this)} href="javascript:;">
+        <Button type="primary" onClick={this.signTxInfo.bind(this)} href="javascript:;">
         {T('获取签名')}
         </Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.verifySignInfo.bind(this)} href="javascript:;">
+        {T('验证签名')}
+        </Button>
+        &nbsp;&nbsp;
+      </div>
+    );
+    const cryptoFooter = (
+      <div>
+        <Button type="primary" onClick={this.encryptoInfo.bind(this)} href="javascript:;">
+        {T('加密')}
+        </Button>
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.decryptoInfo.bind(this)} href="javascript:;">
+        {T('解密')}
+        </Button>
+        &nbsp;&nbsp;
       </div>
     );
     return (
@@ -1045,7 +1207,7 @@ export default class KeyList extends Component {
         </Dialog>
         <Dialog
           visible={this.state.signVisible}
-          title={T("签名交易")}
+          title={T("签名/验签交易")}
           footer={signFooter}
           footerAlign="center"
           closeable="true"
@@ -1053,6 +1215,7 @@ export default class KeyList extends Component {
           onClose={this.onSignClose}
         >
           <Input multiple
+            addonBefore={T("交易信息")}
             style={{ width: 350 }}
             rows='5'
             onChange={this.onTxInfoChange.bind(this)}
@@ -1064,6 +1227,58 @@ export default class KeyList extends Component {
             addonBefore={T("签名结果")}
             size="medium"
             value={this.state.signResult}
+            onChange={this.onSignResultChange.bind(this)}
+          />
+          <p />
+          <p />
+          <Input hasClear
+            style={{ width: 350 }}
+            addonBefore={T("待比较地址")}
+            placeholder={T("验证签名时可填写")}
+            size="medium"
+            onChange={this.onSignAddrChange.bind(this)}
+          />
+        </Dialog>
+        <Dialog
+          visible={this.state.cryptoVisible}
+          title={T("加/解密信息")}
+          footer={cryptoFooter}
+          footerAlign="center"
+          closeable="true"
+          onCancel={this.onCryptoClose}
+          onClose={this.onCryptoClose}
+        >
+          <Input multiple hasClear
+            addonBefore={T("加/解密信息")}
+            style={{ width: 350 }}
+            rows='5'
+            onChange={this.onCryptoInfoChange.bind(this)}
+          />
+          <p />
+          <p />
+          <Input multiple hasClear
+            style={{ width: 350 }}
+            addonBefore={T("加/解密结果")}
+            size="medium"
+            rows='3'
+            value={this.state.cryptoResult}
+            onChange={this.onCryptoResultChange.bind(this)}
+          />
+        </Dialog>
+        <Dialog
+          visible={this.state.chainIdVisible}
+          title={T("选择ChainId")}
+          footerAlign="center"
+          closeable="true"
+          onOk={this.onChainIdClose}
+          onCancel={this.onChainIdClose}
+          onClose={this.onChainIdClose}
+        >
+          <Select
+            style={{ width: 400 }}
+            placeholder={T("请选择ChainId")}
+            onChange={this.onChangeChainId.bind(this)}
+            dataSource={this.state.chainIds}
           />
         </Dialog>
       </div>

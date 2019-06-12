@@ -200,7 +200,16 @@ export default class RawTxConstructor extends Component {
             this.state.payloadElements.push('');
             payloadDetailInfoList.push({name: actionValue.payloadName, value: ''});
           } else if (actionValue.isNumber) {
-            value = this.getNumber(actionValue.value);
+            if (utils.isEmptyObj(actionValue.value)) {
+              value = 0;
+            } else {
+              value = new BigNumber(actionValue.value);
+              if (value.comparedTo(new BigNumber(1).shiftedBy(18)) == 1) {
+                value = value.toString(16);
+              } else {
+                value = value.toNumber();
+              }
+            }
             this.state.payloadElements.push(value);
             payloadDetailInfoList.push({name: actionValue.payloadName, value});
           } else {

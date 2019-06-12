@@ -1414,13 +1414,14 @@ export default class AccountList extends Component {
         Feedback.toast.error(T('余额不足'));
         return;
       }
-  
+      
+      const amountValue = value.comparedTo(new BigNumber(0)) == 0 ? 0 : value.toString(16);
       const transferAssetId = self.state.curTransferAsset.assetId;
       let txInfo = {actionType: Constant.TRANSFER, 
                     accountName: self.state.curAccount.accountName, 
                     toAccountName: self.state.transferToAccount,
                     assetId: transferAssetId == null ? 0 : transferAssetId,
-                    amount: new BigNumber(value).toNumber(),
+                    amount: amountValue,
                     payload: ''};
       this.showTxSendDialog(txInfo);
     })
@@ -1759,7 +1760,7 @@ export default class AccountList extends Component {
           onOk={this.onWithdrawTxFeeOK.bind(this)}
           onCancel={this.onWithdrawTxFeeClose.bind(this)}
           onClose={this.onWithdrawTxFeeClose.bind(this)}
-          title={T("提取手续费--") + this.state.curAccount.accountName}
+          title={T("提取手续费") + '--' + this.state.curAccount.accountName}
           footerAlign="center"
           footer={this.state.withdrawFooter}
         >

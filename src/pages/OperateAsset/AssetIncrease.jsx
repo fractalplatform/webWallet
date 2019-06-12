@@ -112,7 +112,7 @@ export default class AssetIncrease extends Component {
     const decimals = parseInt(this.state.decimals, 10);
     const toAccount = value.toAccount;
 
-    const rlpData = encode([assetId, addMount.shiftedBy(decimals).toNumber(), toAccount]);
+    const rlpData = encode([assetId, addMount.shiftedBy(decimals).toString(16), toAccount]);
     txInfo.payload = `0x${rlpData.toString('hex')}`;
 
     this.setState({

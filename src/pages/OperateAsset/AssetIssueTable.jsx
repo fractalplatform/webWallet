@@ -80,13 +80,14 @@ export default class AssetIssueTable extends Component {
         return;
       }
     } catch (error) {
-      
+      Feedback.toast.error(error.message || error);
     }
     const accountInfo = await fractal.account.getAccountByName(value.assetName);
     if (accountInfo != null) {
       Feedback.toast.error(T('资产名同账号名冲突，不可用'));
       return;
     }
+    let fartherAsset = null;
     const dotIndex = value.assetName.indexOf('.');
     if (dotIndex > -1) {
       const fatherAssetName = value.assetName.substr(0, dotIndex);
@@ -94,6 +95,7 @@ export default class AssetIssueTable extends Component {
       this.state.assetInfoSet.map(item => {
         if (item.assetName == fatherAssetName) {
           bExistAsset = true;
+          fartherAsset = item;
         }
       })
       if (!bExistAsset) {
@@ -116,6 +118,10 @@ export default class AssetIssueTable extends Component {
     const decimals = parseInt(value.decimals, 10);
     if (decimals == null) {
       Feedback.toast.error(T('请输入正确的精度'));
+      return;
+    }
+    if (fartherAsset != null && fartherAsset.decimals != decimals) {
+      Feedback.toast.error(T('父子资产的精度必须保持一致'));
       return;
     }
 
@@ -141,8 +147,8 @@ export default class AssetIssueTable extends Component {
     txInfo.toAccountName = 'fractal.asset';
     txInfo.assetId = 0;
     txInfo.amount = 0;
-    const rlpData = encode([value.assetName, value.symbol, amount.shiftedBy(decimals).toNumber(),
-      decimals, value.founder, value.owner, upperLimit.shiftedBy(decimals).toNumber(), value.contract, value.desc]);
+    const rlpData = encode([value.assetName, value.symbol, amount.shiftedBy(decimals).toString(16),
+      decimals, value.founder, value.owner, upperLimit.shiftedBy(decimals).toString(16), value.contract, value.desc]);
     txInfo.payload = `0x${rlpData.toString('hex')}`;
 
     this.setState({
