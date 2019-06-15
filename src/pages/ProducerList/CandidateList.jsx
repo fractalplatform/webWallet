@@ -242,7 +242,7 @@ export default class CandidateList extends Component {
     }
 
     stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake));
-    if (stake.compareTo(new BigNumber(0)) > 0) {
+    if (stake.comparedTo(new BigNumber(0)) > 0) {
       stake = stake.toString(16);
     } else {
       stake = 0;
@@ -288,7 +288,7 @@ export default class CandidateList extends Component {
       return;
     }
     stake = new BigNumber(stake).shiftedBy(this.state.chainConfig.sysTokenDecimal).multipliedBy(new BigNumber(this.state.dposInfo.unitStake));
-    if (stake.compareTo(new BigNumber(0)) > 0) {
+    if (stake.comparedTo(new BigNumber(0)) > 0) {
       stake = stake.toString(16);
     } else {
       stake = 0;
