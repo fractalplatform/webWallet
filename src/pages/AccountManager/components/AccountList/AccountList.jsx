@@ -785,7 +785,13 @@ export default class AccountList extends Component {
     this.setState({ modifyThresholdVisible: true});
   }
   submitAllAuthorUpdate= () => {
-    const { threshold, updateAuthorThreshold } = this.state.curAccount;
+    let { threshold, updateAuthorThreshold } = this.state.curAccount;
+    if (!utils.isEmptyObj(this.state.authorTxThreshold)) {
+      updateAuthorThreshold = parseInt(this.state.authorTxThreshold);
+    }
+    if (!utils.isEmptyObj(this.state.normalTxThreshold)) {
+      threshold = parseInt(this.state.normalTxThreshold);
+    }
     const authorUpdateList = [];
     this.state.authorList.map(author => {
       if (author.status == AuthorUpdateStatus.Normal) {
@@ -1091,10 +1097,10 @@ export default class AccountList extends Component {
     this.state.gasLimit = v;
   }
   handleAuthorThresholdChange = (v) => {
-    this.state.authorThreshold = v;
+    this.state.authorTxThreshold = v;
   }
   handleThresholdChange = (v) => {
-    this.state.authorThreshold = v;
+    this.state.normalTxThreshold = v;
   }
   onBindNewAuthorOK = async () => {
     const newOwner = this.state.newOwner;
