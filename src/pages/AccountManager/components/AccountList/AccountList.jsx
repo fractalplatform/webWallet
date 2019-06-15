@@ -1035,11 +1035,13 @@ export default class AccountList extends Component {
     this.state.curAccount = await fractal.account.getAccountByName(this.state.creator);
 
     const payload = '0x' + encode([this.state.newAccountName, this.state.creator, publicKey, accountDetail]).toString('hex');
+    let amountValue = new BigNumber(this.state.transferAmount).shiftedBy(this.state.chainConfig.sysTokenDecimal);
+    amountValue = amountValue.comparedTo(new BigNumber(0)) == 0 ? 0 : '0x' + amountValue.toString(16);
     this.state.txInfo = { actionType: Constant.CREATE_NEW_ACCOUNT,
       accountName: this.state.curAccount.accountName,
       toAccountName: this.state.chainConfig.accountName,  // fractal.account
       assetId: this.state.chainConfig.sysTokenID,  // ft
-      amount: new BigNumber(this.state.transferAmount).shiftedBy(this.state.chainConfig.sysTokenDecimal).toNumber(),
+      amount: amountValue,
       payload };
 
     this.showTxSendDialog(this.state.txInfo);
@@ -1421,7 +1423,7 @@ export default class AccountList extends Component {
         return;
       }
       
-      const amountValue = value.comparedTo(new BigNumber(0)) == 0 ? 0 : value.toString(16);
+      const amountValue = value.comparedTo(new BigNumber(0)) == 0 ? 0 : '0x' + value.toString(16);
       const transferAssetId = self.state.curTransferAsset.assetId;
       let txInfo = {actionType: Constant.TRANSFER, 
                     accountName: self.state.curAccount.accountName, 

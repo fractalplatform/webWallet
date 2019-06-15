@@ -175,7 +175,9 @@ export default class TxSend extends Component {
     }
     actionInfo.gasLimit = new BigNumber(this.state.gasLimit).toNumber();
     actionInfo.remark = this.state.remark;
-    actionInfo.amount = actionInfo.amount != 0 ? '0x' + new BigNumber(actionInfo.amount).toString(16) : 0;
+    if (typeof actionInfo.amount != 'string') {
+      actionInfo.amount = actionInfo.amount != 0 ? '0x' + new BigNumber(actionInfo.amount).toString(16) : 0;
+    }
 
     txInfo.gasAssetId = this.state.chainConfig.sysTokenID;  // ft作为gas asset
     txInfo.gasPrice = new BigNumber(this.state.gasPrice).shiftedBy(9).toNumber();
@@ -226,7 +228,7 @@ export default class TxSend extends Component {
           multiSigInfos.push({signInfo, indexes: [index]});
           utils.confuseInfo(wallet.privateKey);
         }
-        if (multiSigInfos.length == 0) {
+        if (multiSigInfos.length == 0) {  // 这条路径暂时关闭
           fractal.ft.sendSingleSigTransaction(txInfo, multiSigInfos[0].signInfo).then(txHash => {
             console.log('tx hash=>' + txHash);
             this.processTxSendResult(txInfo, txHash);
@@ -244,7 +246,8 @@ export default class TxSend extends Component {
             }
           });
         } else {
-          fractal.ft.sendSeniorSigTransaction(txInfo, multiSigInfos, 0).then(txHash => {
+          const fatherLevel = this.getSupperAccountLevel(curSignAccount.accountName, actionInfo.accountName);
+          fractal.ft.sendSeniorSigTransaction(txInfo, multiSigInfos, fatherLevel).then(txHash => {
             console.log('tx hash=>' + txHash);
             this.processTxSendResult(txInfo, txHash);
             this.onTxConfirmClose();
@@ -269,6 +272,25 @@ export default class TxSend extends Component {
       Feedback.toast.success('开始发送交易');
     }
   };
+
+  getSupperAccountLevel = (supperAccountName, subAccountName) => {
+    if (utils.isEmptyObj(supperAccountName)) {
+      return 0;
+    }
+    const supperAccountElements = supperAccountName.split('.');
+    const subAccountElements = subAccountName.split('.');
+    if (supperAccountElements.length > subAccountElements.length) {
+      throw 'supper account is not associate with sub account';
+    }
+    let index = 0;
+    for (const element of supperAccountElements) {
+      if (element != subAccountElements[index]) {
+        throw 'supper account is not associate with sub account';
+      }
+      index++;
+    }
+    return subAccountElements.length - supperAccountElements.length;
+  }
 
   getSignIndex = (account, walletInfo) => {
     const authors = account.authors;
