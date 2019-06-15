@@ -210,7 +210,7 @@ export default class TxSend extends Component {
         this.setState({multiSignVisible: true, txToBeSigned: JSON.stringify(txToBeSigned) });
       });
     } else {
-      let index = 0;
+      //let index = 0;
       let multiSigInfos = [];
       let promiseArr = [];
       for (const ethersKSInfo of keystores) {
@@ -222,11 +222,11 @@ export default class TxSend extends Component {
         console.log(JSON.stringify(txInfo));
         for (let wallet of wallets) {
           const signInfo = await fractal.ft.signTx(txInfo, wallet.privateKey);
+          const index = this.getSignIndex(this.state.curAccount, wallet);
           multiSigInfos.push({signInfo, indexes: [index]});
-          index++;
           utils.confuseInfo(wallet.privateKey);
         }
-        if (multiSigInfos.length == 1) {
+        if (multiSigInfos.length == 0) {
           fractal.ft.sendSingleSigTransaction(txInfo, multiSigInfos[0].signInfo).then(txHash => {
             console.log('tx hash=>' + txHash);
             this.processTxSendResult(txInfo, txHash);
@@ -269,6 +269,19 @@ export default class TxSend extends Component {
       Feedback.toast.success('开始发送交易');
     }
   };
+
+  getSignIndex = (account, walletInfo) => {
+    const authors = account.authors;
+    let index = 0;
+    for (const author of authors) {
+      const owner = author.owner.toLowerCase();
+      if (owner == walletInfo.signingKey.address.toLowerCase() || owner == walletInfo.signingKey.publicKey.toLowerCase()) {
+        return index;
+      }
+      index++;
+    }
+    return -1;
+  }
 
   onTxConfirmClose = () => {
     this.setState({ txConfirmVisible: false });
