@@ -247,7 +247,7 @@ export default class CandidateList extends Component {
     } else {
       stake = 0;
     }
-    const payload = '0x' + (!utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : '');
+    const payload = '0x' + (!utils.isEmptyObj(this.state.url) ? encode([this.state.url]).toString('hex') : encode(['']).toString('hex'));
 
     let txInfo = {actionType: Constant.REG_CANDIDATE, 
       accountName: this.state.curAccount.accountName, 
