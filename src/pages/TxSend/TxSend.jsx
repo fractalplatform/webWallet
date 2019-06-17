@@ -177,6 +177,8 @@ export default class TxSend extends Component {
     actionInfo.remark = this.state.remark;
     if (typeof actionInfo.amount != 'string') {
       actionInfo.amount = actionInfo.amount != 0 ? '0x' + new BigNumber(actionInfo.amount).toString(16) : 0;
+    } else if (typeof actionInfo.amount == 'string' && !actionInfo.amount.startsWith('0x')) {
+      actionInfo.amount = '0x' + actionInfo.amount;
     }
 
     txInfo.gasAssetId = this.state.chainConfig.sysTokenID;  // ft作为gas asset
@@ -491,7 +493,7 @@ export default class TxSend extends Component {
     this.setState({ indexesList });
   }
   updateMultiSignInputs = () => {
-    console.log('updateMultiSignInputs');
+   // console.log('updateMultiSignInputs');
     this.state.multiSignInputs = [];
     this.state.indexesList.map(indexes => {
       let curUpdateData = this.state.multiSignData;

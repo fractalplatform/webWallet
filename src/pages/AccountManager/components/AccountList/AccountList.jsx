@@ -1633,9 +1633,9 @@ export default class AccountList extends Component {
             addonBefore={T("待创建账号")}
             size="medium"
             defaultValue=""
-            maxLength={25}
+            maxLength={50}
             hasLimitHint
-            placeholder={T("由a-z0-9.组成，长度8~25位")}
+            placeholder={T("字母开头,由a-z0-9.组成,一级7~16位,二三级皆2~16位")}
           />
           <br />
           <br />

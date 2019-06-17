@@ -220,7 +220,7 @@ export default class RawTxConstructor extends Component {
         }
       } else if (this.hasUselessPayloadTx(actionType)) {
         let payloadValue = this.state['default-0'];
-        this.state.payloadElements.push(payloadValue.value);
+        //this.state.payloadElements.push(payloadValue.value);
         payloadDetailInfoList.push({name: payloadValue.payloadName, value:payloadValue.value});
       }
       let payload = '';
