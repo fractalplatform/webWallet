@@ -456,6 +456,7 @@ const ch2en = {
   "请选择ChainId":"Please select ChainId",
   "无法连接节点，请手动选择chainId才能加载密钥":"Can't connect node, please select the chaindId to load keys.",
   "父子资产的精度必须保持一致":"The decimals of father and sub asset should be equal.",
+  "加密/解密":"Encrypt/Decrypt",
   }
 
   let isCh = true;
