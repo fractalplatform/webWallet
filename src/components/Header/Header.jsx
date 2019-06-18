@@ -34,8 +34,11 @@ export default class Header extends PureComponent {
       nodeConfigVisible: false,
       nodeInfo,
       chainId: 0,
+      customNodeDisabled: true,
       languages: [{value: 'ch', label:'中文'}, {value: 'en', label:'English'}],
       defaultLang: (defaultLang == null || defaultLang == 'ch') ? 'ch' : 'en',
+      nodes: [{value: 'http://120.92.115.77:33100', label:'主网http://120.92.115.77:33100'}, {value: 'http://120.92.115.77:33000', label:'测试网http://120.92.115.77:33000'}, 
+              {value: 'http://127.0.0.1::8545', label:'本地节点http://127.0.0.1::8545'}, {value: 'others', label: '自定义'}],
     };
     setLang(this.state.defaultLang);
   }
@@ -54,6 +57,11 @@ export default class Header extends PureComponent {
     cookie.save('defaultLang', v);
     setLang(v);
     history.push('/');
+  }
+  onChangeNode = (v) => {
+    cookie.save('defaultNode', v);
+    this.state.nodeInfo = v;
+    this.setState({customNodeDisabled: v != 'others'});
   }
   onConfigNodeOK = () => {
     // if (!utils.checkIpVaild(this.state.ip)) {
@@ -107,7 +115,16 @@ export default class Header extends PureComponent {
             onCancel={() => this.setState({ nodeConfigVisible: false })}
             onClose={() => this.setState({ nodeConfigVisible: false })}
           >
+            <Select
+                style={{ width: 400 }}
+                placeholder={T("选择节点")}
+                onChange={this.onChangeNode.bind(this)}
+                dataSource={this.state.nodes}
+            />
+            <br />
+            <br />
             <Input hasClear
+              disabled={this.state.customNodeDisabled}
               onChange={this.handleNodeInfoChange.bind(this)}
               style={{ width: 400 }}
               addonBefore="RPC URL"
