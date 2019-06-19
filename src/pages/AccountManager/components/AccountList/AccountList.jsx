@@ -1608,7 +1608,7 @@ export default class AccountList extends Component {
             + {T('导入账户')}
           </div>
           <Feedback title={T("提示")} type="help" visible={this.state.helpVisible}>
-          {T('首个主网账户请找第三方申请，如是首个测试网账户可上公链电报群进行申请，申请成功后请将私钥和账户导入即可使用。')}
+          {T('首个主网账户请找第三方申请，如是首个测试网账户可到公链电报群(https://t.me/FractalOfficial)进行申请，申请成功后请将私钥和账户导入即可使用。')}
           </Feedback>
         </IceContainer>
         <Dialog
