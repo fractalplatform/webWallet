@@ -437,7 +437,9 @@ export default class TxSend extends Component {
     this.state.indexesList.map(indexes => {
       const signInfo = this.state.signInfo[indexes];
       if (!utils.isEmptyObj(signInfo)) {
-        multiSigInfos.push({signInfo, indexes: indexes.split('.')});
+        const indexesInfo = [];
+        indexes.split('.').map(index => indexesInfo.push(parseInt(index, 10)));
+        multiSigInfos.push({signInfo, indexes: indexesInfo});
       }
     });
     fractal.ft.sendSeniorSigTransaction(txInfo, multiSigInfos, 0).then(txHash => {
@@ -529,26 +531,26 @@ export default class TxSend extends Component {
           }
         }
       }
-      
+      const multiFatherIndexesStr = multiFatherIndexes.join('.');
       this.state.multiSignInputs.push(
         <br />,<br />,
         addOnBeforeInput + '的签名:',<br />,
-        <Input id={multiFatherIndexes} hasClear
+        <Input id={multiFatherIndexesStr} hasClear
           style={{width: 400}}
           addonBefore='签名'
           size="medium"
-          value={this.state.signInfo[multiFatherIndexes]}
-          onChange={this.handleElementChange.bind(this, multiFatherIndexes)}/>
+          value={this.state.signInfo[multiFatherIndexesStr]}
+          onChange={this.handleElementChange.bind(this, multiFatherIndexesStr)}/>
       );
       if (bSignBySelf) {
         this.state.multiSignInputs.push(
           <view>&nbsp;&nbsp;</view>,
-          <Button type="primary" onClick={this.signBySelf.bind(this, multiFatherIndexes, curKeystore)}>自己签名</Button>
+          <Button type="primary" onClick={this.signBySelf.bind(this, multiFatherIndexesStr, curKeystore)}>自己签名</Button>
         );
       } else {
         this.state.multiSignInputs.push(
           <view>&nbsp;&nbsp;</view>,
-          <Button type="primary" onClick={this.verifySign.bind(this, multiFatherIndexes, lastOwner)}>验证签名</Button>
+          <Button type="primary" onClick={this.verifySign.bind(this, multiFatherIndexesStr, lastOwner)}>验证签名</Button>
         );
       }
     });

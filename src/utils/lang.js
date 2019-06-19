@@ -89,7 +89,7 @@ const ch2en = {
   "操作":"operating",
   "新增账户":"Add account",
   "导入账户":"Import account",
-  "首个主网账户请找第三方申请，如是首个测试网账户可上公链电报群进行申请，申请成功后请将私钥和账户导入即可使用。":"For the first main network account, please apply for a third party. If the first test network account can be applied to the public chain telegram group, please import the private key and account after the application is successful.",
+  "首个主网账户请找第三方申请，如是首个测试网账户可上公链电报群(https://t.me/FractalOfficial)进行申请，申请成功后请将私钥和账户导入即可使用。":"For the first main network account, please apply for a third party. If the first test network account can be applied to the public chain telegram group(https://t.me/FractalOfficial), please import the private key and account after the application is successful.",
   "账户创建":"Account creation",
   "选择您拥有的账户(此账户用于创建新账户)":"Choose the account",
   "待创建账号":"Account to be created",
@@ -457,6 +457,9 @@ const ch2en = {
   "无法连接节点，请手动选择chainId才能加载密钥":"Can't connect node, please select the chaindId to load keys.",
   "父子资产的精度必须保持一致":"The decimals of father and sub asset should be equal.",
   "加密/解密":"Encrypt/Decrypt",
+  "加/解密信息":"Encrypt/Decrypt Info",
+  "加/解密结果":"Encrypt/Decrypt Result",
+  "待比较地址":"Address to be compared",
   }
 
   let isCh = true;

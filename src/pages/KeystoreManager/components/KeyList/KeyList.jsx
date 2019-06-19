@@ -135,7 +135,7 @@ export default class KeyList extends Component {
     }
     this.state.dataSource = [];
     for (const ksInfoObj of keystoreInfoObj.keyList) {
-      const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : NonMnemonicGenerate;
+      const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : T(NonMnemonicGenerate);
       const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
       this.state.dataSource.push(displayKeyObj);
     }
@@ -296,7 +296,7 @@ export default class KeyList extends Component {
   }
   renderOperation = (value, index) => {
     const keyInfoObj = this.state.dataSource[index];
-    if (keyInfoObj.bip32path === NonMnemonicGenerate) {
+    if (keyInfoObj.bip32path == T(NonMnemonicGenerate)) {
       return (
         <view>
           <Button type="primary" onClick={this.exportPriKey.bind(this, index)}>
@@ -515,7 +515,7 @@ export default class KeyList extends Component {
       ksInfoObj['publicKey'] = utils.getPublicKeyWithPrefix(publicKey);
 
       if (this.addAccountToKeystoreFile(ksInfoObj, repalceOldOne)) {
-        const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : NonMnemonicGenerate;
+        const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : T(NonMnemonicGenerate);
         const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
         this.state.dataSource.push(displayKeyObj);
 
@@ -667,7 +667,7 @@ export default class KeyList extends Component {
   onChangePwdOK = async () => {
     const { password, newPassword, newPasswordConfirm } = this.state;
     if (!utils.checkPassword(password) || !utils.checkPassword(newPassword) || !utils.checkPassword(newPasswordConfirm)) {
-      Feedback.toast.error(pwdPlaceholder);
+      Feedback.toast.error(T(pwdPlaceholder));
       return;
     }
     if (newPassword !== newPasswordConfirm) {
@@ -1001,7 +1001,7 @@ export default class KeyList extends Component {
             onChange={this.handlePasswordChange.bind(this)}
             style={{ width: 400 }}
             addonBefore={T("密码")}
-            placeholder={pwdPlaceholder}
+            placeholder={T(pwdPlaceholder)}
             size="medium"
             defaultValue=""
             maxLength={20}
@@ -1037,7 +1037,7 @@ export default class KeyList extends Component {
             onChange={this.handlePasswordChange.bind(this)}
             style={{ width: 400 }}
             addonBefore={T("旧密码")}
-            placeholder={pwdPlaceholder}
+            placeholder={T(pwdPlaceholder)}
             size="medium"
             defaultValue=""
             maxLength={20}
@@ -1051,7 +1051,7 @@ export default class KeyList extends Component {
             onChange={this.handleNewPasswordChange.bind(this)}
             style={{ width: 400 }}
             addonBefore={T("新密码")}
-            placeholder={pwdPlaceholder}
+            placeholder={T(pwdPlaceholder)}
             size="medium"
             defaultValue=""
             maxLength={20}
@@ -1065,7 +1065,7 @@ export default class KeyList extends Component {
             onChange={this.handleNewPasswordConfirmChange.bind(this)}
             style={{ width: 400 }}
             addonBefore={T("新密码确认")}
-            placeholder={pwdPlaceholder}
+            placeholder={T(pwdPlaceholder)}
             size="medium"
             defaultValue=""
             maxLength={20}

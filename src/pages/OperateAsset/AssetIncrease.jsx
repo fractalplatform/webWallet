@@ -76,7 +76,7 @@ export default class AssetIncrease extends Component {
         break;
       }
     }
-    const addAmount = new BigNumber(value.amount);
+    const addAmount = new BigNumber(value.amount).shiftedBy(this.state.decimals);
     const amount = new BigNumber(selectedAsset.amount);
     const addIssue = new BigNumber(selectedAsset.addIssue);
     const upperLimit = new BigNumber(selectedAsset.upperLimit);
@@ -108,11 +108,9 @@ export default class AssetIncrease extends Component {
     txInfo.amount = 0;
 
     const assetId = parseInt(value.assetId, 10);
-    const addMount = new BigNumber(value.amount);
-    const decimals = parseInt(this.state.decimals, 10);
     const toAccount = value.toAccount;
 
-    const rlpData = encode([assetId, '0x' + addMount.shiftedBy(decimals).toString(16), toAccount]);
+    const rlpData = encode([assetId, '0x' + addAmount.toString(16), toAccount]);
     txInfo.payload = `0x${rlpData.toString('hex')}`;
 
     this.setState({
