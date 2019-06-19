@@ -437,7 +437,9 @@ export default class TxSend extends Component {
     this.state.indexesList.map(indexes => {
       const signInfo = this.state.signInfo[indexes];
       if (!utils.isEmptyObj(signInfo)) {
-        multiSigInfos.push({signInfo, indexes: indexes.split('.')});
+        const indexesInfo = [];
+        indexes.split('.').map(index => indexesInfo.push(parseInt(index, 10)));
+        multiSigInfos.push({signInfo, indexes: indexesInfo});
       }
     });
     fractal.ft.sendSeniorSigTransaction(txInfo, multiSigInfos, 0).then(txHash => {
