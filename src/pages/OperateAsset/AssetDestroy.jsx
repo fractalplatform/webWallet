@@ -13,6 +13,7 @@ import * as utils from '../../utils/utils';
 import { T } from '../../utils/lang';  
 import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
+import * as AssetUtils from './AssetUtils';
 
 const { Row } = Grid;
 
@@ -38,7 +39,9 @@ export default class AssetFounderSet extends Component {
     };
   }
   componentWillReceiveProps(nextProps) {
-    this.setState({ assetInfoSet: nextProps.assetInfoSet, txSendVisible: false});
+    AssetUtils.getAllAssetInfo(nextProps.accountName).then(assetInfoSet => {
+        this.setState({ assetInfoSet, txSendVisible: false});
+    });
   }
   formChange = (value) => {
     this.setState({
@@ -57,7 +60,7 @@ export default class AssetFounderSet extends Component {
     }
 
     if (value.assetId === '') {
-      Feedback.toast.error(T('请选择需要销毁的资产ID'));
+      Feedback.toast.error(T('请选择需要销毁的资产'));
       return;
     }
 

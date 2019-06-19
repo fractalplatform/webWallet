@@ -64,14 +64,6 @@ export default class Header extends PureComponent {
     this.setState({customNodeDisabled: v != 'others'});
   }
   onConfigNodeOK = () => {
-    // if (!utils.checkIpVaild(this.state.ip)) {
-    //   Feedback.toast.error('请输入合法的IP地址');
-    //   return;
-    // }
-    // if (this.state.port === '') {
-    //   Feedback.toast.error('请输入端口');
-    //   return;
-    // }
     const nodeInfo = this.state.nodeInfo.indexOf('http://') == 0 ? this.state.nodeInfo : 'http://' + this.state.nodeInfo;
     cookie.save('nodeInfo', nodeInfo);
     axios.defaults.baseURL = nodeInfo;

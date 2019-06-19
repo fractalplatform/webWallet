@@ -36,7 +36,7 @@ export default class AssetOperator extends Component {
     fractal.ft.setChainId(chainConfig.chainId);
     const accounts = await utils.loadAccountsFromLS();
     for (let account of accounts) {
-      this.state.accounts.push(account.accountName);
+      this.state.accounts.push({value:account.accountName, label:account.accountName});
     }
 
     this.state.dposInfo = await fractal.dpos.getDposInfo();
@@ -110,7 +110,7 @@ export default class AssetOperator extends Component {
           language="en-us"
           bodyHeight={this.state.cardHeight}
         >
-          <AssetDestroy accountName={this.state.selectedAccountName} dposInfo={this.state.dposInfo}  assetInfoSet={this.state.assetInfoSet}/>
+          <AssetDestroy accountName={this.state.selectedAccountName} dposInfo={this.state.dposInfo}/>
         </Card>
       </IceContainer>
     );
