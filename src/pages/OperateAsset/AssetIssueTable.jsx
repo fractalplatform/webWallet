@@ -61,6 +61,18 @@ export default class AssetIssueTable extends Component {
       txSendVisible: false,
     });
   };
+  
+  getFatherAssets = (assetName) => {
+    const fatherAssets = [];
+    const assetSplits = assetName.split('.');
+    const count = assetSplits.length;
+    for (let i = 1; i < count; i++) {
+      let fatherAsset = assetSplits.slice(0, i).join('.');
+      fatherAssets.push(fatherAsset);
+    }
+    return fatherAssets;
+  }
+
 
   onSubmit = async () => {
     const { value } = this.state;
@@ -69,7 +81,13 @@ export default class AssetIssueTable extends Component {
       Feedback.toast.error(T('请选择需要操作资产的账户'));
       return;
     }
-    if (!this.state.assetReg.test(value.assetName) && value.assetName.length > 31) {
+    let accountName = '';
+    let assetName = value.assetName;
+    if (value.assetName.indexOf(':') > 0) {
+      accountName = value.assetName.split(':')[0];
+      assetName = value.assetName.split(':')[1];
+    }
+    if (!this.state.assetReg.test(assetName) || assetName.length > 31) {
       Feedback.toast.error(T('资产名称错误'));
       return;
     }
@@ -87,21 +105,23 @@ export default class AssetIssueTable extends Component {
       Feedback.toast.error(T('资产名同账号名冲突，不可用'));
       return;
     }
-    let fartherAsset = null;
-    const dotIndex = value.assetName.indexOf('.');
-    if (dotIndex > -1) {
-      const fatherAssetName = value.assetName.substr(0, dotIndex);
-      let bExistAsset = false;
-      this.state.assetInfoSet.map(item => {
-        if (item.assetName == fatherAssetName) {
-          bExistAsset = true;
-          fartherAsset = item;
-        }
-      })
-      if (!bExistAsset) {
-        Feedback.toast.error(T('由于父资产的管理者不属于此账户，因此无法创建此子资产'));
+
+    let validFatherAsset = false;
+    let fatherAssetNames = this.getFatherAssets(value.assetName);
+    for (const fatherAssetName of fatherAssetNames) {
+      const assetInfo = await fractal.account.getAssetInfoByName(fatherAssetName);
+      if (assetInfo == null) {
+        Feedback.toast.error(T('父资产不存在'));
         return;
       }
+      if (assetInfo.owner == this.state.curAccountName) {
+        validFatherAsset = true;
+        break;
+      }
+    }
+    if (!validFatherAsset) {
+      Feedback.toast.error(T('由于父资产的管理者不属于此账户，因此无法创建此子资产'));
+      return;
     }
 
     if (!this.state.assetReg.test(value.symbol)) {
