@@ -122,7 +122,7 @@ export default class AccountList extends Component {
       this.state.chainConfig.sysTokenID = 0;
       const assetInfo = await fractal.account.getAssetInfoById(this.state.chainConfig.sysTokenID);
       this.state.assetInfos[this.state.chainConfig.sysTokenID] = assetInfo;
-      this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize * 2;
+      this.state.maxRollbackBlockNum = this.state.dposInfo.blockFrequency * this.state.dposInfo.candidateScheduleSize;
       this.state.maxRollbackTime = this.state.maxRollbackBlockNum * this.state.dposInfo.blockInterval;
       fractal.dpos.getDposIrreversibleInfo().then(irreversibleInfo => this.state.irreversibleInfo = irreversibleInfo);
 
@@ -492,7 +492,7 @@ export default class AccountList extends Component {
           // console.log('accountExistTxs:' + JSON.stringify(accountExistTxs));
           let promiseArr = [];
           let accountInternalTxPromiseArr = [];
-          const step = self.state.maxRollbackBlockNum * 10;
+          const step = self.state.maxRollbackBlockNum;
           let blockNum = curBlockNum;
           for (; blockNum > startSyncBlockNum; blockNum -= step) {
             let lookBack = step;
@@ -563,7 +563,7 @@ export default class AccountList extends Component {
     let accountTxs = [];
     let accountExistTxs = {};
     const lastIrreveribleBlockNum = self.state.irreversibleInfo.bftIrreversible;
-    const step = self.state.maxRollbackBlockNum * 10;
+    const step = self.state.maxRollbackBlockNum;
     let blockNum = curBlockNum;
     for (; blockNum >= account.number; blockNum -= step) {
       let lookBack = step;

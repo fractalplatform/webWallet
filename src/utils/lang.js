@@ -460,6 +460,7 @@ const ch2en = {
   "加/解密信息":"Encrypt/Decrypt Info",
   "加/解密结果":"Encrypt/Decrypt Result",
   "待比较地址":"Address to be compared",
+  "父资产不存在":"Father asset is not exist",
   }
 
   let isCh = true;
