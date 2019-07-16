@@ -69,6 +69,7 @@ export default class AccountList extends Component {
       dposInfo: {},
       chainConfig: {},
       irreversibleInfo: {},
+      maxTxSyncBlockNum: 10000,
       maxRollbackBlockNum: 0,
       maxRollbackTime: 0,  // ms
       importAccountVisible: false,
@@ -486,8 +487,11 @@ export default class AccountList extends Component {
 
           // 从链上同步新的交易
           startSyncBlockNum -= self.state.maxRollbackBlockNum;
-          if (startSyncBlockNum < 0) {
-            startSyncBlockNum = 0;
+          if (startSyncBlockNum < curBlockNum - self.state.maxTxSyncBlockNum) {
+            startSyncBlockNum = curBlockNum - self.state.maxTxSyncBlockNum;
+            if (startSyncBlockNum < 0) {
+              startSyncBlockNum = 0;
+            }
           }
           // console.log('accountExistTxs:' + JSON.stringify(accountExistTxs));
           let promiseArr = [];
