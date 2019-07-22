@@ -38,7 +38,7 @@ export default class Header extends PureComponent {
       languages: [{value: 'ch', label:'中文'}, {value: 'en', label:'English'}],
       defaultLang: (defaultLang == null || defaultLang == 'ch') ? 'ch' : 'en',
       nodes: [{value: 'http://120.92.115.77:33100', label:'主网http://120.92.115.77:33100'}, {value: 'http://120.92.115.77:33000', label:'测试网http://120.92.115.77:33000'}, 
-              {value: 'http://127.0.0.1::8545', label:'本地节点http://127.0.0.1::8545'}, {value: 'others', label: '自定义'}],
+              {value: 'http://127.0.0.1:8545', label:'本地节点http://127.0.0.1:8545'}, {value: 'others', label: '自定义'}],
     };
     setLang(this.state.defaultLang);
   }
