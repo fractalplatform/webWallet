@@ -292,9 +292,9 @@ export default class ContractManager extends Component {
   render() {
     return (
       <div style={{width:900}}>
-        <ContractEditor style={{height:800, width:800}}/>
+        {/* <ContractEditor style={{height:800, width:800}}/>
         <br />
-        <br />
+        <br /> */}
         <Select
             style={{ width: 800 }}
             placeholder={T("选择发起合约调用的账户")}
