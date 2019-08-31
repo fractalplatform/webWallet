@@ -54,3 +54,10 @@ export const TxStatus = { SendError:1, NotExecute:2, ExecuteSuccess:3, ExecuteFa
     * 3：被回滚  -1
 */
 export const BlockStatus = { Rollbacked: -1, Irreversible: 0, Reversible: 1, Unknown: 2 };
+
+export const SysTokenId = 0;
+export const SysTokenDecimal = 18;
+
+export const LocalRPCAddr = 'http://127.0.0.1:8545';
+export const testNetRPCAddr = 'http://120.92.115.77:33100';
+export const mainNetRPCAddr = 'http://120.92.115.77:33000';

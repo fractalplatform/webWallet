@@ -107,6 +107,10 @@ const asideMenuConfig = [
     icon: 'code',
     children: [
       {
+        name: T('合约开发'),
+        path: '/contractDev',
+      },
+      {
         name: T('合约调用'),
         path: '/contractManager',
       },

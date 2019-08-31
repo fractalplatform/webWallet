@@ -5,6 +5,7 @@ import BigNumber from 'bignumber.js';
 import EthCrypto from 'eth-crypto';
 import * as Constant from './constant';
 import * as fractal from 'fractal-web3';
+import * as ethUtil from 'ethereumjs-util';
 import { T } from './lang';
 /**
  * 格式化菜单数据结构，如果子菜单有权限配置，则子菜单权限优先于父级菜单的配置
@@ -434,10 +435,47 @@ function getDuration(my_time) {  
   return time;
 }
 
+function guid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+      return v.toString(16);
+  });
+}
 
+function getValidKeystores (authors, threshold) {
+  const keystoreList = loadKeystoreFromLS();
+  let keystoreInfo = {};
+  for (const keystore of keystoreList) {
+    keystoreInfo[keystore.address] = keystore;
+  }
+
+  let totalWeight = 0;
+  let myKeystores = [];
+  for (const author of authors) {
+    const owner = author.owner;
+    const buffer = Buffer.from(hex2Bytes(owner));
+    let address = '0x';
+    if (ethUtil.isValidPublic(buffer, true)) {
+      address = ethUtil.bufferToHex(ethUtil.pubToAddress(owner, true));
+    } else if (ethUtil.isValidAddress(owner)) {
+      address = ethUtil.bufferToHex(buffer);
+    }
+    if (address.startsWith('0x')) {
+      address = address.substr(2);
+    }
+    if (keystoreInfo[address] != null) {
+      totalWeight += author.weight;
+      myKeystores.push(keystoreInfo[address]);
+      if (totalWeight >= threshold) {
+        break;
+      }
+    }
+  }
+  return totalWeight < threshold ? [] : myKeystores;
+}
 
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, str2Hex,
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
          removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, 
-         getGasEarned, getValidTime, checkIpVaild, getDuration };
+         getGasEarned, getValidTime, checkIpVaild, getDuration, guid, getValidKeystores };

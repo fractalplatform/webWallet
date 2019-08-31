@@ -69,7 +69,7 @@ function getActionTypeStr(actionTypeNum) {
       actionType = '提取手续费';
       break;
     default:
-      console.log('error action type:' + actionInfo.type);
+      console.log('error action type:' + actionTypeNum);
   }
   return T(actionType);
 }

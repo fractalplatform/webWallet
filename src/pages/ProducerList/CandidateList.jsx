@@ -83,6 +83,8 @@ export default class CandidateList extends Component {
       curSelectedCandidate: null,
       curEpoch: 0,
       duration: 0,
+
+      curEpochDataOfCandiate: {},
     };
   }
   onChange(ids, records) {
@@ -154,10 +156,14 @@ export default class CandidateList extends Component {
           })          
         })
 
+        let index = 0;
         validCandidates.activatedCandidateSchedule.map(validCandidate => {
-          fractal.dpos.getVotersByCandidate(0, validCandidate.name, true).then(voters => {
-            this.state.votersOfAllCandidate[validCandidate.name] = voters;
+          fractal.dpos.getVotersByCandidate(0, validCandidate, true).then(voters => {
+            this.state.votersOfAllCandidate[validCandidate] = voters;
           });
+          fractal.dpos.getActivedCandidate(0, index++).then(candidateData => {
+            this.state.curEpochDataOfCandiate[candidateData.candidate] = candidateData;
+          })
         });
         
         this.setState({ producerList: candidates, validProducerList: validCandidates.activatedCandidateSchedule });
@@ -274,7 +280,7 @@ export default class CandidateList extends Component {
         break;
       }
     }
-    fractal.account.getAccountByName(candidateName).then(account => {
+    fractal.account.getAccountByName(candidateName, true).then(account => {
       const ftBalance = this.getAccountFTBalance(account);
       const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(this.state.dposInfo.unitStake).toNumber();
       this.setState({ updateProducerVisible: true, curAccount: { accountName: candidateName }, stake: 0, maxStakeTooltip: T('最多可增加的抵押票数') + ':' + accountMaxStake, accountMaxStake, txSendVisible: false });
@@ -406,9 +412,36 @@ export default class CandidateList extends Component {
     if (record.shouldCounter == 0) {
       return value;
     }
+
     const counterRatio = new BigNumber(record.actualCounter).div(new BigNumber(record.shouldCounter))
                         .multipliedBy(new BigNumber(100)).toFixed(2) + '%';
-    return <view>{value}<p/>[出块率:{counterRatio}]</view>; 
+
+    let curEpochData = this.state.curEpochDataOfCandiate[record.name];
+    let curEpochActualCounter = 0;
+    let curEpochRatio = 0;
+    if (curEpochData != null) {
+      curEpochActualCounter = curEpochData.actualCount;
+      if (curEpochData.shouldCount > 0) {
+        curEpochRatio = new BigNumber(curEpochData.actualCount).div(new BigNumber(curEpochData.shouldCount))
+                        .multipliedBy(new BigNumber(100)).toFixed(2) + '%';
+      }
+    }
+    
+    return <view>
+            [总出块数:{value}]<p/>[总出块率:{counterRatio}]
+            <p/>
+            [本周期出块数:{curEpochActualCounter}]<p/>[本周期出块率:{curEpochRatio}]
+           </view>; 
+  }
+  shouldCounterRender = (value, index, record) => {
+    let curEpochData = this.state.curEpochDataOfCandiate[record.name];
+    let curEpochShouldCounter = 0;
+    if (curEpochData != null) {
+      curEpochShouldCounter = curEpochData.shouldCount;
+    }
+    return <view>
+            [总应出块数:{value}]<p/>[本周期应出块数:{curEpochShouldCounter}]
+           </view>; 
   }
 
   typeRender = (value, index, record) => {
@@ -514,13 +547,13 @@ export default class CandidateList extends Component {
           onSort={this.onSort.bind(this)}
         >
           <Table.Column title={T("候选者账号")} dataIndex="name" width={100} cell={this.nameRender.bind(this)} />
-          <Table.Column title="URL" dataIndex="url" width={100} />
+          <Table.Column title="URL" dataIndex="url" width={80} />
           <Table.Column title={T("状态")} dataIndex="type" width={100} cell={this.typeRender.bind(this)}/>
           <Table.Column title={T("抵押票数")} dataIndex="quantity" width={60} sortable />
           <Table.Column title={T("总投票数")} dataIndex="totalQuantity" width={60} sortable />
-          <Table.Column title={T("最近一次操作的区块高度")} dataIndex="number" width={130} cell={this.numberRender.bind(this)} />
-          <Table.Column title={T("实出块数")} dataIndex="actualCounter" width={130} sortable cell={this.counterRender.bind(this)} />
-          <Table.Column title={T("应出块数")} dataIndex="shouldCounter" width={100} sortable />
+          <Table.Column title={T("最近一次DPOS相关操作的区块高度")} dataIndex="number" width={130} cell={this.numberRender.bind(this)} />
+          <Table.Column title={T("实出块数")} dataIndex="actualCounter" width={160} sortable cell={this.counterRender.bind(this)} />
+          <Table.Column title={T("应出块数")} dataIndex="shouldCounter" width={100} sortable cell={this.shouldCounterRender.bind(this)}  />
           <Table.Column title={T("我的投票")} dataIndex="name" width={200} cell={this.renderMyVote.bind(this)} />
         </Table>
         <Icon type="process" style={{ color: '#FF3333', marginRight: '10px' }} />--{T("可出块节点")}

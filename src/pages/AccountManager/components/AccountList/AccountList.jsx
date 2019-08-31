@@ -147,8 +147,6 @@ export default class AccountList extends Component {
     utils.storeDataToFile(Constant.AccountFile, accounts);
   }
 
-
-
   onImportAccount = () => {
     this.setState({ importAccountVisible: true });
   }
@@ -511,8 +509,8 @@ export default class AccountList extends Component {
           let accountTxs = [];
           const allTxs = await Promise.all(promiseArr);   // 获取所有交易的hash
           const allInternalTxs = await Promise.all(accountInternalTxPromiseArr);   // 获取所有内部交易信息，里面包含了txhash
-          for (const txs of allTxs) {
-            accountTxs.push(...txs);
+          for (const txsInfo of allTxs) {
+            accountTxs.push(...txsInfo.txs);
           }
           for (const internalTxs of allInternalTxs) {
             internalTxs.map(internalTx => {

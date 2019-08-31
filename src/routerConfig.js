@@ -24,6 +24,7 @@ import Performance from './pages/Performance';
 import AccountManager from './pages/AccountManager';
 import KeystoreManager from './pages/KeystoreManager';
 import ContractManager from './pages/ContractManager';
+import ContractDev from './pages/ContractDev';
 
 import Configure from './pages/Configure';
 import NotFound from './pages/NotFound';
@@ -151,6 +152,11 @@ const routerConfig = [
     path: '/contractManager',
     layout: BasicLayout,
     component: ContractManager,
+  },
+  {
+    path: '/contractDev',
+    layout: BasicLayout,
+    component: ContractDev,
   },
   {
     path: '/rawTxConstructor',

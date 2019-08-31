@@ -7,8 +7,9 @@ import cookie from 'react-cookies';
 import { encode } from 'rlp';
 import { Feedback } from '@icedesign/base';
 import * as utils from '../utils/utils';
+import * as constant from '../utils/constant';
 
-let provider = 'http://127.0.0.1:8545';
+let provider = constant.LocalRPCAddr;
 
 async function postToNode(dataToNode) {
   return fetch(provider, {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToNode});

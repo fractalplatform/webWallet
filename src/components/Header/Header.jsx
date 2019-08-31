@@ -15,6 +15,7 @@ import * as fractal from 'fractal-web3'
 import { headerMenuConfig } from '../../menuConfig';
 import Logo from '../Logo';
 import * as utils from '../../utils/utils';
+import * as constant from '../../utils/constant';
 import { T, setLang } from '../../utils/lang';
 
 export const history = createHashHistory();
@@ -27,7 +28,7 @@ export default class Header extends PureComponent {
 
     let nodeInfo = nodeInfoCookie;
     if (utils.isEmptyObj(nodeInfo)) {
-      nodeInfo = 'http://127.0.0.1:8545';
+      nodeInfo = constant.LocalRPCAddr;
     }
 
     this.state = {
@@ -37,8 +38,8 @@ export default class Header extends PureComponent {
       customNodeDisabled: true,
       languages: [{value: 'ch', label:'中文'}, {value: 'en', label:'English'}],
       defaultLang: (defaultLang == null || defaultLang == 'ch') ? 'ch' : 'en',
-      nodes: [{value: 'http://120.92.115.77:33100', label:'主网http://120.92.115.77:33100'}, {value: 'http://120.92.115.77:33000', label:'测试网http://120.92.115.77:33000'}, 
-              {value: 'http://127.0.0.1:8545', label:'本地节点http://127.0.0.1:8545'}, {value: 'others', label: '自定义'}],
+      nodes: [{value: constant.mainNetRPCAddr, label:'主网' + constant.mainNetRPCAddr}, {value: constant.testNetRPCAddr, label:'测试网' + constant.testNetRPCAddr}, 
+              {value: constant.testNetRPCAddr, label:'本地节点' + constant.testNetRPCAddr}, {value: 'others', label: '自定义'}],
     };
     setLang(this.state.defaultLang);
   }

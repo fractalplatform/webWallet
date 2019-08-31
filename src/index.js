@@ -14,6 +14,7 @@ import router from './router';
 import configureStore from './configureStore';
 import cookie from 'react-cookies';
 import { setLang } from './utils/lang';
+import * as constant from './utils/constant';
 
 const defaultLang = cookie.load('defaultLang');
 if (defaultLang != null) {
@@ -26,7 +27,7 @@ const history = createHashHistory();
 const store = configureStore(initialState, history);
 const ICE_CONTAINER = document.getElementById('ice-container');
 axios.defaults.headers.post['Content-Type'] = 'application/json';
-axios.defaults.baseURL = 'http://127.0.0.1:8545';
+axios.defaults.baseURL = constant.LocalRPCAddr;
 const nodeInfo = cookie.load('nodeInfo');
 if (nodeInfo != null && nodeInfo !== '') {
   axios.defaults.baseURL = nodeInfo;
