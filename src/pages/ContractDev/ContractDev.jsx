@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Input, Feedback, Card, Select, Checkbox } from '@icedesign/base';
 import Container from '@icedesign/container';
-import { Button, Tab, Grid, Tree, Dialog } from '@alifd/next';
+import { Button, Tab, Grid, Tree, Dialog, Collapse } from '@alifd/next';
 import * as fractal from 'fractal-web3';
 import * as ethers from 'ethers';
 import * as ethUtil from 'ethereumjs-util';
@@ -22,6 +22,7 @@ import * as CompilerSrv from './CompilerSrv'
 
 const { Row, Col } = Grid;
 const TreeNode = Tree.Node;
+const Panel = Collapse.Panel;
 
 
 export default class ContractManager extends Component {
@@ -41,6 +42,7 @@ export default class ContractManager extends Component {
       accountReg: new RegExp('^([a-z][a-z0-9]{6,15})(?:\.([a-z0-9]{2,16})){0,1}(?:\.([a-z0-9]{2,16})){0,1}$'),
       accounts: [],
       contractFuncInfo: [],
+      contractAccountInfo: [],
       abiInfo: abiInfoStr,
       paraValue: {},
       funcParaTypes: {},
@@ -63,6 +65,7 @@ export default class ContractManager extends Component {
       tabFileList: ['sample.sol'],
       fileContractMap: {},
       contractList: [],
+      contractAccountAbiMap: {},
       activeKey: '',
       addNewContractFileVisible: false,
       deployContractVisible: false,
@@ -161,13 +164,17 @@ export default class ContractManager extends Component {
     this.setState({ abiInfo: value });
   }
 
-  parseABI = (abiInfo) => {
+  parseABI = (contractAccountName, contractName, abiInfo) => {
     if (utils.isEmptyObj(abiInfo) 
     || (!utils.isEmptyObj(abiInfo) && !fractal.utils.isValidABI(abiInfo))) {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return;
     }
-    this.state.contractFuncInfo = [];
+    this.state.funcParaTypes[contractName] = {};
+    this.state.funcParaNames[contractName] = {};
+    this.state.funcParaConstant[contractName] = {};
+
+    const contractFuncInfo = [];
     const abiObj = JSON.parse(abiInfo);
     for (const interfaceInfo of abiObj) {
       if (interfaceInfo.type === 'function') {
@@ -178,15 +185,16 @@ export default class ContractManager extends Component {
           parameterTypes.push(input.type);
           parameterNames.push(input.name);
         }
-        this.state.funcParaTypes[funcName] = parameterTypes;
-        this.state.funcParaNames[funcName] = parameterNames;
-        this.state.funcParaConstant[funcName] = interfaceInfo.constant;
-        this.state.contractFuncInfo.push(this.generateOneFunc(funcName, parameterTypes, parameterNames));
-        this.state.contractFuncInfo.push(<br />);
-        this.state.contractFuncInfo.push(<br />);
+
+        this.state.funcParaTypes[contractName][funcName] = parameterTypes;
+        this.state.funcParaNames[contractName][funcName] = parameterNames;
+        this.state.funcParaConstant[contractName][funcName] = interfaceInfo.constant;
+        contractFuncInfo.push(this.generateOneFunc(contractAccountName, contractName, funcName, parameterTypes, parameterNames));
+        contractFuncInfo.push(<br />);
+        contractFuncInfo.push(<br />);
       }
     }
-    this.setState({ contractFuncInfo: this.state.contractFuncInfo, txSendVisible: false });
+    return contractFuncInfo;
   }
 
   handleParaValueChange = (funcName, paraName, value) => {
@@ -246,6 +254,8 @@ export default class ContractManager extends Component {
       Feedback.toast.error(T('请选择需要部署的合约'));
       return;
     }
+    this.state.newContractAccountName = await this.generateContractAccount();
+    this.state.newContractPublicKey = this.getAccountPublicKey();
     this.setState({deployContractVisible: true});
   }
 
@@ -259,22 +269,22 @@ export default class ContractManager extends Component {
     }
   }
 
-  callContractFunc = async (funcName) => {
+  callContractFunc = async (contractAccountName, contractName, funcName) => {
     if (utils.isEmptyObj(this.state.selectedAccountName)) {
       Feedback.toast.error(T('请选择发起合约调用的账号'));
       return;
     }
 
-    if (utils.isEmptyObj(this.state.contractAccount)) {
+    if (utils.isEmptyObj(contractAccountName)) {
       Feedback.toast.error(T('请输入合约账号名'));
       return;
     }
-    const contractAccount = await fractal.account.getAccountByName(this.state.contractAccount);
+    const contractAccount = await fractal.account.getAccountByName(contractAccountName);
     if (contractAccount == null) {
       Feedback.toast.error(T('合约不存在，请检查合约名是否输入错误'));
       return;
     }
-    const paraNames = this.state.funcParaNames[funcName];
+    const paraNames = this.state.funcParaNames[contractName][funcName];
     const values = [];
     for (const paraName of paraNames) {
       const value = this.state.paraValue[funcName + '-' + paraName];
@@ -285,9 +295,9 @@ export default class ContractManager extends Component {
       values.push(value);
     }
     const self = this;
-    const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[funcName], values);
-    if (this.state.funcParaConstant[funcName]) {
-      const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
+    const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[contractName][funcName], values);
+    if (this.state.funcParaConstant[contractName][funcName]) {
+      const callInfo = {actionType:0, from: 'fractal.founder', to: contractAccountName, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
         console.log(funcName + '=>' + resp);
         var obj = document.getElementById(funcName + 'Result');
@@ -298,7 +308,7 @@ export default class ContractManager extends Component {
       const assetId = this.state.transferTogether[funcName] ? parseInt(this.state.paraValue[funcName + '-transferAssetId']) : 0;
       const amount = this.state.transferTogether[funcName] ? parseInt(this.state.paraValue[funcName + '-transferAssetValue']) : 0;
       this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
-        toAccountName: this.state.contractAccount,
+        toAccountName: contractAccountName,
         assetId,
         amount,
         payload };
@@ -306,7 +316,7 @@ export default class ContractManager extends Component {
     }
   }
 
-  generateOneFunc = (funcName, parameterTypes, parameterNames) => {
+  generateOneFunc = (contractAccountName, contractName, funcName, parameterTypes, parameterNames) => {
     let index = 0;
     let inputElements = [];
     let txReceiptBtns = [];
@@ -322,7 +332,7 @@ export default class ContractManager extends Component {
       />, <br />, <br />,
       )
     });
-    if (!this.state.funcParaConstant[funcName]) {
+    if (!this.state.funcParaConstant[contractName][funcName]) {
       callBtnName = T('发起合约交易');
       const transferTogether = this.state.transferTogether[funcName];
       this.state.visibilityValue[funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
@@ -367,7 +377,7 @@ export default class ContractManager extends Component {
     }
     const oneElement = <Card style={{ width: 800 }} bodyHeight="auto" title={funcName}>
                         {inputElements}
-                        <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>{callBtnName}</Button>
+                        <Button type="primary" onClick={this.callContractFunc.bind(this, contractAccountName, contractName, funcName)}>{callBtnName}</Button>
                         <br />
                         <br />
                         <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore={T('结果')} size="medium"
@@ -632,7 +642,7 @@ export default class ContractManager extends Component {
   checkReceipt = (actionName, txHash, cbFunc) => {
     let count = 0;
       const intervalId = setInterval(() => {
-        frfractal.ft.getTransactionReceipt(txHash).then(receipt => {
+        fractal.ft.getTransactionReceipt(txHash).then(receipt => {
           if (receipt == null) {
             count++;
             if (count == 3) {
@@ -720,6 +730,7 @@ export default class ContractManager extends Component {
       return;
     }
 
+    Feedback.toast.success('开始部署合约');
     this.addLog('开始部署合约');
     const contractAccount = await fractal.account.getAccountByName(this.state.newContractAccountName);
     if (contractAccount != null) {
@@ -731,7 +742,9 @@ export default class ContractManager extends Component {
       this.deployContractTx(this.state.newContractAccountName, contractCode.bin, this.state.gasPrice, this.state.gasLimit).then(txHash => {
         this.addLog('部署合约的交易hash:' + txHash);
         this.checkReceipt('部署合约', txHash, () => {
-          this.displayContractFunc(this.state.newContractAccountName, contractCode.abi);
+          Feedback.toast.success('成功部署合约');
+          this.setState({deployContractVisible: false});
+          this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], contractCode.abi);
         });
       }).catch(error => {
         this.addLog('部署合约交易发送失败:' + error);
@@ -768,12 +781,15 @@ export default class ContractManager extends Component {
                            this.state.ftAmount, this.state.gasPrice, this.state.gasLimit).then(txHash => {
         this.addLog('创建账户的交易hash:' + txHash);
         this.checkReceipt('创建账户', txHash, () => {
-          // 2:由合约账户部署合约  
+          // 2:由合约账户部署合约
+          Feedback.toast.success('合约账户创建成功');  
           this.addLog('合约账户已创建，可部署合约');    
           this.deployContractTx(this.state.newContractAccountName, contractCode.bin, this.state.gasPrice, this.state.gasLimit).then(txHash => {
             this.addLog('部署合约的交易hash:' + txHash);
             this.checkReceipt('部署合约', txHash, () => {
-              this.displayContractFunc(this.state.newContractAccountName, contractCode.abi);
+              Feedback.toast.success('成功部署合约'); 
+              this.setState({deployContractVisible: false}); 
+              this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], contractCode.abi);
             });
           }).catch(error => {
             this.addLog('部署合约交易发送失败:' + error);
@@ -783,8 +799,13 @@ export default class ContractManager extends Component {
       });
     }
   }
-  displayContractFunc = (contractAccountName, contractAbi) => {
-
+  displayContractFunc = (contractAccountName, contractName, contractAbi) => {
+    const abiUI = this.parseABI(contractAccountName, contractName, contractAbi);
+    const oneContractPanel = <Panel title={'合约账号：' + contractAccountName + '，合约名：' + contractName + '，部署时间：' + new Date().toLocaleString()}>
+                                {abiUI}
+                             </Panel>;
+    this.state.contractAccountInfo = [oneContractPanel, ...this.state.contractAccountInfo];
+    this.setState({contractAccountInfo: this.state.contractAccountInfo, txSendVisible: false});
   }
 
   onDeployContractClose = () => {
@@ -848,6 +869,12 @@ export default class ContractManager extends Component {
                 size="medium"
                 onChange={this.handleABIInfoChange.bind(this)}
               />
+              
+              <br />
+              <br />
+              <Collapse rtl='ltr'>
+                {this.state.contractAccountInfo.map(item => item)}
+              </Collapse>
             </Col>
             <Col fixedSpan="10" className="custom-col-right-sidebar">
               <Select
@@ -878,6 +905,17 @@ export default class ContractManager extends Component {
                 &nbsp;&nbsp;&nbsp;
                 <Button type="primary" onClick={this.deployContract.bind(this)}>{T("部署")}</Button>
               </Row>
+              {/* <br/>
+              <Row style={{width:280}}>
+                <Select
+                  style={{ width: 220 }}
+                  placeholder={T("请选择合约账户")}
+                  onChange={this.onChangeContractAccount.bind(this)}
+                  dataSource={this.state.contractAccountList}
+                />
+                &nbsp;&nbsp;&nbsp;
+                <Button type="primary" onClick={this.deployContract.bind(this)}>{T("部署")}</Button>
+              </Row> */}
              
             </Col>
         </Row>
@@ -885,9 +923,6 @@ export default class ContractManager extends Component {
         <br />
         <br />
         {/* <Button type="primary" onClick={this.parseABI.bind(this)}>{T("解析ABI")}</Button> */}
-        <br />
-        <br />
-        {this.state.contractFuncInfo.map(item => item)}
         <Dialog
           visible={this.state.addNewContractFileVisible}
           title={T("请输入合约文件名称")}
@@ -904,7 +939,7 @@ export default class ContractManager extends Component {
             size="medium"
           />
         </Dialog>
-        <Dialog
+        <Dialog closeable='close,esc,mask'
           visible={this.state.deployContractVisible}
           title={T("部署合约")}
           closeable="true"
@@ -920,8 +955,8 @@ export default class ContractManager extends Component {
             addonBefore={T("合约账户名")}
             size="medium"
           />
-          &nbsp;
-          <Checkbox 
+          {/* &nbsp;
+          <Checkbox checked
             onChange={
               async (checked) => {                  
                   if (checked) {
@@ -931,7 +966,7 @@ export default class ContractManager extends Component {
               }
           }>
             {T("自动生成")}
-          </Checkbox>
+          </Checkbox> */}
           <br/>
           <br/>
           <Input hasClear
@@ -941,8 +976,8 @@ export default class ContractManager extends Component {
             addonBefore={T("公钥")}
             size="medium"
           />
-          &nbsp;
-          <Checkbox 
+          {/* &nbsp;
+          <Checkbox checked
             onChange={
               (checked) => {                  
                   if (checked) {
@@ -952,7 +987,7 @@ export default class ContractManager extends Component {
               }
           }>
             {T("同发起账户公钥")}
-          </Checkbox>
+          </Checkbox> */}
           <br/>
           <br/>
           <Input hasClear
