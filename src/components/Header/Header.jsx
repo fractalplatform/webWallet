@@ -39,7 +39,7 @@ export default class Header extends PureComponent {
       languages: [{value: 'ch', label:'中文'}, {value: 'en', label:'English'}],
       defaultLang: (defaultLang == null || defaultLang == 'ch') ? 'ch' : 'en',
       nodes: [{value: constant.mainNetRPCAddr, label:'主网' + constant.mainNetRPCAddr}, {value: constant.testNetRPCAddr, label:'测试网' + constant.testNetRPCAddr}, 
-              {value: constant.testNetRPCAddr, label:'本地节点' + constant.testNetRPCAddr}, {value: 'others', label: '自定义'}],
+              {value: constant.LocalRPCAddr, label:'本地节点' + constant.LocalRPCAddr}, {value: 'others', label: '自定义'}],
     };
     setLang(this.state.defaultLang);
   }

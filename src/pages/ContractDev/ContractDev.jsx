@@ -168,8 +168,8 @@ export default class ContractManager extends Component {
       return;
     }
     this.state.contractFuncInfo = [];
-    const abiInfo = JSON.parse(abiInfo);
-    for (const interfaceInfo of abiInfo) {
+    const abiObj = JSON.parse(abiInfo);
+    for (const interfaceInfo of abiObj) {
       if (interfaceInfo.type === 'function') {
         const funcName = interfaceInfo.name;
         const parameterTypes = [];
