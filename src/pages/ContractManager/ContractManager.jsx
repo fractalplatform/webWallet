@@ -147,12 +147,13 @@ export default class ContractManager extends Component {
     const self = this;
     const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[funcName], values);
     if (this.state.funcParaConstant[funcName]) {
-      const callInfo = {actionType:0, from: 'fractal.admin', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
+      const callInfo = {actionType:0, from: 'fractal.founder', to: this.state.contractAccount, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
         console.log(funcName + '=>' + resp);
-        var obj = document.getElementById(funcName + 'Result');
-        obj.value= resp;
-        self.setState({ result: { funcName: resp }, txSendVisible: false });
+        // var obj = document.getElementById(funcName + 'Result');
+        // obj.value= resp;
+
+        self.setState({ result : {[funcName + 'Result'] : resp}, txSendVisible: false });
       });
     } else {
       const assetId = this.state.transferTogether[funcName] ? parseInt(this.state.paraValue[funcName + '-transferAssetId']) : 0;
@@ -230,13 +231,24 @@ export default class ContractManager extends Component {
                         <Button type="primary" onClick={this.callContractFunc.bind(this, funcName)}>{callBtnName}</Button>
                         <br />
                         <br />
-                        <Input readOnly id={funcName + 'Result'} style={{ width: 600 }} addonBefore={T('结果')} size="medium"
-                          onClick={()=>{}}/>
+                        <form>
+                          <Input id={funcName + 'Result'} 
+                            style={{ width: 600 }} 
+                            addonBefore={T('结果')} size="medium" 
+                            value={this.state.result[funcName + 'Result']}
+                            onChange={this.onChangeValue.bind(this, funcName)}/>
+                        </form>
                         {txReceiptBtns}
                       </Card>;
     return oneElement;
   }
-
+  onChangeValue = (value, funcName) => {
+    this.setState({result: {[funcName + 'Result'] : value}});
+  }
+  reInputContent = (funcName) => {
+    var obj = document.getElementById(funcName + 'Result');
+    obj.value= this.state.result[funcName + 'Result'];
+  }
   getTxInfo = (funcName) => {
     const result = this.state.curTxResult[funcName];
     if (result != null) {
@@ -259,6 +271,10 @@ export default class ContractManager extends Component {
         return;
       }
       fractal.ft.getTransactionReceipt(result).then(receipt => {
+        if (receipt == null) {
+          Feedback.toast.error(T('receipt尚未生成'));
+          return;
+        }
         var obj = document.getElementById(funcName + 'TxReceipt');
         obj.value= JSON.stringify(receipt);
         const actionResults = receipt.actionResults;
@@ -281,7 +297,15 @@ export default class ContractManager extends Component {
       abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
       this.setState({ abiInfo: abiInfoStr });
     } else {
-      Feedback.toast.prompt(T('账号未保存ABI信息，无法导入'));
+      const contractName = global.localStorage.getItem('contractAccount:' + this.state.contractAccount);
+      if (contractName != null) {
+        const abiInfoObj = global.localStorage.getItem('contract:' + contractName);
+        let abiInfoStr = JSON.stringify(abiInfoObj).replace(/\\"/g, '"');
+        abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
+        this.setState({ abiInfo: abiInfoStr });
+      } else {
+        Feedback.toast.prompt(T('账号未保存ABI信息，无法导入'));
+      }
     }
   }
   getTxResult = (result) => {

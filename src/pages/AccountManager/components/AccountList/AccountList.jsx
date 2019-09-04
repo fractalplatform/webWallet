@@ -808,6 +808,7 @@ export default class AccountList extends Component {
       } else if (this.state.accountReg.test(owner)) {
         ownerType = AuthorOwnerType.AccountName;
       }
+      
       authorUpdateList.push([author.status, [ownerType, owner, author.weight]]);
     });
 
@@ -885,7 +886,7 @@ export default class AccountList extends Component {
     if (curAuthor.status == AuthorUpdateStatus.Add) {
       this.state.authorList.splice(index, 1);
     } else {
-      curAuthor.weight = (curAuthor.weight + '').split('->')[0];
+      curAuthor.weight = parseInt((curAuthor.weight + '').split('->')[0]);
       curAuthor.status = AuthorUpdateStatus.Delete;
     }
     this.setState({authorList: this.state.authorList});
