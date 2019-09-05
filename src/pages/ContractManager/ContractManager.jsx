@@ -11,6 +11,29 @@ import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 import ContractEditor from './components/Editor';
 
+const ContractArea = ({ self, abiInfo }) => {
+  //const {abiInfo} = props;
+  self.state.contractFuncInfo = [];
+  for (const interfaceInfo of abiInfo) {
+    if (interfaceInfo.type === 'function') {
+      const funcName = interfaceInfo.name;
+      const parameterTypes = [];
+      const parameterNames = [];
+      for (const input of interfaceInfo.inputs) {
+        parameterTypes.push(input.type);
+        parameterNames.push(input.name);
+      }
+      self.state.funcParaTypes[funcName] = parameterTypes;
+      self.state.funcParaNames[funcName] = parameterNames;
+      self.state.funcParaConstant[funcName] = interfaceInfo.constant;
+      self.state.contractFuncInfo.push(self.generateOneFunc(funcName, parameterTypes, parameterNames));
+      self.state.contractFuncInfo.push(<br />);
+      self.state.contractFuncInfo.push(<br />);
+    }
+  }
+  return self.state.contractFuncInfo;
+} 
+
 export default class ContractManager extends Component {
   static displayName = 'ContractManager';
 
@@ -27,7 +50,8 @@ export default class ContractManager extends Component {
     this.state = {
       accounts: [],
       contractFuncInfo: [],
-      abiInfo: abiInfoStr,
+      abiInfos: [],
+      abiInfoObj: {},
       paraValue: {},
       funcParaTypes: {},
       funcParaNames: {},
@@ -88,28 +112,12 @@ export default class ContractManager extends Component {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return;
     }
-    this.state.contractFuncInfo = [];
     const abiInfo = JSON.parse(this.state.abiInfo);
-    for (const interfaceInfo of abiInfo) {
-      if (interfaceInfo.type === 'function') {
-        const funcName = interfaceInfo.name;
-        const parameterTypes = [];
-        const parameterNames = [];
-        for (const input of interfaceInfo.inputs) {
-          parameterTypes.push(input.type);
-          parameterNames.push(input.name);
-        }
-        this.state.funcParaTypes[funcName] = parameterTypes;
-        this.state.funcParaNames[funcName] = parameterNames;
-        this.state.funcParaConstant[funcName] = interfaceInfo.constant;
-        this.state.contractFuncInfo.push(this.generateOneFunc(funcName, parameterTypes, parameterNames));
-        this.state.contractFuncInfo.push(<br />);
-        this.state.contractFuncInfo.push(<br />);
-      }
-    }
     global.localStorage.setItem('abiInfo', this.state.abiInfo);
-    this.setState({ contractFuncInfo: this.state.contractFuncInfo, txSendVisible: false });
+    this.setState({ abiInfos: [abiInfo], txSendVisible: false });
   }
+
+  
 
   handleParaValueChange = (funcName, paraName, value) => {
     this.state.paraValue[funcName + '-' + paraName] = value;
@@ -314,6 +322,7 @@ export default class ContractManager extends Component {
     this.state.curTxResult[this.state.curCallFuncName] = result;
   }
   render() {
+    const self = this;
     return (
       <div style={{width:900}}>
         {/* <ContractEditor style={{height:800, width:800}}/>
@@ -355,8 +364,9 @@ export default class ContractManager extends Component {
         <Button type="primary" onClick={this.parseABI.bind(this)}>{T("解析ABI")}</Button>
         <br />
         <br />
-        {this.state.contractFuncInfo.map(item => item)}
-
+        {/* {this.state.contractFuncInfo.map(item => item)} */}
+        {this.state.abiInfos.map((abiInfoObj) => (<ContractArea key='1' abiInfo={abiInfoObj} self={self}/>))}
+        
         <TxSend visible={this.state.txSendVisible} txInfo={this.state.txInfo} accountName={this.state.selectedAccountName} sendResult={this.getTxResult.bind(this)}/>
       </div>
     );

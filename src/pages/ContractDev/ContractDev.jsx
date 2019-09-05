@@ -24,6 +24,138 @@ const { Row, Col } = Grid;
 const TreeNode = Tree.Node;
 const Panel = Collapse.Panel;
 
+const Transfer = ({self, contractName, funcName}) => {
+  return <div>
+    <Checkbox key='transferCheck'
+      onChange={checked => {
+        let transferTogether = utils.deepClone(self.state.transferTogether);
+        transferTogether[contractName + funcName] = checked;
+        let visibilityValue = utils.deepClone(self.state.visibilityValue);
+        visibilityValue[contractName + funcName] = checked ? 'block' : 'none';
+        // self.state.visibilityValue[funcName] = checked ? 'block' : 'none';
+        self.setState({ transferTogether, visibilityValue, txSendVisible: false });
+        // var obj = document.getElementById(contractName + funcName + 'Container');
+        // obj.style.display= visibilityValue[contractName + funcName];
+      }}>{T('附带转账')}
+    </Checkbox>
+    <br />
+    <br />
+    <Container key='transferContainer' id={contractName + funcName + 'Container'} style={{display: self.state.visibilityValue[contractName + funcName], height:'50'}}>
+      <Input hasClear
+        onChange={self.handleParaValueChange.bind(self, contractName, funcName, 'transferAssetId')}
+        style={{ width: 600 }}
+        addonBefore={T('转账资产ID')}
+        size="medium"
+      />
+      <br />
+      <br />
+      <Input hasClear
+        onChange={self.handleParaValueChange.bind(self, contractName, funcName, 'transferAssetValue')}
+        style={{ width: 600 }}
+        addonBefore={T('转账资产金额')}
+        size="medium"
+      />
+    </Container>
+  </div>
+}
+
+const TxReceiptResult = ({self, contractName, funcName}) => {
+  return <div>
+    <Button key='getTxInfo' type="primary" onClick={self.getTxInfo.bind(self, contractName, funcName)} style={{marginRight: '20px'}}>{T('查询交易')}</Button>
+    <Button key='getReceiptInfo' type="primary" onClick={self.getReceiptInfo.bind(self, contractName, funcName)}>{T('查询Receipt')}</Button>
+    <br /><br />
+    <Input  key='txReceiptResult' id={contractName + funcName + 'TxReceipt'} 
+      value={self.state.result[contractName + funcName + 'TxReceipt']}
+      multiple
+      rows="5"
+      style={{ width: 600 }}
+      addonBefore={T("交易/Receipt信息:")}
+      size="medium"
+    />
+  </div>
+}
+
+const Parameters = ({self, contractName, funcName, parameterNames, parameterTypes}) => {
+  return parameterNames.map((paraName, index) => (
+    <div>
+      <Input key={paraName} hasClear
+        onChange={self.handleParaValueChange.bind(self, contractName, funcName, paraName)}
+        style={{ width: 600 }}
+        addonBefore={paraName}
+        size="medium"
+        placeholder={parameterTypes[index]}
+        />
+      <br /><br />
+    </div>
+  ))
+}
+
+const OneFunc = ({self, contractAccountName, contractName, funcName, parameterTypes, parameterNames}) => {
+  let callBtnName = T('查询结果');
+  if (!self.state.funcParaConstant[contractName][funcName]) {
+    callBtnName = T('发起合约交易');
+    const transferTogether = self.state.transferTogether[contractName + funcName];
+    self.state.visibilityValue[contractName + funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
+  }
+  return <Card style={{ width: 800, marginBottom: "20px" }} bodyHeight="auto" title={funcName}>
+          <Parameters self={self} contractName={contractName} funcName={funcName} 
+            parameterNames={parameterNames} parameterTypes={parameterTypes} />
+          {
+            !self.state.funcParaConstant[contractName][funcName] ? 
+              <Transfer self={self} contractName={contractName} funcName={funcName} /> : ''
+          }
+          <Button type="primary" onClick={self.callContractFunc.bind(self, contractAccountName, contractName, funcName)}>{callBtnName}</Button>
+          <br />
+          <br />
+          <Input readOnly style={{ width: 600 }} 
+            value={self.state.result[contractName + funcName]}
+            addonBefore={T('结果')} size="medium"/>
+          <br />
+          <br />
+          {
+            !self.state.funcParaConstant[contractName][funcName] ? 
+              <TxReceiptResult self={self} contractName={contractName} funcName={funcName} /> : ''
+          }
+         </Card>;
+}
+
+const ContractArea = ({ self, contract }) => {
+  const {contractAccountName, contractName} = contract;
+  self.state.funcParaTypes[contractName] = {};
+  self.state.funcParaNames[contractName] = {};
+  self.state.funcParaConstant[contractName] = {};
+  
+  return contract.contractAbi.map(interfaceInfo => {
+    if (interfaceInfo.type === 'function') {
+      const funcName = interfaceInfo.name;
+      const parameterTypes = [];
+      const parameterNames = [];
+      for (const input of interfaceInfo.inputs) {
+        parameterTypes.push(input.type);
+        parameterNames.push(input.name);
+      }
+
+      self.state.funcParaTypes[contractName][funcName] = parameterTypes;
+      self.state.funcParaNames[contractName][funcName] = parameterNames;
+      self.state.funcParaConstant[contractName][funcName] = interfaceInfo.constant;
+      return <OneFunc key={contractAccountName + contractName + funcName} self={self} 
+        contractAccountName={contractAccountName} contractName={contractName} 
+        funcName={funcName} parameterTypes={parameterTypes} parameterNames={parameterNames}/>;      
+    }
+  });
+} 
+
+
+const ContractCollapse = ({self, contractAccountInfos}) => {
+  return <Collapse rtl='ltr'>
+            {contractAccountInfos.map(contract => (
+              <Panel key={contract.contractAccountName + contract.contractName}  
+                title={'合约账号：' + contract.contractAccountName + '，合约名：' + contract.contractName + '，部署时间：' + new Date().toLocaleString()}>
+                <ContractArea self={self} contract={contract}/>
+              </Panel>
+            ))}
+         </Collapse>
+}
 
 export default class ContractManager extends Component {
   static displayName = 'ContractManager';
@@ -42,6 +174,7 @@ export default class ContractManager extends Component {
       accountReg: new RegExp('^([a-z][a-z0-9]{6,15})(?:\.([a-z0-9]{2,16})){0,1}(?:\.([a-z0-9]{2,16})){0,1}$'),
       accounts: [],
       contractFuncInfo: [],
+      abiInfos: [],
       contractAccountInfo: [],
       abiInfo: abiInfoStr,
       paraValue: {},
@@ -165,37 +298,13 @@ export default class ContractManager extends Component {
     this.setState({ abiInfo: value });
   }
 
-  parseABI = (contractAccountName, contractName, abiInfo) => {
+  checkABI = (abiInfo) => {
     if (utils.isEmptyObj(abiInfo) 
     || (!utils.isEmptyObj(abiInfo) && !fractal.utils.isValidABI(abiInfo))) {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
-      return;
+      return false;
     }
-    this.state.funcParaTypes[contractName] = {};
-    this.state.funcParaNames[contractName] = {};
-    this.state.funcParaConstant[contractName] = {};
-
-    const contractFuncInfo = [];
-    const abiObj = JSON.parse(abiInfo);
-    for (const interfaceInfo of abiObj) {
-      if (interfaceInfo.type === 'function') {
-        const funcName = interfaceInfo.name;
-        const parameterTypes = [];
-        const parameterNames = [];
-        for (const input of interfaceInfo.inputs) {
-          parameterTypes.push(input.type);
-          parameterNames.push(input.name);
-        }
-
-        this.state.funcParaTypes[contractName][funcName] = parameterTypes;
-        this.state.funcParaNames[contractName][funcName] = parameterNames;
-        this.state.funcParaConstant[contractName][funcName] = interfaceInfo.constant;
-        contractFuncInfo.push(this.generateOneFunc(contractAccountName, contractName, funcName, parameterTypes, parameterNames));
-        contractFuncInfo.push(<br />);
-        contractFuncInfo.push(<br />);
-      }
-    }
-    return contractFuncInfo;
+    return true;
   }
 
   handleParaValueChange = (contractName, funcName, paraName, value) => {
@@ -302,10 +411,8 @@ export default class ContractManager extends Component {
     if (this.state.funcParaConstant[contractName][funcName]) {
       const callInfo = {actionType:0, from: 'fractal.founder', to: contractAccountName, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
-        // var obj = document.getElementById(contractName + funcName + 'Result');
-        // obj.value= resp;
-        const resultName = contractName + funcName;
-        self.setState({ result: { resultName: resp }, txSendVisible: false });
+        this.state.result[contractName + funcName] = resp;
+        self.setState({ result: this.state.result, txSendVisible: false });
       });
     } else {
       const assetId = this.state.transferTogether[contractName + funcName] ? parseInt(this.state.paraValue[contractName + '-' + funcName + '-transferAssetId']) : 0;
@@ -319,79 +426,6 @@ export default class ContractManager extends Component {
     }
   }
 
-  generateOneFunc = (contractAccountName, contractName, funcName, parameterTypes, parameterNames) => {
-    let index = 0;
-    let inputElements = [];
-    let txReceiptBtns = [];
-    let callBtnName = T('查询结果');
-    const self = this;
-    parameterNames.forEach(paraName => {
-      inputElements.push(<Input hasClear
-        onChange={this.handleParaValueChange.bind(this, contractName, funcName, paraName)}
-        style={{ width: 600 }}
-        addonBefore={paraName}
-        size="medium"
-        placeholder={parameterTypes[index++]}
-      />, <br />, <br />,
-      )
-    });
-    if (!this.state.funcParaConstant[contractName][funcName]) {
-      callBtnName = T('发起合约交易');
-      const transferTogether = this.state.transferTogether[contractName + funcName];
-      this.state.visibilityValue[contractName + funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
-      inputElements.push(
-      <Checkbox
-        onChange={checked => {
-          let transferTogether = utils.deepClone(self.state.transferTogether);
-          transferTogether[contractName + funcName] = checked;
-          let visibilityValue = utils.deepClone(self.state.visibilityValue);
-          visibilityValue[contractName + funcName] = checked ? 'block' : 'none';
-          // self.state.visibilityValue[funcName] = checked ? 'block' : 'none';
-          self.setState({ transferTogether, visibilityValue, txSendVisible: false });
-          var obj = document.getElementById(contractName + funcName + 'Container');
-          obj.style.display= visibilityValue[contractName + funcName];
-        }}>{T('附带转账')}</Checkbox>,<br />,<br />,
-      <Container id={contractName + funcName + 'Container'} style={{display: self.state.visibilityValue[contractName + funcName], height:'50'}}>
-        <Input hasClear
-          onChange={this.handleParaValueChange.bind(this, contractName, funcName, 'transferAssetId')}
-          style={{ width: 600 }}
-          addonBefore={T('转账资产ID')}
-          size="medium"
-        /><br /><br />
-        <Input hasClear
-          onChange={this.handleParaValueChange.bind(this, contractName, funcName, 'transferAssetValue')}
-          style={{ width: 600 }}
-          addonBefore={T('转账资产金额')}
-          size="medium"
-        />
-      </Container>,);
-
-      txReceiptBtns.push(<br />,<br />,
-        <Button type="primary" onClick={this.getTxInfo.bind(this, contractName, funcName)} style={{marginRight: '20px'}}>{T('查询交易')}</Button>,
-        <Button type="primary" onClick={this.getReceiptInfo.bind(this, contractName, funcName)}>{T('查询Receipt')}</Button>,
-        <br />,<br />,
-        <Input id={contractName + funcName + 'TxReceipt'} 
-          multiple
-          rows="5"
-          style={{ width: 600 }}
-          addonBefore={T("交易/Receipt信息:")}
-          size="medium"
-        />
-      );
-    }
-    const oneElement = <Card style={{ width: 800 }} bodyHeight="auto" title={funcName}>
-                        {inputElements}
-                        <Button type="primary" onClick={this.callContractFunc.bind(this, contractAccountName, contractName, funcName)}>{callBtnName}</Button>
-                        <br />
-                        <br />
-                        <Input readOnly id={contractName + funcName + 'Result'} style={{ width: 600 }} 
-                          value={this.state.result[contractName + funcName]}
-                          addonBefore={T('结果')} size="medium" onClick={()=>{}}/>
-                        {txReceiptBtns}
-                      </Card>;
-    return oneElement;
-  }
-
   getTxInfo = (contractName, funcName) => {
     const txHash = this.state.curTxResult[contractName][funcName];
     if (txHash != null) {
@@ -400,8 +434,8 @@ export default class ContractManager extends Component {
         return;
       }
       fractal.ft.getTransactionByHash(txHash).then(txInfo => {
-        var obj = document.getElementById(contractName + funcName + 'TxReceipt');
-        obj.value= JSON.stringify(txInfo);
+        this.state.result[contractName + funcName + 'TxReceipt'] = JSON.stringify(txInfo);
+        this.setState({result: this.state.result, txSendVisible: false});
       });
     }
   }
@@ -413,9 +447,13 @@ export default class ContractManager extends Component {
         Feedback.toast.error(T('非交易hash，无法查询'));
         return;
       }
-      fractal.ft.getTransactionReceipt(txHash).then(receipt => {
-        var obj = document.getElementById(contractName + funcName + 'TxReceipt');
-        obj.value= JSON.stringify(receipt);
+      fractal.ft.getTransactionReceipt(txHash).then(receipt => {        
+        if (receipt == null) {
+          Feedback.toast.error(T('receipt尚未生成'));
+          return;
+        }
+        this.state.result[contractName + funcName + 'TxReceipt'] = JSON.stringify(receipt);
+        this.setState({result: this.state.result, txSendVisible: false});
         const actionResults = receipt.actionResults;
         if (actionResults[0].status == 0) {
           Feedback.toast.error(T('Receipt表明本次交易执行失败，原因') + ':' + actionResults[0].error);
@@ -440,8 +478,8 @@ export default class ContractManager extends Component {
     }
   }
   getTxResult = (result) => {
-    var obj = document.getElementById(this.state.curContractName + this.state.curCallFuncName + 'Result');
-    obj.value = result;
+    this.state.result[this.state.curContractName + this.state.curCallFuncName] = result;
+    this.setState({result: this.state.result, txSendVisible: false});
     this.state.curTxResult[this.state.curContractName] = {};
     this.state.curTxResult[this.state.curContractName][this.state.curCallFuncName] = result;
   }
@@ -750,8 +788,10 @@ export default class ContractManager extends Component {
         this.checkReceipt('部署合约', txHash, () => {
           Feedback.toast.success('成功部署合约');
           this.setState({deployContractVisible: false});
-          this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], contractCode.abi);
-          global.localStorage.setItem('contractAccount:' + this.state.newContractAccountName, contractInfo[1]);
+          if (this.checkABI(contractCode.abi)) {
+            this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
+            global.localStorage.setItem('contractAccount:' + this.state.newContractAccountName, contractInfo[1]);
+          }
         });
       }).catch(error => {
         this.addLog('部署合约交易发送失败:' + error);
@@ -796,8 +836,10 @@ export default class ContractManager extends Component {
             this.checkReceipt('部署合约', txHash, () => {
               Feedback.toast.success('成功部署合约'); 
               this.setState({deployContractVisible: false}); 
-              this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], contractCode.abi);
-              global.localStorage.setItem('contractAccount:' + this.state.newContractAccountName, contractInfo[1]);
+              if (this.checkABI(contractCode.abi)) {
+                this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
+                global.localStorage.setItem('contractAccount:' + this.state.newContractAccountName, contractInfo[1]);
+              }
             });
           }).catch(error => {
             this.addLog('部署合约交易发送失败:' + error);
@@ -808,11 +850,7 @@ export default class ContractManager extends Component {
     }
   }
   displayContractFunc = (contractAccountName, contractName, contractAbi) => {
-    const abiUI = this.parseABI(contractAccountName, contractName, contractAbi);
-    const oneContractPanel = <Panel title={'合约账号：' + contractAccountName + '，合约名：' + contractName + '，部署时间：' + new Date().toLocaleString()}>
-                                {abiUI}
-                             </Panel>;
-    this.state.contractAccountInfo = [oneContractPanel, ...this.state.contractAccountInfo];
+    this.state.contractAccountInfo = [{contractAccountName, contractName, contractAbi}, ...this.state.contractAccountInfo];
     this.setState({contractAccountInfo: this.state.contractAccountInfo, txSendVisible: false});
   }
 
@@ -832,6 +870,7 @@ export default class ContractManager extends Component {
   }
   render() {
     global.localStorage.setItem("solFileList", this.state.solFileList);
+    const self = this;
     return (
       <div style={{width:1200}}>
         <Row className="custom-row" style={{width:1200}}>
@@ -879,10 +918,8 @@ export default class ContractManager extends Component {
               />
               
               <br />
-              <br />
-              <Collapse rtl='ltr'>
-                {this.state.contractAccountInfo.map(item => item)}
-              </Collapse>
+              <br />    
+              <ContractCollapse self={self} contractAccountInfos={this.state.contractAccountInfo}/>
             </Col>
             <Col fixedSpan="10" className="custom-col-right-sidebar">
               <Select
@@ -930,7 +967,6 @@ export default class ContractManager extends Component {
         
         <br />
         <br />
-        {/* <Button type="primary" onClick={this.parseABI.bind(this)}>{T("解析ABI")}</Button> */}
         <Dialog
           visible={this.state.addNewContractFileVisible}
           title={T("请输入合约文件名称")}
