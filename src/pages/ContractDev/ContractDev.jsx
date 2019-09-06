@@ -145,12 +145,12 @@ const ContractArea = ({ self, contract }) => {
   });
 } 
 
-
-const ContractCollapse = ({self, contractAccountInfos}) => {
+const ContractCollapse = ({self, contractAccountInfo}) => {
+  global.localStorage.setItem('contractAccountInfo', JSON.stringify(contractAccountInfo));
   return <Collapse rtl='ltr'>
-            {contractAccountInfos.map(contract => (
-              <Panel key={contract.contractAccountName + contract.contractName}  
-                title={'合约账号：' + contract.contractAccountName + '，合约名：' + contract.contractName + '，部署时间：' + new Date().toLocaleString()}>
+            {contractAccountInfo.map((contract, index) => (
+              <Panel key={index}  
+                title={"编号：" + (index + 1) + '，合约账号:' + contract.contractAccountName + '，合约名：' + contract.contractName + '，时间：' + new Date().toLocaleString()}>
                 <ContractArea self={self} contract={contract}/>
               </Panel>
             ))}
@@ -204,6 +204,8 @@ export default class ContractManager extends Component {
       addNewContractFileVisible: false,
       deployContractVisible: false,
       compileSrvSettingVisible: false,
+      contractInfoVisible: false,
+      loadedContractAccount: '',
       compileSrv: '',
       selectContactFile: '',
       selectedFileToCompile: null,
@@ -219,6 +221,18 @@ export default class ContractManager extends Component {
      if (solFileList != null) {
        this.state.solFileList = solFileList.split(',');
      }
+
+     const compileSrvAddr = global.localStorage.getItem('compileSrv');
+     if (compileSrvAddr != null) {
+       this.state.compileSrv = compileSrvAddr;
+       CompilerSrv.changeSrv(compileSrvAddr);
+     }
+
+     const contractAccountInfo = global.localStorage.getItem('contractAccountInfo');
+     if (contractAccountInfo != null) {
+      this.state.contractAccountInfo = JSON.parse(contractAccountInfo);
+    }
+
      global.localStorage.setItem('sol:asset.sol', assetSol);
      global.localStorage.setItem('sol:crypto.sol', cryptoSol);
   }
@@ -256,12 +270,6 @@ export default class ContractManager extends Component {
       let abiInfoStr = JSON.stringify(abiInfo).replace(/\\"/g, '"');
       abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
       this.setState({ storedAbiInfo: abiInfoStr });
-    }
-
-    const compileSrvAddr = global.localStorage.getItem('compileSrv');
-    if (compileSrvAddr != null) {
-      this.state.compileSrv = compileSrvAddr;
-      CompilerSrv.changeSrv(compileSrvAddr);
     }
 
     fractal.ft.getSuggestionGasPrice().then(suggestionPrice => {
@@ -305,7 +313,7 @@ export default class ContractManager extends Component {
 
   checkABI = (abiInfo) => {
     if (utils.isEmptyObj(abiInfo) 
-    || (!utils.isEmptyObj(abiInfo) && !fractal.utils.isValidABI(abiInfo))) {
+    || (!utils.isEmptyObj(abiInfo) && !fractal.utils.isValidABI(JSON.stringify(abiInfo)))) {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return false;
     }
@@ -323,6 +331,24 @@ export default class ContractManager extends Component {
     this.syncSolFileToSrv();
   }
 
+  handleContractNoChange = (v) => {
+    this.state.contractIndex = v;
+  }
+
+  removeContractCall = () => {
+    if (utils.isEmptyObj(this.state.contractIndex)) {
+      Feedback.toast.error(T('请输入待删除合约界面的编号'));
+      return;
+    }
+    const index = parseInt(this.state.contractIndex);
+    if (index > this.state.contractAccountInfo.length || index < 1) {
+      Feedback.toast.error('当前编号必须大于0，小于等于' + this.state.contractAccountInfo.length);
+      return;
+    }
+    this.state.contractAccountInfo.splice(index - 1, 1);
+    this.setState({contractAccountInfo: this.state.contractAccountInfo, txSendVisible: false});
+  }
+
   onChangeContractFile = (fileToCompile) => {
     this.setState({ selectedFileToCompile: fileToCompile, txSendVisible: false });
   }
@@ -331,9 +357,38 @@ export default class ContractManager extends Component {
     this.setState({ selectedContractToDeploy: contractToDeploy, txSendVisible: false });
   }
 
+  handleLoadedContractAccountChange = (v) => {
+    this.setState({ loadedContractAccount: v, txSendVisible: false });
+  }
+
+  loadContract = () => {
+    if (utils.isEmptyObj(this.state.loadedContractAccount)) {
+      Feedback.toast.error(T('请输入合约账号'));
+      return;
+    }
+    fractal.account.getAccountByName(this.state.loadedContractAccount).then(account => {
+      if (account == null) {
+        Feedback.toast.error(T('此账号不存在'));
+        return;
+      }
+      if (account.codeSize == 0) {
+        Feedback.toast.error(T('此账号非合约账号，无法加载'));
+        return;
+      }
+      const contractAbi = utils.getContractABI(this.state.loadedContractAccount);
+      if (!utils.isEmptyObj(contractAbi)) {
+        const contractName = this.getContractName(this.state.loadedContractAccount);
+        this.displayContractFunc(this.state.loadedContractAccount, 
+                                 utils.isEmptyObj(contractName) ? 'tmpName-' + utils.getRandomInt(10000) : contractName , 
+                                 contractAbi);
+        return;
+      }
+      this.setState({ contractInfoVisible: true, txSendVisible: false });
+    });
+  }
   addLog = (logInfo) => {
     let date = new Date().toLocaleString();
-    logInfo = date + ':' + logInfo + '\n';
+    logInfo = date + ':' + logInfo + '\n\n';
     this.setState({resultInfo: this.state.resultInfo + logInfo});
   }
 
@@ -342,15 +397,15 @@ export default class ContractManager extends Component {
       Feedback.toast.error(T('请选择待编译的文件'));
       return;
     }
-    this.addLog("--------------------\n开始编译");
+    this.addLog("开始编译");
     const compileResult = await CompilerSrv.compileSol(this.state.selectedAccountName, this.state.selectedFileToCompile);
     if (compileResult.err != null) {
       Feedback.toast.error("编译失败");
-      this.addLog("--------------------\n" + compileResult.err);
+      this.addLog(compileResult.err);
       return;
     }
     Feedback.toast.success("编译成功");
-    this.addLog("--------------------\n编译成功");
+    this.addLog("编译成功");
 
     this.state.fileContractMap[this.state.selectedFileToCompile] = compileResult;
     this.state.contractList = [];
@@ -358,8 +413,7 @@ export default class ContractManager extends Component {
       const compiledInfo = this.state.fileContractMap[contractFile];
       for (var contractName in compiledInfo) {
         this.state.contractList.push(contractFile + ":" + contractName);
-        this.addLog("--------------------" + contractName + "\n" + compiledInfo[contractName].abi);
-        global.localStorage.setItem('contract:' + contractName, compiledInfo[contractName].abi);
+        this.addLog("合约" + contractName + "编译结果\n" + compiledInfo[contractName].abi);
       }
     }
     this.setState({contractList: this.state.contractList});
@@ -420,6 +474,7 @@ export default class ContractManager extends Component {
     if (this.state.funcParaConstant[contractName][funcName]) {
       const callInfo = {actionType:0, from: 'fractal.founder', to: contractAccountName, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
+        this.addLog("调用函数" + funcName + "获得的结果：" + resp);
         this.state.result[contractName + funcName] = resp;
         self.setState({ result: this.state.result, txSendVisible: false });
       });
@@ -442,7 +497,8 @@ export default class ContractManager extends Component {
         Feedback.toast.error(T('非交易hash，无法查询'));
         return;
       }
-      fractal.ft.getTransactionByHash(txHash).then(txInfo => {
+      fractal.ft.getTransactionByHash(txHash).then(txInfo => {        
+        this.addLog("交易信息\n" + JSON.stringify(txInfo));
         this.state.result[contractName + funcName + 'TxReceipt'] = JSON.stringify(txInfo);
         this.setState({result: this.state.result, txSendVisible: false});
       });
@@ -461,32 +517,21 @@ export default class ContractManager extends Component {
           Feedback.toast.error(T('receipt尚未生成'));
           return;
         }
+        this.addLog("receipt\n" + JSON.stringify(receipt));
         this.state.result[contractName + funcName + 'TxReceipt'] = JSON.stringify(receipt);
         this.setState({result: this.state.result, txSendVisible: false});
         const actionResults = receipt.actionResults;
         if (actionResults[0].status == 0) {
           Feedback.toast.error(T('Receipt表明本次交易执行失败，原因') + ':' + actionResults[0].error);
+        } else {
+          Feedback.toast.success(T('Receipt表明本次交易执行成功'));
         }
       });
     }
   }
 
-  importABI = () => {
-    if (utils.isEmptyObj(this.state.contractAccount)) {
-      Feedback.toast.error(T('请输入合约账号名'));
-      return;
-    }
-
-    const abiInfoObj = utils.getDataFromFile(Constant.ContractABIFile);
-    if (abiInfoObj != null && abiInfoObj[this.state.contractAccount] != null) {
-      let abiInfoStr = JSON.stringify(abiInfoObj[this.state.contractAccount]).replace(/\\"/g, '"');
-      abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
-      this.setState({ abiInfo: abiInfoStr });
-    } else {
-      Feedback.toast.prompt(T('账号未保存ABI信息，无法导入'));
-    }
-  }
   getTxResult = (result) => {
+    this.addLog("调用函数" + this.state.curCallFuncName + "获取的结果:" + result);
     this.state.result[this.state.curContractName + this.state.curCallFuncName] = result;
     this.setState({result: this.state.result, txSendVisible: false});
     this.state.curTxResult[this.state.curContractName] = {};
@@ -649,6 +694,25 @@ export default class ContractManager extends Component {
     this.setState({compileSrvSettingVisible: false, txSendVisible: false});
   }  
 
+  onAddContractABIOK = () => {
+    if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(this.state.contractABI)) {
+      Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
+      return;
+    }
+    utils.storeContractABI(this.state.loadedContractAccount, JSON.parse(this.state.contractABI));
+    const contractName = this.getContractName(this.state.loadedContractAccount);
+    this.displayContractFunc(this.state.loadedContractAccount, utils.isEmptyObj(contractName) ? 'tmpName-' + utils.getRandomInt(10000) : contractName , JSON.parse(this.state.contractABI));
+    this.setState({ contractInfoVisible: false });
+  }
+
+  onAddContractABIClose = () => {
+    this.setState({ contractInfoVisible: false });
+  }
+
+  handleContractABIChange = (value) => {
+    this.state.contractABI = value;
+  }
+
   getFTBalance = (account) => {
     for(const balance of account.balances) {
       if (balance.assetID == Constant.SysTokenId) {
@@ -725,24 +789,28 @@ export default class ContractManager extends Component {
 
   checkReceipt = (actionName, txHash, cbFunc) => {
     let count = 0;
-      const intervalId = setInterval(() => {
-        fractal.ft.getTransactionReceipt(txHash).then(receipt => {
-          if (receipt == null) {
-            count++;
-            if (count == 3) {
-              clearInterval(intervalId);
-            }
-          } else {
+    const intervalId = setInterval(() => {
+      fractal.ft.getTransactionReceipt(txHash).then(receipt => {
+        if (receipt == null) {
+          Feedback.toast.success('进行中。。。');
+          this.addLog('receipt尚未生成，继续查询');
+          count++;
+          if (count == 3) {
+            this.addLog('receipt生成超时，请检查链是否正常');
             clearInterval(intervalId);
-            const actionResults = receipt.actionResults;
-            if (actionResults[0].status == 0) {
-              Feedback.toast.error(actionName + T('交易执行失败，原因') + ':' + actionResults[0].error);
-            } else if (cbFunc != null) {
-              cbFunc();
-            }
           }
-        });
-      }, 3000);
+        } else {
+          this.addLog('receipt已生成');
+          clearInterval(intervalId);
+          const actionResults = receipt.actionResults;
+          if (actionResults[0].status == 0) {
+            Feedback.toast.error(actionName + T('交易执行失败，原因') + ':' + actionResults[0].error);
+          } else if (cbFunc != null) {
+            cbFunc();
+          }
+        }
+      });
+    }, 3000);
   }
 
   createAccountTx = (newAccountName, creator, publicKey, transferFTAmount, gasPrice, gasLimit) => {
@@ -762,6 +830,25 @@ export default class ContractManager extends Component {
     txInfo.actions = [actionInfo];
 
     return this.sendTx(txInfo, creator);
+  }
+
+  storeContractName = (contractAccountName, contractName) => {
+    let storedName = utils.getDataFromFile(Constant.ContractNameFile);
+    if (storedName != null) {
+      storedName[contractAccountName] = contractName;
+    } else {
+      storedName = {};
+      storedName[contractAccountName] = contractName;
+    }
+    utils.storeDataToFile(Constant.ContractNameFile, storedName);
+  }
+  
+  getContractName = (contractAccountName) => {
+    let storedName = utils.getDataFromFile(Constant.ContractNameFile);
+    if (storedName != null) {
+      return storedName[contractAccountName];
+    }
+    return null;
   }
 
   deployContractTx = async (contractAccountName, contractCode, gasPrice, gasLimit) => {
@@ -828,10 +915,7 @@ export default class ContractManager extends Component {
         this.checkReceipt('部署合约', txHash, () => {
           Feedback.toast.success('成功部署合约');
           this.setState({deployContractVisible: false});
-          if (this.checkABI(contractCode.abi)) {
-            this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
-            global.localStorage.setItem('contractAccount:' + this.state.newContractAccountName, contractInfo[1]);
-          }
+          this.processContractDepolyed(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
         });
       }).catch(error => {
         this.addLog('部署合约交易发送失败:' + error);
@@ -876,10 +960,7 @@ export default class ContractManager extends Component {
             this.checkReceipt('部署合约', txHash, () => {
               Feedback.toast.success('成功部署合约'); 
               this.setState({deployContractVisible: false}); 
-              if (this.checkABI(contractCode.abi)) {
-                this.displayContractFunc(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
-                global.localStorage.setItem('contractAccount:' + this.state.newContractAccountName, contractInfo[1]);
-              }
+              this.processContractDepolyed(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
             });
           }).catch(error => {
             this.addLog('部署合约交易发送失败:' + error);
@@ -887,6 +968,13 @@ export default class ContractManager extends Component {
           });
         });
       });
+    }
+  }
+  processContractDepolyed = (contractAccountName, contractName, contractAbi) => {
+    if (this.checkABI(contractAbi)) {
+      this.displayContractFunc(contractAccountName, contractName, contractAbi);
+      this.storeContractName(contractAccountName, contractName);
+      utils.storeContractABI(contractAccountName, contractAbi);
     }
   }
   displayContractFunc = (contractAccountName, contractName, contractAbi) => {
@@ -914,7 +1002,7 @@ export default class ContractManager extends Component {
     return (
       <div style={{width:1500}}>
         <Row className="custom-row" style={{width:1500}}>
-            <Col fixedSpan="10" className="custom-col-left-sidebar">
+            <Col fixedSpan="11" className="custom-col-left-sidebar">
               <br />
               <Button type="primary" onClick={this.addSolFile}>添加合约</Button>
               &nbsp;&nbsp;
@@ -950,6 +1038,7 @@ export default class ContractManager extends Component {
               <br />
               <br />
               <Input multiple hasClear readOnly
+                addonBefore={T("Log")}
                 rows={20}
                 style={{ height: 300 }}
                 value={this.state.resultInfo}
@@ -958,13 +1047,23 @@ export default class ContractManager extends Component {
               />
               
               <br />
-              <br />    
-              <ContractCollapse self={self} contractAccountInfos={this.state.contractAccountInfo}/>
+              <br />  
+              <Input hasClear
+                  onChange={this.handleContractNoChange.bind(this)}
+                  style={{ width: 220 }}
+                  addonBefore={T("编号")}
+                  size="medium"
+                />
+              &nbsp;&nbsp;&nbsp;
+              <Button type="primary" onClick={this.removeContractCall.bind(this)}>{T("删除")}</Button>
+              <br />  
+              <br />     
+              <ContractCollapse self={self} contractAccountInfo={this.state.contractAccountInfo}/>
             </Col>
             <Col fixedSpan="10" className="custom-col-right-sidebar">
               <Select
                 style={{ width: 280 }}
-                placeholder={T("选择可发起合约操作的账户")}
+                placeholder={T("选择有权限发起合约操作的账户")}
                 onChange={this.onChangeAccount.bind(this)}
                 dataSource={this.state.accounts}
               />
@@ -993,6 +1092,18 @@ export default class ContractManager extends Component {
                 />
                 &nbsp;&nbsp;&nbsp;
                 <Button type="primary" onClick={this.deployContract.bind(this)}>{T("部署")}</Button>
+              </Row>
+              <br/>
+              <Row style={{width:280}}>
+                <Input hasClear
+                  onChange={this.handleLoadedContractAccountChange.bind(this)}
+                  value={this.state.loadedContractAccount}
+                  style={{ width: 220 }}
+                  addonBefore={T("合约账号")}
+                  size="medium"
+                />
+                &nbsp;&nbsp;&nbsp;
+                <Button type="primary" onClick={this.loadContract.bind(this)}>{T("加载")}</Button>
               </Row>
               {/* <br/>
               <Row style={{width:280}}>
@@ -1028,7 +1139,7 @@ export default class ContractManager extends Component {
           />
         </Dialog>
         
-        <Dialog
+        <Dialog closeable='close,esc,mask'
           visible={this.state.compileSrvSettingVisible}
           title={T("请输入编译服务器地址")}
           closeable="true"
@@ -1052,6 +1163,23 @@ export default class ContractManager extends Component {
           默认服务器地址:http://18.182.10.22:8888
           <br />
           服务器代码:https://github.com/syslink/FTSolCompilerSrv
+        </Dialog>
+        <Dialog closeable='close,esc,mask'
+          visible={this.state.contractInfoVisible}
+          title={T("本地添加合约ABI信息")}
+          footerAlign="center"
+          onOk={this.onAddContractABIOK.bind(this)}
+          onCancel={this.onAddContractABIClose.bind(this)}
+          onClose={this.onAddContractABIClose.bind(this)}
+        >
+          <Input hasClear multiple
+            onChange={this.handleContractABIChange.bind(this)}
+            style={{ width: 400 }}
+            addonBefore={T("ABI信息")}
+            size="medium"
+            defaultValue={this.state.originalABI}
+            hasLimitHint
+          />
         </Dialog>
         <Dialog closeable='close,esc,mask'
           visible={this.state.deployContractVisible}

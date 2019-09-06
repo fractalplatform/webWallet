@@ -826,10 +826,10 @@ export default class AccountList extends Component {
   }
   addContractABI = (index) => {
     this.state.curAccount = this.state.accountInfos[index];
-    const abiInfo = utils.getDataFromFile(Constant.ContractABIFile);
+    const abiInfo = utils.getContractABI(this.state.curAccount.accountName);
     this.state.originalABI = '';
-    if (abiInfo != null && abiInfo[this.state.curAccount.accountName] != null) {
-      this.state.originalABI = JSON.stringify(abiInfo[this.state.curAccount.accountName]).replace(/\\"/g, '"');
+    if (abiInfo != null) {
+      this.state.originalABI = JSON.stringify(abiInfo).replace(/\\"/g, '"');
       this.state.originalABI = this.state.originalABI.substring(1, this.state.originalABI.length - 1);
     }
     this.setState({ contractInfoVisible: true });
@@ -1503,24 +1503,13 @@ export default class AccountList extends Component {
       txSendVisible: false
     });
   }
-
-  storeContractABI = (contractAccountName, abiInfo) => {
-    let storedABI = utils.getDataFromFile(Constant.ContractABIFile);
-    if (storedABI != null) {
-      storedABI[contractAccountName] = abiInfo;
-    } else {
-      storedABI = {};
-      storedABI[contractAccountName] = abiInfo;
-    }
-    utils.storeDataToFile(Constant.ContractABIFile, storedABI);
-  }
   
   onAddContractABIOK = () => {
     if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(this.state.contractABI)) {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return;
     }
-    this.storeContractABI(this.state.curAccount.accountName, this.state.contractABI);
+    utils.storeContractABI(this.state.curAccount.accountName, JSON.parse(this.state.contractABI));
     Feedback.toast.success(T('添加成功'));
     this.setState({ contractInfoVisible: false });
   }

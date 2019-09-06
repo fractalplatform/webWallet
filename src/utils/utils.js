@@ -302,6 +302,7 @@ function utf8ByteToUnicodeStr(utf8Bytes){
   return unicodeStr;
 }
 
+// 
 function getDataFromFile(fileName, chainId) {
   if (chainId == null) {
     chainId = fractal.ft.getChainId();
@@ -325,7 +326,6 @@ function storeDataToFile(fileName, toSaveObj, chainId) {
   }
   dataObj[Constant.ChainIdPrefix + chainId] = toSaveObj;
   const dataStr = JSON.stringify(dataObj);
-  console.log(fileName + '->' + dataStr.length);
   global.localStorage.setItem(fileName, dataStr);
 }
 
@@ -340,6 +340,24 @@ function removeDataFromFile(fileName) {
   global.localStorage.setItem(fileName, JSON.stringify(dataObj));
 }
 
+function storeContractABI(contractAccountName, abiInfo) {
+  let storedABI = getDataFromFile(Constant.ContractABIFile);
+  if (storedABI != null) {
+    storedABI[contractAccountName] = abiInfo;
+  } else {
+    storedABI = {};
+    storedABI[contractAccountName] = abiInfo;
+  }
+  storeDataToFile(Constant.ContractABIFile, storedABI);
+}
+
+function getContractABI(contractAccountName) {
+  let storedABI = getDataFromFile(Constant.ContractABIFile);
+  if (storedABI != null) {
+    return storedABI[contractAccountName];
+  }
+  return null;
+}
 
 function loadKeystoreFromLS() {
   const keystoreInfoObj = getDataFromFile(Constant.KeyStoreFile);
@@ -442,6 +460,10 @@ function guid() {
   });
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * Math.floor(max));
+}
+
 function getValidKeystores (authors, threshold) {
   const keystoreList = loadKeystoreFromLS();
   let keystoreInfo = {};
@@ -478,4 +500,5 @@ export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
          removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, 
-         getGasEarned, getValidTime, checkIpVaild, getDuration, guid, getValidKeystores };
+         getGasEarned, getValidTime, checkIpVaild, getDuration, guid, getRandomInt,
+         getValidKeystores, storeContractABI, getContractABI };

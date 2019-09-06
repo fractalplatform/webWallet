@@ -32,6 +32,7 @@ export const AccountFile = 'accountInfo';
 export const KeyStoreFile = 'keystoreInfo';
 export const TxInfoFile = 'txInfo';
 export const ContractABIFile = 'contractABI';
+export const ContractNameFile = 'contractName';
 export const TestSceneFile = 'testScene';
 export const CurTestSceneCases = 'curTestSceneCases';
 
