@@ -110,10 +110,10 @@ const asideMenuConfig = [
         name: T('合约开发'),
         path: '/contractDev',
       },
-      {
-        name: T('合约调用'),
-        path: '/contractManager',
-      },
+      // {
+      //   name: T('合约调用'),
+      //   path: '/contractManager',
+      // },
       {
         name: T('原始交易构造'),
         path: '/rawTxConstructor',
