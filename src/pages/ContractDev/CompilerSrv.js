@@ -1,5 +1,8 @@
-const srvAddr = "http://18.182.10.22:8888/solidity/";
+let srvAddr = "http://18.182.10.22:8888/solidity/";
 
+export function changeSrv(compileSrv) {
+  srvAddr = compileSrv + '/solidity';
+}
 
 export function addSol(accountName, solFileName) {
   const dataToSrv = JSON.stringify({ type: 0,

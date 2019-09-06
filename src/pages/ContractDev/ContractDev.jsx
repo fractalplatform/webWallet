@@ -203,15 +203,17 @@ export default class ContractManager extends Component {
       activeKey: '',
       addNewContractFileVisible: false,
       deployContractVisible: false,
+      compileSrvSettingVisible: false,
+      compileSrv: '',
       selectContactFile: '',
-      selectedFileToCompile: '',
-      selectedContractToDeploy: '',
+      selectedFileToCompile: null,
+      selectedContractToDeploy: null,
       resultInfo: '',
       newContractAccountName: '',
       keystoreInfo: {},
       suggestionPrice: 1,
       gasLimit: 1000000,
-      ftAmount: 1,
+      ftAmount: 1,      
      };
      const solFileList = global.localStorage.getItem('solFileList');
      if (solFileList != null) {
@@ -256,6 +258,12 @@ export default class ContractManager extends Component {
       this.setState({ storedAbiInfo: abiInfoStr });
     }
 
+    const compileSrvAddr = global.localStorage.getItem('compileSrv');
+    if (compileSrvAddr != null) {
+      this.state.compileSrv = compileSrvAddr;
+      CompilerSrv.changeSrv(compileSrvAddr);
+    }
+
     fractal.ft.getSuggestionGasPrice().then(suggestionPrice => {
       this.setState({ gasPrice: utils.getReadableNumber(suggestionPrice, 9, 9) });
     })
@@ -267,9 +275,6 @@ export default class ContractManager extends Component {
   //   return true;
   // }
   syncSolFileToSrv = () => {
-    for (const solFile of this.state.solFileList) {
-     CompilerSrv.addSol(this.state.selectedAccountName, solFile);
-    }
     for (const solFile of this.state.solFileList) {
      const solCode = global.localStorage.getItem('sol:' + solFile);
      CompilerSrv.updateSol(this.state.selectedAccountName, solFile, solCode);
@@ -312,6 +317,8 @@ export default class ContractManager extends Component {
   }
 
   onChangeAccount = (accountName, item) => {
+    this.state.selectedAccountName = accountName;
+    this.state.selectedAccount = item.object;
     this.setState({ selectedAccountName: accountName, selectedAccount: item.object, txSendVisible: false });
     this.syncSolFileToSrv();
   }
@@ -357,7 +364,9 @@ export default class ContractManager extends Component {
     }
     this.setState({contractList: this.state.contractList});
   }
-
+  setCompileSrv = () => {
+    this.setState({compileSrvSettingVisible: true});
+  }
   // 部署合约分两步：
   // 1:创建账户，需：账户名(自动生成), 公钥(同发起账户)，转账FT金额(用于部署合约)
   // 2:将合约bytecode附加到第一步创建的账户中
@@ -539,14 +548,25 @@ export default class ContractManager extends Component {
   }
 
   onEditFinish(key, label, node) {
-    let index = -1;
-    this.state.solFileList.map(solFileName => {
-      index++;
+    this.state.solFileList.map((solFileName, index) => {
       if (solFileName == key) {        
         this.state.solFileList[index] = label;
       }
     });
-    this.setState({solFileList: this.state.solFileList});
+    if (this.state.selectedFileToCompile == key) {
+      this.state.selectedFileToCompile = label;
+    }
+    this.state.contractList.map((contractFile, index) => {
+      const contractInfos = contractFile.split(":");
+      if (contractInfos[0] == key) {        
+        this.state.contractList[index] = label + ":" + contractInfos[1];
+      }
+    });
+    if (this.state.selectedContractToDeploy != null && this.state.selectedContractToDeploy.split(":")[0] == key) {
+      this.state.selectedContractToDeploy = label + ":" + this.state.selectedContractToDeploy.split(":")[1];
+    }
+
+    this.setState({solFileList: this.state.solFileList, contractFile: this.state.contractList});
     this.updateSolTab(key, label);
     CompilerSrv.renameSol(this.state.selectedAccountName, key, label);
   }
@@ -605,9 +625,29 @@ export default class ContractManager extends Component {
     
     CompilerSrv.addSol(this.state.selectedAccountName, this.state.newContractFileName);
   }
+
   onAddNewContractFileClose = () => {
     this.setState({addNewContractFileVisible: false});
   }
+
+  handleCompileSrvChange = (v) => {
+    this.state.compileSrv = v;
+  }
+
+  onSetCompileSrvOK = () => {
+    if (utils.isEmptyObj(this.state.compileSrv)) {
+      Feedback.toast.error('请输入编译服务器地址');
+      return;
+    }
+    CompilerSrv.changeSrv(this.state.compileSrv);
+    Feedback.toast.success('编译服务器地址修改成功');
+    global.localStorage.setItem('compileSrv', this.state.compileSrv);
+    this.setState({compileSrvSettingVisible: false, txSendVisible: false});
+  }
+
+  onSetCompileSrvClose = () => {
+    this.setState({compileSrvSettingVisible: false, txSendVisible: false});
+  }  
 
   getFTBalance = (account) => {
     for(const balance of account.balances) {
@@ -829,7 +869,7 @@ export default class ContractManager extends Component {
         this.addLog('创建账户的交易hash:' + txHash);
         this.checkReceipt('创建账户', txHash, () => {
           // 2:由合约账户部署合约
-          Feedback.toast.success('合约账户创建成功');  
+          Feedback.toast.success('合约账户创建成功，即将为账户添加合约代码');  
           this.addLog('合约账户已创建，可部署合约');    
           this.deployContractTx(this.state.newContractAccountName, contractCode.bin, this.state.gasPrice, this.state.gasLimit).then(txHash => {
             this.addLog('部署合约的交易hash:' + txHash);
@@ -872,8 +912,8 @@ export default class ContractManager extends Component {
     global.localStorage.setItem("solFileList", this.state.solFileList);
     const self = this;
     return (
-      <div style={{width:1200}}>
-        <Row className="custom-row" style={{width:1200}}>
+      <div style={{width:1500}}>
+        <Row className="custom-row" style={{width:1500}}>
             <Col fixedSpan="10" className="custom-col-left-sidebar">
               <br />
               <Button type="primary" onClick={this.addSolFile}>添加合约</Button>
@@ -901,7 +941,7 @@ export default class ContractManager extends Component {
                 {
                   this.state.tabFileList.map(fileName =>
                           <Tab.Item closeable={true} key={fileName} title={fileName} tabStyle={{ height:'20px',opacity:0.2}}>
-                            <ContractEditor fileName={fileName} accountName={this.state.selectedAccountName} style={{height:1200, width:800}}/>
+                            <ContractEditor fileName={fileName} accountName={this.state.selectedAccountName} style={{height:1200, width:1100}}/>
                           </Tab.Item>
                   )
                 }
@@ -911,7 +951,7 @@ export default class ContractManager extends Component {
               <br />
               <Input multiple hasClear readOnly
                 rows={20}
-                style={{ width: 800, height: 300 }}
+                style={{ height: 300 }}
                 value={this.state.resultInfo}
                 size="medium"
                 onChange={this.handleABIInfoChange.bind(this)}
@@ -931,13 +971,16 @@ export default class ContractManager extends Component {
               <br/><br/>
               <Row style={{width:280}}>
                 <Select
-                  style={{ width: 220 }}
+                  style={{ width: 150 }}
                   placeholder={T("请选择待编译文件")}
                   onChange={this.onChangeContractFile.bind(this)}
+                  value={this.state.selectedFileToCompile}
                   dataSource={this.state.solFileList}
                 />
                 &nbsp;&nbsp;&nbsp;
                 <Button type="primary" onClick={this.compileContract.bind(this)}>{T("编译")}</Button>
+                &nbsp;&nbsp;&nbsp;
+                <Button type="primary" onClick={this.setCompileSrv.bind(this)}>{T("配置")}</Button>
               </Row>
               <br/>
               <Row style={{width:280}}>
@@ -946,6 +989,7 @@ export default class ContractManager extends Component {
                   placeholder={T("请选择合约")}
                   onChange={this.onChangeContract.bind(this)}
                   dataSource={this.state.contractList}
+                  value={this.state.selectedContractToDeploy}
                 />
                 &nbsp;&nbsp;&nbsp;
                 <Button type="primary" onClick={this.deployContract.bind(this)}>{T("部署")}</Button>
@@ -982,6 +1026,32 @@ export default class ContractManager extends Component {
             addonBefore={T("合约文件名")}
             size="medium"
           />
+        </Dialog>
+        
+        <Dialog
+          visible={this.state.compileSrvSettingVisible}
+          title={T("请输入编译服务器地址")}
+          closeable="true"
+          footerAlign="center"
+          onOk={this.onSetCompileSrvOK.bind(this)}
+          onCancel={this.onSetCompileSrvClose.bind(this)}
+          onClose={this.onSetCompileSrvClose.bind(this)}
+        >
+          <Input hasClear
+            onChange={this.handleCompileSrvChange.bind(this)}
+            style={{ width: 350 }}
+            addonBefore={T("编译服务器地址")}
+            size="medium"
+          />
+          <br />
+          {
+            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://18.182.10.22:8888'  
+              ? '当前服务器地址:' + this.state.compileSrv : ''
+          }
+          <br />
+          默认服务器地址:http://18.182.10.22:8888
+          <br />
+          服务器代码:https://github.com/syslink/FTSolCompilerSrv
         </Dialog>
         <Dialog closeable='close,esc,mask'
           visible={this.state.deployContractVisible}

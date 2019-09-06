@@ -77,7 +77,7 @@ export default class ContractEditor extends Component {
           {T('发布')}
           </Button>
         </p>
-        <div ref="editorContainer" style={{ height: 1200, width: 800 }} />
+        <div ref="editorContainer" style={{ height: 1200, width: 1100 }} />
       </div>
     );
   }
