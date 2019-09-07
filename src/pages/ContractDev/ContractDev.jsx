@@ -262,6 +262,7 @@ export default class ContractManager extends Component {
     } else {
       this.state.selectedAccountName = utils.guid();
       this.state.selectedAccount = null;
+      Feedback.toast.prompt('您在本钱包中尚未拥有一个账号，无法完整使用合约开发功能！');
     }
     this.syncSolFileToSrv();
 
