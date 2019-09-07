@@ -594,7 +594,7 @@ export default class TxSend extends Component {
       <div>
         <Dialog
           visible={this.state.txConfirmVisible}
-          title={"交易确认-" + this.state.curAccount.accountName}
+          title={"交易确认-" + (this.state.curAccount != null ? this.state.curAccount.accountName : '')}
           footerActions="ok"
           footerAlign="center"
           closeable="true"
