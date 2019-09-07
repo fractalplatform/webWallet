@@ -269,11 +269,11 @@ export default class ContractManager extends Component {
     if (abiInfo != null) {
       let abiInfoStr = JSON.stringify(abiInfo).replace(/\\"/g, '"');
       abiInfoStr = abiInfoStr.substring(1, abiInfoStr.length - 1);
-      this.setState({ storedAbiInfo: abiInfoStr });
+      this.setState({ storedAbiInfo: abiInfoStr, txSendVisible: false });
     }
 
     fractal.ft.getSuggestionGasPrice().then(suggestionPrice => {
-      this.setState({ gasPrice: utils.getReadableNumber(suggestionPrice, 9, 9) });
+      this.setState({ gasPrice: utils.getReadableNumber(suggestionPrice, 9, 9), txSendVisible: false });
     })
   }
 
@@ -308,7 +308,7 @@ export default class ContractManager extends Component {
   }
 
   handleABIInfoChange = (value) => {
-    this.setState({ abiInfo: value });
+    this.setState({ abiInfo: value, txSendVisible: false });
   }
 
   checkABI = (abiInfo) => {
@@ -389,7 +389,7 @@ export default class ContractManager extends Component {
   addLog = (logInfo) => {
     let date = new Date().toLocaleString();
     logInfo = date + ':' + logInfo + '\n\n';
-    this.setState({resultInfo: this.state.resultInfo + logInfo});
+    this.setState({resultInfo: this.state.resultInfo + logInfo, txSendVisible: false});
   }
 
   compileContract = async () => {
@@ -416,10 +416,10 @@ export default class ContractManager extends Component {
         this.addLog("合约" + contractName + "编译结果\n" + compiledInfo[contractName].abi);
       }
     }
-    this.setState({contractList: this.state.contractList});
+    this.setState({contractList: this.state.contractList, txSendVisible: false});
   }
   setCompileSrv = () => {
-    this.setState({compileSrvSettingVisible: true});
+    this.setState({compileSrvSettingVisible: true, txSendVisible: false});
   }
   // 部署合约分两步：
   // 1:创建账户，需：账户名(自动生成), 公钥(同发起账户)，转账FT金额(用于部署合约)
@@ -431,7 +431,7 @@ export default class ContractManager extends Component {
     }
     this.state.newContractAccountName = await this.generateContractAccount();
     this.state.newContractPublicKey = this.getAccountPublicKey();
-    this.setState({deployContractVisible: true});
+    this.setState({deployContractVisible: true, txSendVisible: false});
   }
 
   generateContractAccount = async () => {
@@ -539,7 +539,7 @@ export default class ContractManager extends Component {
   }
 
   selectTab = (key) => {
-    this.setState({activeKey: key});
+    this.setState({activeKey: key, txSendVisible: false});
   }
 
   addSolTab = (fileName) => {
@@ -553,10 +553,10 @@ export default class ContractManager extends Component {
       }
     });
     if (exist) {
-      this.setState({activeKey: fileName});
+      this.setState({activeKey: fileName, txSendVisible: false});
     } else {
       this.state.tabFileList.push(fileName);
-      this.setState({activeKey: fileName, tabFileList: this.state.tabFileList});
+      this.setState({activeKey: fileName, tabFileList: this.state.tabFileList, txSendVisible: false});
     }
   }
 
@@ -568,7 +568,7 @@ export default class ContractManager extends Component {
     if (index >= this.state.tabFileList.length) {
       index = this.state.tabFileList.length - 1;
     }
-    this.setState({tabFileList: this.state.tabFileList, activeKey: index >= 0 ? this.state.tabFileList[index] : ''});
+    this.setState({tabFileList: this.state.tabFileList, activeKey: index >= 0 ? this.state.tabFileList[index] : '', txSendVisible: false});
   }
 
   updateSolTab = (oldFileName, newFileName) => {
@@ -585,7 +585,7 @@ export default class ContractManager extends Component {
     global.localStorage.setItem('sol:' + newFileName, solCode);
     global.localStorage.removeItem('sol:' + oldFileName);
 
-    this.setState({activeKey: activeLabKey, tabFileList: this.state.tabFileList});
+    this.setState({activeKey: activeLabKey, tabFileList: this.state.tabFileList, txSendVisible: false});
   }
 
   onClose = (targetKey) => {
@@ -611,7 +611,7 @@ export default class ContractManager extends Component {
       this.state.selectedContractToDeploy = label + ":" + this.state.selectedContractToDeploy.split(":")[1];
     }
 
-    this.setState({solFileList: this.state.solFileList, contractFile: this.state.contractList});
+    this.setState({solFileList: this.state.solFileList, contractFile: this.state.contractList, txSendVisible: false});
     this.updateSolTab(key, label);
     CompilerSrv.renameSol(this.state.selectedAccountName, key, label);
   }
@@ -625,7 +625,7 @@ export default class ContractManager extends Component {
     this.addSolTab(this.state.selectContactFile);
   }
   addSolFile = () => {
-    this.setState({addNewContractFileVisible: true});
+    this.setState({addNewContractFileVisible: true, txSendVisible: false});
   }
   handleContractNameChange = (value) => {
     this.state.newContractFileName = value;
@@ -914,7 +914,7 @@ export default class ContractManager extends Component {
         this.addLog('部署合约的交易hash:' + txHash);
         this.checkReceipt('部署合约', txHash, () => {
           Feedback.toast.success('成功部署合约');
-          this.setState({deployContractVisible: false});
+          this.setState({deployContractVisible: false, txSendVisible: false});
           this.processContractDepolyed(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
         });
       }).catch(error => {
@@ -959,7 +959,7 @@ export default class ContractManager extends Component {
             this.addLog('部署合约的交易hash:' + txHash);
             this.checkReceipt('部署合约', txHash, () => {
               Feedback.toast.success('成功部署合约'); 
-              this.setState({deployContractVisible: false}); 
+              this.setState({deployContractVisible: false, txSendVisible: false}); 
               this.processContractDepolyed(this.state.newContractAccountName, contractInfo[1], JSON.parse(contractCode.abi));
             });
           }).catch(error => {
