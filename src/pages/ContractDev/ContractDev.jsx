@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Input, Feedback, Card, Select, Checkbox } from '@icedesign/base';
 import Container from '@icedesign/container';
-import { Button, Tab, Grid, Tree, Dialog, Collapse } from '@alifd/next';
+import { Button, Tab, Grid, Tree, Dialog, Collapse, Message } from '@alifd/next';
 import * as fractal from 'fractal-web3';
 import * as ethers from 'ethers';
 import * as ethUtil from 'ethereumjs-util';
@@ -262,7 +262,13 @@ export default class ContractManager extends Component {
     } else {
       this.state.selectedAccountName = utils.guid();
       this.state.selectedAccount = null;
-      Feedback.toast.prompt('您在本钱包中尚未拥有一个账号，无法完整使用合约开发功能！');
+      Message.show({
+        type: 'warning',
+        title: '注意',
+        content: '请先在账户管理中添加账号，才能完整使用合约开发功能',
+        hasMask: true,
+        duration: 8000
+      });
     }
     this.syncSolFileToSrv();
 
