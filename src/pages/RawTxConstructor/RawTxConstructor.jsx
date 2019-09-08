@@ -16,7 +16,7 @@ const txTypes = [{ value: Constant.TRANSFER, label: '转账'},{value: Constant.C
                 { value: Constant.CREATE_NEW_ACCOUNT, label: '创建账户' },{ value: Constant.UPDATE_ACCOUNT, label: '更新账户'},
                 { value: Constant.UPDATE_ACCOUNT_AUTHOR, label: '更新账户权限' },
                 { value: Constant.ISSUE_ASSET, label: '发行资产' },{ value: Constant.INCREASE_ASSET, label: '增发资产' },
-                { value: Constant.DESTORY_ASSET, label: '销毁资产' },
+                { value: Constant.DESTORY_ASSET, label: '销毁资产' },{ value: Constant.UPDATE_ASSET_CONTRACT, label: '更新资产合约' },
                 { value: Constant.SET_ASSET_OWNER, label: '设置资产所有者' },{ value: Constant.SET_ASSET_FOUNDER, label: '设置资产创办者' },
                 { value: Constant.REG_CANDIDATE, label: '注册候选者' },
                 { value: Constant.UPDATE_CANDIDATE, label: '更新候选者' },{ value:  Constant.UNREG_CANDIDATE, label: '注销候选者' },
@@ -92,6 +92,7 @@ export default class RawTxConstructor extends Component {
       privateKey: privateKeyStr,
       receipt: '',
       txTypeInfos: txTypes,
+      selectedTypeValue: null,
       payloadInfos: [],
       payloadElements: [],
       updateAuthorTypes: [{value:0, label:'添加权限'}, {value:1, label:'更新权限'}, {value:2, label:'删除权限'}],
@@ -145,6 +146,178 @@ export default class RawTxConstructor extends Component {
   handlePrivateKeyChange = (v) => {
     this.state.privateKey = v;
     cookie.save('privateKey', v);
+  }
+
+  handleTxUriChange = (v) => {
+    this.state.txUri = v;
+  }
+
+  parseUri = async () => {
+    if (utils.isEmptyObj(this.state.txUri)) {
+      Feedback.toast.error('请输入交易URI');
+      return;
+    }
+    let txUri = this.state.txUri.trim();
+    const startHeadStr = 'ft://fractal/';
+    if (txUri.indexOf(startHeadStr) != 0) {
+      Feedback.toast.error('URI格式有误');
+      return;
+    } else {
+      txUri = txUri.substr(startHeadStr.length);
+    }
+    let index = txUri.indexOf('/');
+    const typestr = txUri.substr(0, index);
+    let contractAccount = null;
+    if (typestr != 'fractal.account' && typestr != 'fractal.asset' && typestr != 'fractal.dpos' && typestr != 'fractal.contract') {
+      contractAccount = await fractal.account.getAccountByName(typeStr);
+      if (contractAccount == null) {
+        Feedback.toast.error('URI内容有误:' + typestr);
+        return;
+      } else if (contractAccount.codeSize == 0) {        
+        Feedback.toast.error('此账号尚未部署合约，无法进行接口调用');
+        return;
+      }
+    }
+    txUri = txUri.substr(index + 1);
+    index = txUri.indexOf('?');
+    if (index < 1) {
+      Feedback.toast.error('URI格式有误');
+      return;
+    }
+    let functionName = '';
+    const actionStr = txUri.substr(0, index);
+    txUri = txUri.substr(index + 1);
+    const reg = /([^?&=]+)=([^?&=]+)*/g;
+    let kvs = this.getKeyValues(txUri, reg);
+    this.state['assetId'] = kvs['__assetId'];
+    this.state['amount'] = kvs['__amount'];
+    this.state['remark'] = kvs['__remark'];
+    switch(actionStr) {
+      case 'createAccount':
+        this.state.selectedTypeValue = Constant.CREATE_NEW_ACCOUNT;
+        this.state['toAccountName'] = 'fractal.account';
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 0] = { value: kvs['accountName'], isNumber: false, payloadName: 'newAccountName' };
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 1] = { value: kvs['founder'], isNumber: false, payloadName: 'founder' };
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 2] = { value: kvs['publicKey'], isNumber: false, payloadName: 'publicKey' };
+        this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 3] = { value: kvs['description'], isNumber: false, payloadName: 'desc' };
+        break;
+      case 'updateAccount':
+        this.state.selectedTypeValue = Constant.UPDATE_ACCOUNT;
+        this.state['toAccountName'] = 'fractal.account';
+        this.state[Constant.UPDATE_ACCOUNT  + '-' + 0] = { value: kvs['founder'], isNumber: false, payloadName: 'founder' };
+        break;
+      case 'updateAccountAuthor':
+        this.state.selectedTypeValue = Constant.UPDATE_ACCOUNT_AUTHOR;
+        this.state['toAccountName'] = 'fractal.account';
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 0] = { value: kvs['threshold'], isNumber: true, payloadName: 'threshold' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 1] = { value: kvs['updateAuthorThreshold'], isNumber: true, payloadName: 'updateThreshold' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 2] = { value: kvs['actionType'], isNumber: true, payloadName: 'opType' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 4] = { value: kvs['owner'], isNumber: false, payloadName: 'opContent' };
+        this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 5] = { value: kvs['weight'], isNumber: true, payloadName: 'weight' };
+        break;
+      case 'issueAsset':
+        this.state.selectedTypeValue = Constant.ISSUE_ASSET;
+        this.state['toAccountName'] = 'fractal.asset';
+        this.state[Constant.ISSUE_ASSET + '-' + 0] = { value: kvs['assetName'], isNumber: false, payloadName: 'assetName' };
+        this.state[Constant.ISSUE_ASSET + '-' + 1] = { value: kvs['symbol'], isNumber: false, payloadName: 'symbol' };
+        this.state[Constant.ISSUE_ASSET + '-' + 2] = { value: kvs['amount'], isNumber: true, payloadName: 'amount' };
+        this.state[Constant.ISSUE_ASSET + '-' + 3] = { value: kvs['decimals'], isNumber: true, payloadName: 'decimals' };
+        this.state[Constant.ISSUE_ASSET + '-' + 4] = { value: kvs['founder'], isNumber: false, payloadName: 'founder' };
+        this.state[Constant.ISSUE_ASSET + '-' + 5] = { value: kvs['owner'], isNumber: false, payloadName: 'owner' };
+        this.state[Constant.ISSUE_ASSET + '-' + 6] = { value: kvs['upperLimit'], isNumber: true, payloadName: 'upperLimit' };
+        this.state[Constant.ISSUE_ASSET + '-' + 7] = { value: kvs['contract'], isNumber: false, payloadName: 'contractName' };
+        this.state[Constant.ISSUE_ASSET + '-' + 8] = { value: kvs['description'], isNumber: false, payloadName: 'desc' };
+        break;
+      case 'increaseAsset':
+        this.state.selectedTypeValue = Constant.INCREASE_ASSET;
+        this.state['toAccountName'] = 'fractal.asset';
+        this.state[Constant.INCREASE_ASSET + '-' + 0] = { value: kvs['assetId'], isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.INCREASE_ASSET + '-' + 1] = { value: kvs['amount'], isNumber: true, payloadName: 'amount' };
+        this.state[Constant.INCREASE_ASSET + '-' + 2] = { value: kvs['to'], isNumber: false, payloadName: 'accountName' };
+        break;
+      case 'setAssetOwner':
+        this.state.selectedTypeValue = Constant.SET_ASSET_OWNER;
+        this.state['toAccountName'] = 'fractal.asset';
+        this.state[Constant.SET_ASSET_OWNER + '-' + 0] = { value: kvs['assetId'], isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.SET_ASSET_OWNER + '-' + 1] = { value: kvs['owner'], isNumber: false, payloadName: 'accountName' };
+        break;
+      case 'updateAsset':
+        this.state.selectedTypeValue = Constant.SET_ASSET_FOUNDER;
+        this.state['toAccountName'] = 'fractal.asset';
+        this.state[Constant.SET_ASSET_FOUNDER + '-' + 0] = { value: kvs['assetId'], isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.SET_ASSET_FOUNDER + '-' + 1] = { value: kvs['founder'], isNumber: false, payloadName: 'accountName' };
+        break;
+      case 'destroyAsset':
+        this.state.selectedTypeValue = Constant.DESTORY_ASSET;
+        this.state['toAccountName'] = 'fractal.asset';
+        this.state['default' + '-' + 0] = { value: '', isNumber: false, payloadName: 'payload' };
+        break;
+      case 'updateAssetContract':
+        this.state.selectedTypeValue = Constant.UPDATE_ASSET_CONTRACT;
+        this.state['toAccountName'] = 'fractal.asset';
+        this.state[Constant.UPDATE_ASSET_CONTRACT + '-' + 0] = { value: kvs['assetId'], isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.UPDATE_ASSET_CONTRACT + '-' + 1] = { value: kvs['contract'], isNumber: false, payloadName: 'contract' };
+        break;
+      case 'transfer':
+        this.state.selectedTypeValue = Constant.TRANSFER;
+        this.state['toAccountName'] = kvs['__to'];
+        this.state['default' + '-' + 0] = { value: '', isNumber: false, payloadName: 'payload' };
+        break;
+      case 'regCandidate':
+        this.state.selectedTypeValue = Constant.REG_CANDIDATE;
+        this.state['toAccountName'] = 'fractal.dpos';
+        this.state[Constant.REG_CANDIDATE + '-' + 0] = { value: kvs['url'], isNumber: false, payloadName: 'url' };
+        break;
+      case 'updateCandidate':
+        this.state.selectedTypeValue = Constant.UPDATE_CANDIDATE;
+        this.state['toAccountName'] = 'fractal.dpos';
+        this.state[Constant.UPDATE_CANDIDATE + '-' + 0] = { value: kvs['url'], isNumber: false, payloadName: 'url' };
+        break;
+      case 'unregCandidate':
+        this.state.selectedTypeValue = Constant.UNREG_CANDIDATE;
+        this.state['toAccountName'] = 'fractal.dpos';
+        this.state['default' + '-' + 0] = { value: '', isNumber: false, payloadName: 'payload' };
+        break;
+      case 'refundCandidate':
+        this.state.selectedTypeValue = Constant.REFUND_DEPOSIT;
+        this.state['toAccountName'] = 'fractal.dpos';
+        this.state['default' + '-' + 0] = { value: '', isNumber: false, payloadName: 'payload' };
+        break;
+      case 'voteCandidate':
+        this.state.selectedTypeValue = Constant.VOTE_CANDIDATE;
+        this.state['toAccountName'] = 'fractal.dpos';
+        this.state[Constant.VOTE_CANDIDATE + '-' + 0] = { value: kvs['candidate'], isNumber: false, payloadName: 'accountName' };
+        this.state[Constant.VOTE_CANDIDATE + '-' + 1] = { value: kvs['stake'], isNumber: true, payloadName: 'voteNumber' };
+        break;
+      case 'kickedCandidate':
+        this.state['toAccountName'] = 'fractal.dpos';
+        break;
+      case 'exitTakeOver':
+        this.state['toAccountName'] = 'fractal.dpos';
+        break;
+      case 'removeKickedCandidate':
+        this.state['toAccountName'] = 'fractal.dpos';
+        break;
+      case 'createContract':
+        break;
+      default:
+        if (contractAccount != null) {
+          functionName = actionStr;
+        } else {
+          Feedback.toast.error('交易类型' + actionStr + '有误');
+          return;
+        }
+    }
+    this.onChangeTxType(this.state.selectedTypeValue);
+    // this.forceUpdate();
+  }
+
+  getKeyValues = (str, reg) => {
+    var result = {};
+    for (var kv = reg.exec(str); kv != null; kv = reg.exec(str)) {
+      result[kv[1].trim()] = kv[2].trim();
+    }
+    return result;
   }
 
   getNumber = (numberStr) => {
@@ -402,24 +575,28 @@ export default class RawTxConstructor extends Component {
             addonBefore="新账户名:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.CREATE_NEW_ACCOUNT + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'newAccountName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.CREATE_NEW_ACCOUNT + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'founder', 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="公钥:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.CREATE_NEW_ACCOUNT + '-2'].value}
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'publicKey', 2, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="描述:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.CREATE_NEW_ACCOUNT + '-3'].value}
             onChange={this.handleElementChange.bind(this, Constant.CREATE_NEW_ACCOUNT, 'desc', 3, false)}/>
           );
         this.state[Constant.CREATE_NEW_ACCOUNT + '-' + 0] = { value: '', isNumber: false, payloadName: 'newAccountName' };
@@ -434,6 +611,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="创办者:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.UPDATE_ACCOUNT + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT, 'founder', 0, false)}/>
           );
         this.state[Constant.UPDATE_ACCOUNT + '-' + 0] = { value: '', isNumber: false, payloadName: 'founder' };
@@ -445,17 +623,20 @@ export default class RawTxConstructor extends Component {
             addonBefore="执行交易阈值:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'threshold', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="更新权限所需阈值:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'updateThreshold', 1, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="操作类型"
             placeholder='0:添加权限，1:更新权限，2:删除权限'
+            value={this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-2'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opType', 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
@@ -463,18 +644,21 @@ export default class RawTxConstructor extends Component {
             size="medium"
             defaultValue=''
             placeholder='0:用户名，1:公钥，2:地址'
+            value={this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-3'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'contentType', 3, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="所有者:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-4'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'opContent', 4, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="权重:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-5'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_ACCOUNT_AUTHOR, 'weight', 5, true)}/>
           );
         this.state[Constant.UPDATE_ACCOUNT_AUTHOR + '-' + 0] = { value: 0, isNumber: true, payloadName: 'threshold' };
@@ -491,54 +675,63 @@ export default class RawTxConstructor extends Component {
             addonBefore="资产名:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'assetName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="符号:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'symbol', 1, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="本次发行量:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-2'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'amount', 2, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="精度:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-3'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'decimals', 3, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="创办者:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-4'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'founder', 4, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="管理者:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-5'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'owner', 5, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="发行上限:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-6'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'upperLimit', 6, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="合约账号:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-7'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'contractName', 7, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="资产描述:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.ISSUE_ASSET + '-8'].value}
             onChange={this.handleElementChange.bind(this, Constant.ISSUE_ASSET, 'desc', 8, false)}/>
           );
         this.state[Constant.ISSUE_ASSET + '-' + 0] = { value: '', isNumber: false, payloadName: 'assetName' };
@@ -558,18 +751,21 @@ export default class RawTxConstructor extends Component {
             addonBefore="资产ID:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.INCREASE_ASSET + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="增发数量:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.INCREASE_ASSET + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'amount', 1, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="接收资产账号:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.INCREASE_ASSET + '-2'].value}
             onChange={this.handleElementChange.bind(this, Constant.INCREASE_ASSET, 'accountName', 2, false)}/>
           );
         this.state[Constant.INCREASE_ASSET + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
@@ -583,12 +779,14 @@ export default class RawTxConstructor extends Component {
             addonBefore="资产ID:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.SET_ASSET_OWNER + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新管理者账号:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.SET_ASSET_OWNER + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_OWNER, 'accountName', 1, false)}/>
           );
         this.state[Constant.SET_ASSET_OWNER + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
@@ -601,16 +799,38 @@ export default class RawTxConstructor extends Component {
             addonBefore="资产ID:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.SET_ASSET_FOUNDER + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'assetId', 0, true)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="新创办者账号:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.SET_ASSET_FOUNDER + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.SET_ASSET_FOUNDER, 'accountName', 1, false)}/>
           );
         this.state[Constant.SET_ASSET_FOUNDER + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
         this.state[Constant.SET_ASSET_FOUNDER + '-' + 1] = { value: '', isNumber: false, payloadName: 'accountName' };
+        break;
+      case Constant.UPDATE_ASSET_CONTRACT:
+        this.state.payloadInfos.push(
+          <Input hasClear
+            style={styles.commonElement}
+            addonBefore="资产ID:"
+            size="medium"
+            defaultValue=''
+            value={this.state[Constant.UPDATE_ASSET_CONTRACT + '-0'].value}
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ASSET_CONTRACT, 'assetId', 0, true)}/>,<br/>,<br/>,
+          <Input hasClear
+            style={styles.commonElement}
+            addonBefore="合约账号:"
+            size="medium"
+            defaultValue=''
+            value={this.state[Constant.UPDATE_ASSET_CONTRACT + '-1'].value}
+            onChange={this.handleElementChange.bind(this, Constant.UPDATE_ASSET_CONTRACT, 'contract', 1, false)}/>
+          );
+        this.state[Constant.UPDATE_ASSET_CONTRACT + '-' + 0] = { value: 0, isNumber: true, payloadName: 'assetId' };
+        this.state[Constant.UPDATE_ASSET_CONTRACT + '-' + 1] = { value: '', isNumber: false, payloadName: 'contract' };
         break;
       case Constant.REG_CANDIDATE:
         this.state.payloadInfos.push(
@@ -619,6 +839,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="URL:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.REG_CANDIDATE + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.REG_CANDIDATE, 'url', 0, false)}/>
           );
         this.state[Constant.REG_CANDIDATE + '-' + 0] = { value: '', isNumber: false, payloadName: 'url' };
@@ -630,6 +851,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="URL:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.UPDATE_CANDIDATE + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.UPDATE_CANDIDATE, 'url', 0, false)}/>
           );
         this.state[Constant.UPDATE_CANDIDATE + '-' + 0] = { value: '', isNumber: false, payloadName: 'url' };
@@ -641,12 +863,14 @@ export default class RawTxConstructor extends Component {
             addonBefore="候选者账号:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.VOTE_CANDIDATE + '-0'].value}
             onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'accountName', 0, false)}/>,<br/>,<br/>,
           <Input hasClear
             style={styles.commonElement}
             addonBefore="投票数:"
             size="medium"
             defaultValue=''
+            value={this.state[Constant.VOTE_CANDIDATE + '-1'].value}
             onChange={this.handleElementChange.bind(this, Constant.VOTE_CANDIDATE, 'voteNumber', 1, true)}/>
           );
         this.state[Constant.VOTE_CANDIDATE + '-' + 0] = { value: '', isNumber: false, payloadName: 'accountName' };
@@ -678,6 +902,7 @@ export default class RawTxConstructor extends Component {
     this.state[actionElement] = v;
     this.state.actionCookie[actionElement] = v;
     cookie.save('actionHistoryInfo', this.state.actionCookie);
+    this.forceUpdate();
   }
   onChangeZeroNumType = (v) => {
     this.state.zeroNum = v;
@@ -700,10 +925,22 @@ export default class RawTxConstructor extends Component {
         <Button type="primary" onClick={this.showPrivateKey.bind(this)}>{this.state.showPrivateKeyTip}</Button>
         <br />
         <br />
+        <Input hasClear
+          style={styles.otherElement}
+          hasLimitHint
+          addonBefore="交易URI:"
+          size="medium"
+          onChange={this.handleTxUriChange.bind(this)}
+        />
+        &nbsp;&nbsp;
+        <Button type="primary" onClick={this.parseUri.bind(this)}>解析URI</Button>
+        <br />
+        <br />
         <Select
             style={styles.otherElement}
             placeholder="选择交易类型"
             onChange={this.onChangeTxType.bind(this)}
+            value={this.state.selectedTypeValue}
             dataSource={this.state.txTypeInfos}
           />
         <br />
@@ -732,6 +969,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="to账号:"
             size="medium"
             defaultValue={this.state.actionCookie.toAccountName}
+            value={this.state['toAccountName']}
             onChange={this.handleActionElementChange.bind(this, 'toAccountName')}
           />
           <br />
@@ -741,6 +979,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="资产ID:"
             size="medium"
             defaultValue={this.state.actionCookie.assetId}
+            value={this.state['assetId']}
             onChange={this.handleActionElementChange.bind(this, 'assetId')}
           />
           <br />
@@ -750,6 +989,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="资产数量:"
             size="medium"
             defaultValue={this.state.actionCookie.amount}
+            value={this.state['amount']}
             onChange={this.handleActionElementChange.bind(this, 'amount')}
           />
           &nbsp;&nbsp;
@@ -766,6 +1006,7 @@ export default class RawTxConstructor extends Component {
             addonBefore="交易备注:"
             size="medium"
             defaultValue={this.state.actionCookie.remark}
+            value={this.state['remark']}
             onChange={this.handleActionElementChange.bind(this, 'remark')}
           />
           <br />
