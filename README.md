@@ -7,8 +7,8 @@
 如何使用（针对程序猿，需要事先安装好git、node和npm/cnpm）
 1. git clone https://github.com/fractalplatform/webWallet.git
 2. cd webWallet
-3. npm i
-4. npm run start -- -p 8080
+3. cnpm i
+4. cnpm run start -- -p 8080
 5. 在浏览器中访问http://localhost:8080, 节点信息设置按钮位于网页右上角处，默认链接本地节点（http://127.0.0.1:8545），同时也有官方公布的主网和测试网节点地址可供选择
 
 ### 用户使用指南：
