@@ -37,8 +37,10 @@ export default class AccountList extends Component {
       fractalAccount: '',
       selfAccount: '',
       accountReg: new RegExp('^([a-z][a-z0-9]{6,15})(?:\.([a-z0-9]{2,16})){0,1}(?:\.([a-z0-9]{2,16})){0,1}$'),
+      newAccountReg: new RegExp('^([a-z][a-z0-9]{11,15})(\.([a-z0-9]{2,16})){0,2}$'),
       numberReg: new RegExp('^[0-9][0-9]*(\\.[0-9]*){0,1}$'),
       idReg: new RegExp('^[1-9][0-9]*'),
+      srvAddr: 'https://mwallet.ft.im',
       fractalPublicKey: '',
       selfPublicKey: '',
       otherPublicKey: '',
@@ -75,6 +77,7 @@ export default class AccountList extends Component {
       importAccountVisible: false,
       authorListVisible: false,
       selfCreateAccountVisible: props.location != null ? props.location.state.selfCreateAccountVisible : false,
+      proxyCreateAccountVisible: false,
       bindNewAuthorVisible: false,
       updateWeightVisible: false,
       modifyThresholdVisible: false,
@@ -158,7 +161,9 @@ export default class AccountList extends Component {
       Feedback.toast.error(T('请输入账号'));
       return;
     }
-    if (!this.state.accountReg.test(this.state.importAccountName) && !this.state.idReg.test(this.state.importAccountName)) {
+    if (!this.state.accountReg.test(this.state.importAccountName) 
+    && !this.state.newAccountReg.test(this.state.importAccountName)
+    && !this.state.idReg.test(this.state.importAccountName)) {
       Feedback.toast.error(T('账号格式错误'));
       return;
     }
@@ -805,7 +810,7 @@ export default class AccountList extends Component {
         ownerType = AuthorOwnerType.PublicKey;
       } else if (ethUtil.isValidAddress(owner) || ethUtil.isValidAddress('0x' + owner)) {
         ownerType = AuthorOwnerType.Address;
-      } else if (this.state.accountReg.test(owner)) {
+      } else if (this.state.accountReg.test(owner) || this.state.newAccountReg.test(owner)) {
         ownerType = AuthorOwnerType.AccountName;
       }
       
@@ -905,7 +910,7 @@ export default class AccountList extends Component {
     this.setState({ authorList: this.state.authorList })
   }
   isAccountAsOwner = (owner) => {
-    return this.state.accountReg.test(owner);
+    return this.state.accountReg.test(owner) || this.state.newAccountReg.test(owner);
   }
   renderOwner = (value) => {
     if (this.isAccountAsOwner(value)) {
@@ -968,7 +973,7 @@ export default class AccountList extends Component {
   }
 
   onSystemCreatAccountOK = () => {
-    if (!this.state.accountReg.test(this.state.fractalAccount)) {
+    if (!this.state.newAccountReg.test(this.state.fractalAccount)) {
       Feedback.toast.error(T('账号格式错误'));
       return;
     }
@@ -990,17 +995,22 @@ export default class AccountList extends Component {
     this.state.accountNames = [];
     this.state.accountInfos.map(account => this.state.accountNames.push(account.accountName));
     if (this.state.accountNames.length == 0) {
-      this.setState({ helpVisible: true });
+      if (this.state.chainConfig.chainId == 1) {
+        this.setState({ srvAddr: 'https://mwallet.ft.im', proxyCreateAccountVisible: true });
+      } else {
+        this.setState({ srvAddr: 'https://twallet.ft.im', proxyCreateAccountVisible: true });
+      }
       return;
     }
     this.setState({ selfCreateAccountVisible: true, txSendVisible: false });
   }
+
   onSelfCreateAccountOK = async () => {
     if (this.state.creator == '') {
       Feedback.toast.error(T('请选择创建者账号'));
       return;
     }
-    if (!this.state.accountReg.test(this.state.newAccountName) && this.state.newAccountName.length > 31) {
+    if (!this.state.newAccountReg.test(this.state.newAccountName) && this.state.newAccountName.length > 31) {
       console.log(this.state.newAccountName);
       Feedback.toast.error(T('账号格式错误'));
       return;
@@ -1053,6 +1063,70 @@ export default class AccountList extends Component {
   onSelfCreateAccountClose = () => {
     this.setState({ selfCreateAccountVisible: false, txSendVisible: false});
   }
+
+  onProxyCreateAccountOK = async () => {
+    if (!this.state.newAccountReg.test(this.state.newAccountName) && this.state.newAccountName.length > 31) {
+      Feedback.toast.error(T('账号格式错误'));
+      return;
+    }
+    const exist = await fractal.account.isAccountExist(this.state.newAccountName);
+    if (exist) {
+      Feedback.toast.error(T('账号已存在，不可重复创建'));
+      return;
+    }
+
+    if (this.state.otherPublicKey == '') {
+      Feedback.toast.error(T('请输入公钥'));
+      return;
+    }
+    let publicKey = this.state.otherPublicKey;
+    publicKey = utils.getPublicKeyWithPrefix(publicKey);
+    if (!ethUtil.isValidPublic(Buffer.from(utils.hex2Bytes(publicKey)), true)) {
+      Feedback.toast.error(T('无效公钥，请重新输入'));
+      return;
+    }
+    const srvRequest = this.state.srvAddr + '/wallet_account_creation?accname=' 
+                  + this.state.newAccountName + '&pubkey=' + publicKey + '&deviceid=webWallet';
+
+    const self = this;
+    fetch(srvRequest).then(function(response) {
+      return response.json();
+    }).then(function(result) {
+      console.log(result);
+      if (result.code == 200) {
+        Feedback.toast.success('账号正在创建');
+        setTimeout(() => {
+          fractal.ft.getTransactionReceipt(result.msg).then(receipt => {
+            if(receipt != null) {
+              const status = receipt.actionResults[0].status;
+              if (status == 1) {
+                fractal.account.getAccountByName(self.state.newAccountName).then(account => {
+                  if (account != null) {
+                    Feedback.toast.success('账号创建成功');
+                    const accountInfos = [...self.state.accountInfos, account];
+                    self.setState({ accountInfos, proxyCreateAccountVisible: false });
+                    self.saveAccountsToLS();
+                  } else {
+                    Feedback.toast.success('账号创建尚未被确认，请稍后手动查询下结果（10s内）');
+                  }
+                });
+              } else {
+                const error = receipt.actionResults[0].error;
+                Feedback.toast.error('账号创建失败:' + error);
+              }
+            }
+          });
+        }, 4000);
+      } else {
+        Feedback.toast.success('账号创建失败:' + result.msg);
+      }
+    });
+  }
+
+  onProxyCreateAccountClose = () => {
+    this.setState({ proxyCreateAccountVisible: false, txSendVisible: false});
+  }
+
   onChangeCreatorAccount(value) {
     this.state.creator = value;
   }
@@ -1115,7 +1189,7 @@ export default class AccountList extends Component {
       ownerType = AuthorOwnerType.PublicKey;
     } else if (ethUtil.isValidAddress(newOwner) || ethUtil.isValidAddress('0x' + newOwner)) {
       ownerType = AuthorOwnerType.Address;
-    } else if (this.state.accountReg.test(newOwner)) {
+    } else if (this.state.accountReg.test(newOwner) || this.state.newAccountReg.test(newOwner)) {
       ownerType = AuthorOwnerType.AccountName;
     }
 
@@ -1398,7 +1472,8 @@ export default class AccountList extends Component {
       Feedback.toast.error(T('请输入账号'));
       return;
     }
-    if (!this.state.accountReg.test(this.state.transferToAccount)) {
+    if (!this.state.accountReg.test(this.state.transferToAccount)
+    && !this.state.newAccountReg.test(this.state.transferToAccount)) {
       Feedback.toast.error(T('账号格式错误'));
       return;
     }
@@ -1578,7 +1653,7 @@ export default class AccountList extends Component {
             />
             <Table.Column
               width={80}
-              title={T("区块高度")}
+              title={T("创建时区块高度")}
               dataIndex="number"
             />
             <Table.Column
@@ -1599,9 +1674,6 @@ export default class AccountList extends Component {
           <div onClick={this.onImportAccount.bind(this)} style={styles.addNewItem}>
             + {T('导入账户')}
           </div>
-          <Feedback title={T("提示")} type="help" visible={this.state.helpVisible}>
-          {T('首个主网账户请找第三方申请，如是首个测试网账户可到公链电报群(https://t.me/FractalOfficial)进行申请，申请成功后请将私钥和账户导入即可使用。')}
-          </Feedback>
         </IceContainer>
         <Dialog
           visible={this.state.selfCreateAccountVisible}
@@ -1627,7 +1699,7 @@ export default class AccountList extends Component {
             defaultValue=""
             maxLength={50}
             hasLimitHint
-            placeholder={T("字母开头,由a-z0-9.组成,一级7~16位,二三级皆2~16位")}
+            placeholder={T("字母开头,由a-z0-9.组成,一级12~16位,二三级皆2~16位")}
           />
           <br />
           <br />
@@ -1685,7 +1757,35 @@ export default class AccountList extends Component {
             placeholder={T("创建新账号的同时，可向此账号转账，默认为0")}
           />
         </Dialog>
-
+        <Dialog
+          visible={this.state.proxyCreateAccountVisible}
+          onOk={this.onProxyCreateAccountOK.bind(this)}
+          onCancel={this.onProxyCreateAccountClose.bind(this)}
+          onClose={this.onProxyCreateAccountClose.bind(this)}
+          title={T("账户创建（代理方免费为您创建）")}
+          footerAlign="center"
+        >
+          <Input hasClear
+            onChange={this.handleNewAccountNameChange.bind(this)}
+            style={{ width: 400 }}
+            addonBefore={T("待创建账号")}
+            size="medium"
+            defaultValue=""
+            maxLength={16}
+            hasLimitHint
+            placeholder={T("字母开头,由a-z0-9组成,12~16位")}
+          />
+          <br />
+          <br />
+          <Input hasClear
+            onChange={this.handleOthersPublicKeyChange.bind(this)}
+            style={{ width: 400 }}
+            addonBefore={T("公钥")}
+            size="medium"
+            maxLength={132}
+            hasLimitHint
+          />
+        </Dialog>
         <Dialog
           visible={this.state.bindNewAuthorVisible}
           onOk={this.onBindNewAuthorOK.bind(this)}
