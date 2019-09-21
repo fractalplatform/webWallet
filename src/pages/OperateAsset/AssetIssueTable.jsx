@@ -233,7 +233,6 @@ export default class AssetIssueTable extends Component {
                   name="owner"
                   size="large"
                   placeholder={T("可对此资产进行管理")}
-                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
@@ -244,7 +243,6 @@ export default class AssetIssueTable extends Component {
                   name="founder"
                   size="large"
                   placeholder={T("可收取相关手续费")}
-                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
