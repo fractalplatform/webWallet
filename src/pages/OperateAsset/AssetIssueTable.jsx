@@ -98,7 +98,9 @@ export default class AssetIssueTable extends Component {
         return;
       }
     } catch (error) {
-      Feedback.toast.error(error.message || error);
+      // if (error.message != 'asset not exist') {
+      //   Feedback.toast.error(error.message || error);
+      // }
     }
     const accountInfo = await fractal.account.getAccountByName(value.assetName);
     if (accountInfo != null) {
@@ -106,6 +108,7 @@ export default class AssetIssueTable extends Component {
       return;
     }
 
+    let fatherAsset = null;
     let validFatherAsset = false;
     let fatherAssetNames = this.getFatherAssets(value.assetName);
     for (const fatherAssetName of fatherAssetNames) {
@@ -116,6 +119,7 @@ export default class AssetIssueTable extends Component {
       }
       if (assetInfo.owner == this.state.curAccountName) {
         validFatherAsset = true;
+        fatherAsset = assetInfo;
         break;
       }
     }
@@ -140,7 +144,7 @@ export default class AssetIssueTable extends Component {
       Feedback.toast.error(T('请输入正确的精度'));
       return;
     }
-    if (fartherAsset != null && fartherAsset.decimals != decimals) {
+    if (fatherAsset != null && fatherAsset.decimals != decimals) {
       Feedback.toast.error(T('父子资产的精度必须保持一致'));
       return;
     }
@@ -192,7 +196,7 @@ export default class AssetIssueTable extends Component {
                   addonBefore={T("名称")} // "^[a-z0-9]{2,16}$"
                   name="assetName"
                   size="large"
-                  placeholder={T("不可跟已有的资产和账户名冲突")}
+                  placeholder={T("格式：‘账户名:资产名’，不跟已有资产和账户名冲突")}
                 />
               </IceFormBinder>
             </Row>
