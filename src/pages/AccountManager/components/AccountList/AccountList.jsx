@@ -500,15 +500,15 @@ export default class AccountList extends Component {
           let promiseArr = [];
           let accountInternalTxPromiseArr = [];
           const step = self.state.maxRollbackBlockNum;
-          let blockNum = curBlockNum;
-          for (; blockNum > startSyncBlockNum; blockNum -= step) {
-            let lookBack = step;
-            if (blockNum - startSyncBlockNum < step) {
-              lookBack = blockNum - startSyncBlockNum;
+          let blockNum = startSyncBlockNum;
+          for (; blockNum < curBlockNum; blockNum += step) {
+            let lookForward = step;
+            if (curBlockNum - blockNum < step) {
+              lookForward = curBlockNum - blockNum;
             }
-            promiseArr.push(fractal.ft.getTxsByAccount(accountName, blockNum, lookBack));
+            promiseArr.push(fractal.ft.getTxsByAccount(accountName, blockNum, lookForward));
             // 内部交易
-            accountInternalTxPromiseArr.push(fractal.ft.getInternalTxsByAccount(accountName, blockNum, lookBack));
+            accountInternalTxPromiseArr.push(fractal.ft.getInternalTxsByAccount(accountName, blockNum, lookForward));
           }
 
           let accountTxs = [];

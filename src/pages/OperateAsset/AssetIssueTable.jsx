@@ -193,7 +193,6 @@ export default class AssetIssueTable extends Component {
                   name="assetName"
                   size="large"
                   placeholder={T("不可跟已有的资产和账户名冲突")}
-                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
