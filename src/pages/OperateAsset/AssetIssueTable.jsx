@@ -119,7 +119,7 @@ export default class AssetIssueTable extends Component {
         break;
       }
     }
-    if (!validFatherAsset) {
+    if (!validFatherAsset && fatherAssetNames.length > 0) {
       Feedback.toast.error(T('由于父资产的管理者不属于此账户，因此无法创建此子资产'));
       return;
     }
