@@ -203,7 +203,6 @@ export default class AssetIssueTable extends Component {
                   name="symbol"
                   size="large"
                   placeholder={T("a~z、0~9.组成，2-16位")}
-                  maxLength={16}
                 />
               </IceFormBinder>
             </Row>
