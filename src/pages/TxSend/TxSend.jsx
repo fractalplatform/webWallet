@@ -58,6 +58,8 @@ export default class TxSend extends Component {
   }
 
   async componentWillReceiveProps(nextProps) {
+    if (!nextProps.visible) return;
+    
     this.state.accountSelector = [];
     this.state.accounts = [];
     if (!utils.isEmptyObj(nextProps.accountName)) {

@@ -152,7 +152,7 @@ export default class CandidateList extends Component {
           candidate.isMyAccount = this.state.votersOfMyAccount[candidate.name] != null;
           fractal.dpos.getEpochByHeight(candidate.number).then(epoch => {
             candidate.lastOpEpoch = epoch;
-            this.setState({ producerList: candidates });
+            this.setState({ producerList: candidates, txSendVisible: false });
           })          
         })
 
@@ -166,19 +166,25 @@ export default class CandidateList extends Component {
           })
         });
         
-        this.setState({ producerList: candidates, validProducerList: validCandidates.activatedCandidateSchedule });
+        this.setState({ producerList: candidates, validProducerList: validCandidates.activatedCandidateSchedule, txSendVisible: false });
       });
     });
   }
+
+  updateStatus = () => {
+    this.updateInfo();
+  }
+
+
   updateInfo = () => {
     fractal.ft.getCurrentBlock(false).then(block => {
       this.state.curBlock = block;
       fractal.dpos.getEpochByHeight(block.number).then(epoch => {
-        this.setState({curEpoch: epoch});
+        this.setState({curEpoch: epoch, txSendVisible: false});
       });
     });
     this.updateCandidateInfo();
-    setTimeout(() => { this.updateInfo(); }, this.state.syncInterval);
+    //setTimeout(() => { this.updateInfo(); }, this.state.syncInterval);
   }
 
   vote = () => {
@@ -519,6 +525,10 @@ export default class CandidateList extends Component {
     return (
       <div className="progress-table">
         <p>
+          <Button type="primary" onClick={this.updateStatus.bind(this)}>
+          {T('刷新')}
+          </Button>
+            &nbsp;&nbsp;
           <Button type="primary" onClick={this.vote.bind(this)} disabled={this.state.bUnRegProducer}>
           {T('投票')}
           </Button>
