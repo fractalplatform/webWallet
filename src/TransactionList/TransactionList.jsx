@@ -82,6 +82,7 @@ export default class TransactionList extends Component {
     if (receiptPromiseArr.length > 0) {
       Promise.all(receiptPromiseArr).then(async (receipts) => {
         for (const receipt of receipts) {
+          if (receipt == null) continue;
           let i = 0;
           const transaction = txSet[receipt.txHash];
           let parsedActions = [];

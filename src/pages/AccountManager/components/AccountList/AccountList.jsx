@@ -515,7 +515,9 @@ export default class AccountList extends Component {
           const allTxs = await Promise.all(promiseArr);   // 获取所有交易的hash
           const allInternalTxs = await Promise.all(accountInternalTxPromiseArr);   // 获取所有内部交易信息，里面包含了txhash
           for (const txsInfo of allTxs) {
-            accountTxs.push(...txsInfo.txs);
+            txsInfo.txs.map(tx => {
+              accountTxs.push(tx.hash);
+            });
           }
           for (const internalTxs of allInternalTxs) {
             internalTxs.map(internalTx => {
