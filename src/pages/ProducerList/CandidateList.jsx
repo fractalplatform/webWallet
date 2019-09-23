@@ -242,8 +242,8 @@ export default class CandidateList extends Component {
     }
 
     let stake = parseInt(this.state.stake);
-    if (stake < this.state.dposInfo.candidateMinQuantity || stake > this.state.accountMaxStake) {
-      Feedback.toast.error(T('请输入有效的抵押票数'));
+    if (stake != this.state.dposInfo.candidateMinQuantity) {
+      Feedback.toast.error(T('请输入有效的抵押票数:' + this.state.dposInfo.candidateMinQuantity));
       return;
     }
 
@@ -626,7 +626,7 @@ export default class CandidateList extends Component {
           <br />
           <Input hasClear
             trim
-            placeholder={this.state.maxStakeTooltip}
+            placeholder='抵押票数固定为50万FT'
             onChange={this.handleStakeChange.bind(this)}
             style={{ width: 400 }}
             addonBefore={T("抵押票数")}
