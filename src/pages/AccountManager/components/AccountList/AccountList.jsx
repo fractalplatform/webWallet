@@ -1901,7 +1901,7 @@ export default class AccountList extends Component {
             addonBefore={T("账号名/ID")}
             size="medium"
             defaultValue=""
-            maxLength={16}
+            maxLength={50}
             hasLimitHint
             onPressEnter={this.onImportAccountOK.bind(this)}
           />
