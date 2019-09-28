@@ -683,12 +683,13 @@ export default class KeyList extends Component {
       const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
       const keyList = keystoreInfoObj.keyList;
       const wallets = [];
+      let count = 1;
       for (let keystoreInfo of keyList) {
         const wallet = await ethers.Wallet.fromEncryptedJson(JSON.stringify(keystoreInfo), password);
         wallets.push(wallet);
-        Feedback.toast.success(T('用原密码解密中...'));
+        Feedback.toast.success(T('用原密码解密中:' + count++));
       }
-
+      count = 1;
       const ksInfoObjs = [];
       for (let wallet of wallets) {
         const ksInfoStr = await wallet.encrypt(newPassword, null);
@@ -696,7 +697,7 @@ export default class KeyList extends Component {
         const publicKey = EthCrypto.publicKeyByPrivateKey(wallet.privateKey);
         ksInfoObj['publicKey'] = utils.getPublicKeyWithPrefix(publicKey);
         ksInfoObjs.push(ksInfoObj);
-        Feedback.toast.success(T('用新密码加密中...'));
+        Feedback.toast.success(T('用新密码加密中:' + count++));
       }
 
       Feedback.toast.success(T('开始更新文件'));
