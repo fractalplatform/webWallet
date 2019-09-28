@@ -528,6 +528,9 @@ export default class KeyList extends Component {
         }
       }
       
+    }).catch(error => {
+      Feedback.toast.error(error.message || error); 
+      console.log(error.message);
     });
   }
   generateAccount = () => {
@@ -674,19 +677,42 @@ export default class KeyList extends Component {
       Feedback.toast.error(T('新密码不一致，请重新输入'));
       return;
     }
-    this.processAction((item, index) => index === 0, T('原密码验证中...'), wallet => {
+    this.processAction((item, index) => index === 0, T('原密码验证中...'), async wallet => {
       Feedback.toast.success(T('原密码验证通过，开始修改密码...'));
       this.state.dataSource = [];
       const keystoreInfoObj = utils.getDataFromFile(KeyStoreFile);
       const keyList = keystoreInfoObj.keyList;
-      keyList.map(keystoreInfo => {
-        ethers.Wallet.fromEncryptedJson(JSON.stringify(keystoreInfo), password)
-                     .then(wallet => this.encryptWallet(wallet, newPassword, T('更新文件中...'), true))
-                     .catch(resp => {
-                       Feedback.toast.error(resp.message || resp); 
-                       console.log(resp.message);
-                     });
+      const wallets = [];
+      for (let keystoreInfo of keyList) {
+        const wallet = await ethers.Wallet.fromEncryptedJson(JSON.stringify(keystoreInfo), password);
+        wallets.push(wallet);
+        Feedback.toast.success(T('用原密码解密中...'));
+      }
+
+      const ksInfoObjs = [];
+      for (let wallet of wallets) {
+        const ksInfoStr = await wallet.encrypt(newPassword, null);
+        const ksInfoObj = JSON.parse(ksInfoStr);
+        const publicKey = EthCrypto.publicKeyByPrivateKey(wallet.privateKey);
+        ksInfoObj['publicKey'] = utils.getPublicKeyWithPrefix(publicKey);
+        ksInfoObjs.push(ksInfoObj);
+        Feedback.toast.success(T('用新密码加密中...'));
+      }
+
+      Feedback.toast.success(T('开始更新文件'));
+      ksInfoObjs.map(ksInfoObj => {
+        if (this.addAccountToKeystoreFile(ksInfoObj, true)) {
+          const bip32path = Object.prototype.hasOwnProperty.call(ksInfoObj, 'x-ethers') ? ksInfoObj['x-ethers'].path : T(NonMnemonicGenerate);
+          const displayKeyObj = {'bip32path': bip32path, 'address': ksInfoObj.address, 'publicKey': ksInfoObj.publicKey};
+          this.state.dataSource.push(displayKeyObj);
+  
+          this.setState({ dataSource: this.state.dataSource, 
+            pwdDialogVisible: false, reMnemonicVisible: false, newPwdDialogVisible: false,
+            importKeyDialogVisible: false, importMnemonicDialogVisible: false, importKeystoreDialogVisible: false,
+            password: ConfusePwd, mnemonicWords: ConfuseMnemonic });
+        }
       });
+      Feedback.toast.success(T('密码更新结束'));
     });
   };
 
