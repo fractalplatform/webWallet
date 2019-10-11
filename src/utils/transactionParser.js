@@ -106,10 +106,12 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
         const abiInfo = getDataFromFile(actionTypes.ContractABIFile);
         if (abiInfo != null && abiInfo[toAccount] != null) {
           const callFuncInfo = fractal.utils.parseContractTxPayload(abiInfo[toAccount], payloadInfo);
-          payloadInfo = T('调用方法') + ':' + callFuncInfo.funcName + ',' + T('参数信息');
-          callFuncInfo.parameterInfos.map(parameterInfo => {
-            payloadInfo += parameterInfo.name + '[' + parameterInfo.type + ']=' + parameterInfo.value + ',';
-          })
+          if (callFuncInfo != null) {
+            payloadInfo = T('调用方法') + ':' + callFuncInfo.funcName + ',' + T('参数信息');
+            callFuncInfo.parameterInfos.map(parameterInfo => {
+              payloadInfo += parameterInfo.name + '[' + parameterInfo.type + ']=' + parameterInfo.value + ',';
+            })
+          }
         }
 
         actionParseInfo.detailInfo = payloadInfo; // 无

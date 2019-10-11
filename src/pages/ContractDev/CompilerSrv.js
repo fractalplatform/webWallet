@@ -1,4 +1,4 @@
-let srvAddr = "http://18.182.10.22:8888/solidity/";
+let srvAddr = "http://52.193.45.25:8888/solidity/";
 
 export function changeSrv(compileSrv) {
   srvAddr = compileSrv + '/solidity/';

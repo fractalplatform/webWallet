@@ -1067,7 +1067,7 @@ export default class ContractManager extends Component {
               <br />     
               <ContractCollapse self={self} contractAccountInfo={this.state.contractAccountInfo}/>
             </Col>
-            <Col fixedSpan="10" className="custom-col-right-sidebar">
+            <Col fixedSpan="20" className="custom-col-right-sidebar">
               <Select
                 style={{ width: 280 }}
                 placeholder={T("选择有权限发起合约操作的账户")}
@@ -1163,11 +1163,11 @@ export default class ContractManager extends Component {
           />
           <br />
           {
-            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://18.182.10.22:8888'  
+            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://52.193.45.25:8888'  
               ? '当前服务器地址:' + this.state.compileSrv : ''
           }
           <br />
-          默认服务器地址:http://18.182.10.22:8888
+          默认服务器地址:http://52.193.45.25:8888
           <br />
           服务器代码:https://github.com/syslink/FTSolCompilerSrv
         </Dialog>

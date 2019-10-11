@@ -2047,7 +2047,7 @@ export default class AccountList extends Component {
             addonBefore={T("收款账号")}
             size="medium"
             defaultValue=""
-            maxLength={16}
+            maxLength={50}
             hasLimitHint
           />
           <br />
