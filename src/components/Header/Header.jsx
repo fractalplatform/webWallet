@@ -11,7 +11,7 @@ import axios from 'axios';
 import { createHashHistory } from 'history';
 import cx from 'classnames';
 import { Link } from 'react-router-dom';
-import * as fractal from 'fractal-web3'
+import * as fractal from 'fractal-web3';
 import { headerMenuConfig } from '../../menuConfig';
 import Logo from '../Logo';
 import * as utils from '../../utils/utils';
@@ -71,7 +71,8 @@ export default class Header extends PureComponent {
     this.setState({ nodeConfigVisible: false, nodeInfo });
     fractal.utils.setProvider(nodeInfo);
     this.state.chainId = fractal.ft.getChainId();
-    history.push('/');
+    //history.push('/');
+    location.reload(true);
   }
   render() {
     const defaultTrigger = <Button type="primary" className="btrigger" onClick={this.openSetDialog.bind(this)}><Icon type="set" />{T('设置节点')}</Button>;
