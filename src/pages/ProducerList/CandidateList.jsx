@@ -368,17 +368,24 @@ export default class CandidateList extends Component {
     this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }, sendResult: () => {this.setState({ txSendVisible: false })}});
   }
 
+  getReward = () => {
+    if (this.state.rowSelection.selectedRowKeys.length === 0) {
+      Feedback.toast.error(T('请选择已注销的候选者账号'));
+      return;
+    }
+    const accountName = this.state.rowSelection.selectedRowKeys[0];
+    const payload = '0x' + fractal.utils.getContractPayload('producersGetReward', [], []);
+    this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
+      toAccountName: 'dposcontract.reward',
+      assetId: this.state.chainConfig.sysTokenID,
+      amount: 0,
+      payload };
+    this.setState({ txSendVisible: true, curAccount: { accountName: accountName } });
+  }
+
   getAccountStake = async (account) => {
     const stake = await fractal.dpos.getAvailableStake(0, account.accountName);
     return new BigNumber(stake);
-    // let ftBalance = new BigNumber(0);
-    // for (let balanceInfo of account.balances) {
-    //   if (balanceInfo.assetID == this.state.chainConfig.sysTokenID) {
-    //     ftBalance = new BigNumber(balanceInfo.balance);
-    //     break;
-    //   }
-    // }
-    // return ftBalance;
   }
 
   onAccountChange = async (value, option) => {
@@ -549,6 +556,10 @@ export default class CandidateList extends Component {
             &nbsp;&nbsp;
           <Button type="primary" onClick={this.refundReposit.bind(this)} disabled={!this.state.bMyProducer || !this.state.bUnRegProducer}>
           {T('取回抵押金')}
+          </Button>
+            &nbsp;&nbsp;
+          <Button type="primary" onClick={this.getReward.bind(this)} disabled={!this.state.bMyProducer || this.state.bUnRegProducer}>
+          {T('提取奖励')}
           </Button>
             &nbsp;&nbsp;
             <b>{T('当前周期')}:{this.state.curEpoch}, {T('一个周期时长')}:{this.state.duration}</b>
