@@ -286,8 +286,8 @@ export default class CandidateList extends Component {
         break;
       }
     }
-    fractal.account.getAccountByName(candidateName, true).then(account => {
-      const ftBalance = this.getAccountFTBalance(account);
+    fractal.account.getAccountByName(candidateName, true).then(async (account) => {
+      const ftBalance = await this.getAccountStake(account);
       const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(this.state.dposInfo.unitStake).toNumber();
       this.setState({ updateProducerVisible: true, curAccount: { accountName: candidateName }, stake: 0, maxStakeTooltip: T('最多可增加的抵押票数') + ':' + accountMaxStake, accountMaxStake, txSendVisible: false });
     });
@@ -368,22 +368,24 @@ export default class CandidateList extends Component {
     this.setState({ txSendVisible: true, txInfo, curAccount: { accountName: accountName }, sendResult: () => {this.setState({ txSendVisible: false })}});
   }
 
-  getAccountFTBalance = (account) => {
-    let ftBalance = new BigNumber(0);
-    for (let balanceInfo of account.balances) {
-      if (balanceInfo.assetID == this.state.chainConfig.sysTokenID) {
-        ftBalance = new BigNumber(balanceInfo.balance);
-        break;
-      }
-    }
-    return ftBalance;
+  getAccountStake = async (account) => {
+    const stake = await fractal.dpos.getAvailableStake(0, account.accountName);
+    return new BigNumber(stake);
+    // let ftBalance = new BigNumber(0);
+    // for (let balanceInfo of account.balances) {
+    //   if (balanceInfo.assetID == this.state.chainConfig.sysTokenID) {
+    //     ftBalance = new BigNumber(balanceInfo.balance);
+    //     break;
+    //   }
+    // }
+    // return ftBalance;
   }
 
-  onAccountChange = function (value, option) {
+  onAccountChange = async (value, option) => {
     this.state.curAccount = option.originValue;
     const unitStake = new BigNumber(this.state.dposInfo.unitStake);
     
-    const ftBalance = this.getAccountFTBalance(this.state.curAccount);    
+    const ftBalance = await this.getAccountStake(this.state.curAccount);    
     const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
     this.setState({ maxStakeTooltip: T('最大可投票数') + accountMaxStake, accountMaxStake, txSendVisible: false });
   };
@@ -396,10 +398,10 @@ export default class CandidateList extends Component {
     this.state.url = v;
   }
 
-  onProducerChange = (value, option) => {
+  onProducerChange = async (value, option) => {
     this.state.curAccount = option.originValue;
     const unitStake = new BigNumber(this.state.dposInfo.unitStake);
-    const ftBalance = this.getAccountFTBalance(this.state.curAccount);    
+    const ftBalance = await this.getAccountStake(this.state.curAccount);    
     
     const accountMaxStake = ftBalance.shiftedBy(this.state.chainConfig.sysTokenDecimal * -1).dividedBy(unitStake).toNumber();
     if (this.state.dposInfo.candidateMinQuantity > accountMaxStake) {
