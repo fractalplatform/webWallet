@@ -639,7 +639,7 @@ export default class CandidateList extends Component {
           <Input hasClear
             onChange={this.handleURLChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore={T("URL(可选)")}
+            addonBefore={T("节点信息(可选)")}
             size="medium"
             defaultValue=""
             maxLength={this.state.dposInfo.maxURLLen}
@@ -673,7 +673,7 @@ export default class CandidateList extends Component {
           <Input hasClear
             onChange={this.handleURLChange.bind(this)}
             style={{ width: 400 }}
-            addonBefore="URL"
+            addonBefore="节点信息"
             size="medium"
             defaultValue={this.state.url}
             maxLength={this.state.dposInfo.maxURLLen}
