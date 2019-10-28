@@ -320,7 +320,7 @@ export default class ContractManager extends Component {
 
   checkABI = (abiInfo) => {
     if (utils.isEmptyObj(abiInfo) 
-    || (!utils.isEmptyObj(abiInfo) && !fractal.utils.isValidABI(JSON.stringify(abiInfo)))) {
+    || (!utils.isEmptyObj(abiInfo) && !fractal.utils.isValidABI(abiInfo))) {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return false;
     }
@@ -702,7 +702,7 @@ export default class ContractManager extends Component {
   }  
 
   onAddContractABIOK = () => {
-    if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(this.state.contractABI)) {
+    if (!utils.isEmptyObj(this.state.contractABI) && !fractal.utils.isValidABI(JSON.parse(this.state.contractABI))) {
       Feedback.toast.error(T('ABI信息不符合规范，请检查后重新输入'));
       return;
     }
