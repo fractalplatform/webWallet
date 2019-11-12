@@ -214,7 +214,7 @@ export default class ContractManager extends Component {
       newContractAccountName: '',
       keystoreInfo: {},
       suggestionPrice: 1,
-      gasLimit: 1000000,
+      gasLimit: 10000000,
       ftAmount: 10,      
      };
      const solFileList = global.localStorage.getItem('solFileList');
