@@ -891,7 +891,7 @@ export default class ContractManager extends Component {
       return;
     }
 
-    if (this.state.password == '') {
+    if (utils.isEmptyObj(this.state.password)) {
       Feedback.toast.error('请输入钱包密码');
       return;
     }
