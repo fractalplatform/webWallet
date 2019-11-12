@@ -652,7 +652,7 @@ export default class ContractManager extends Component {
     this.state.gasPrice = v;
   }
   handleGasLimitChange(v) {
-    this.state.gasLimit = v;
+    this.state.gasLimit = parseInt(v);
   }
   handlePasswordChange = (v) => {
     this.state.password = v;
