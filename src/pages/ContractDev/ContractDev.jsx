@@ -267,7 +267,8 @@ export default class ContractManager extends Component {
         title: '注意',
         content: '请先在账户管理中添加账号，才能完整使用合约开发功能',
         hasMask: true,
-        duration: 8000
+        duration: 8000,
+        closeable: true
       });
     }
     this.syncSolFileToSrv();
