@@ -3,10 +3,11 @@ import pathToRegexp from 'path-to-regexp';
 
 import BigNumber from 'bignumber.js';
 import EthCrypto from 'eth-crypto';
-import * as Constant from './constant';
+import {AbiCoder as EthersAbiCoder} from 'ethers/utils/abi-coder';
 import * as fractal from 'fractal-web3';
 import * as ethUtil from 'ethereumjs-util';
 import { T } from './lang';
+import * as Constant from './constant';
 /**
  * 格式化菜单数据结构，如果子菜单有权限配置，则子菜单权限优先于父级菜单的配置
  * 如果子菜单没有配置，则继承自父级菜单的配置
@@ -496,9 +497,54 @@ function getValidKeystores (authors, threshold) {
   return totalWeight < threshold ? [] : myKeystores;
 }
 
+function parseResult(outputs, bytes) {
+  if (Array.isArray(outputs) && outputs.length === 0) {
+    throw new Error('Empty outputs array given!');
+  }
+
+  if (!bytes || bytes === '0x' || bytes === '0X') {
+      throw new Error(`Invalid bytes string given: ${bytes}`);
+  }
+
+  const ethersAbiCoder = new EthersAbiCoder()
+  const result = ethersAbiCoder.decode(outputs, bytes);
+  let returnValues = {};
+  let decodedValue;
+
+  if (Array.isArray(result)) {
+    if (outputs.length > 1) {
+      outputs.forEach((output, i) => {
+        decodedValue = result[i];
+
+        if (decodedValue === '0x') {
+          decodedValue = null;
+        }
+
+        //returnValues[i] = decodedValue;
+
+        if (isObject(output) && output.name) {
+          returnValues[output.name] = decodedValue;
+        }
+      });
+
+      return returnValues;
+    }
+
+    return result;
+  }
+
+  if (isObject(outputs[0]) && outputs[0].name) {
+    returnValues[outputs[0].name] = result;
+  }
+
+  //returnValues[0] = result;
+
+  return returnValues;
+}
+
 export { getFlatMenuData, getRouterData, formatterMenuData, hex2Bytes, bytes2Hex, str2Bytes, str2Hex,
          saveTxHash, saveTxBothFromAndTo, bytes2Number, deepClone, parsePrivateKey, checkPassword, 
          isEmptyObj, getPublicKeyWithPrefix, utf8ByteToUnicodeStr, getDataFromFile, storeDataToFile, 
          removeDataFromFile, loadKeystoreFromLS, loadAccountsFromLS, getReadableNumber, confuseInfo, 
          getGasEarned, getValidTime, checkIpVaild, getDuration, guid, getRandomInt,
-         getValidKeystores, storeContractABI, getContractABI };
+         getValidKeystores, storeContractABI, getContractABI, parseResult };

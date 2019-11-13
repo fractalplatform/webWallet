@@ -124,6 +124,7 @@ const ContractArea = ({ self, contract }) => {
   self.state.funcParaTypes[contractName] = {};
   self.state.funcParaNames[contractName] = {};
   self.state.funcParaConstant[contractName] = {};
+  self.state.funcResultOutputs[contractName] = {};
   
   return contract.contractAbi.map(interfaceInfo => {
     if (interfaceInfo.type === 'function') {
@@ -137,6 +138,7 @@ const ContractArea = ({ self, contract }) => {
 
       self.state.funcParaTypes[contractName][funcName] = parameterTypes;
       self.state.funcParaNames[contractName][funcName] = parameterNames;
+      self.state.funcResultOutputs[contractName][funcName] = interfaceInfo.outputs;
       self.state.funcParaConstant[contractName][funcName] = interfaceInfo.constant;
       return <OneFunc key={contractAccountName + contractName + funcName} self={self} 
         contractAccountName={contractAccountName} contractName={contractName} 
@@ -181,6 +183,7 @@ export default class ContractManager extends Component {
       funcParaTypes: {},
       funcParaNames: {},
       funcParaConstant: {},
+      funcResultOutputs: {},
       result: {},
       txInfo: {},
       txSendVisible: false,
@@ -482,9 +485,10 @@ export default class ContractManager extends Component {
     if (this.state.funcParaConstant[contractName][funcName]) {
       const callInfo = {actionType:0, from: 'fractal.founder', to: contractAccountName, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
       fractal.ft.call(callInfo, 'latest').then(resp => {
-        this.addLog("调用函数" + funcName + "获得的结果：" + resp);
-        this.state.result[contractName + funcName] = resp;
-        self.setState({ result: this.state.result, txSendVisible: false });
+        const ret = utils.parseResult(self.state.funcResultOutputs[contractName][funcName], resp);
+        this.addLog("调用函数" + funcName + "获得的结果：" + ret);
+        self.state.result[contractName + funcName] = ret;
+        self.setState({ result: self.state.result, txSendVisible: false });
       });
     } else {
       const assetId = this.state.transferTogether[contractName + funcName] ? parseInt(this.state.paraValue[contractName + '-' + funcName + '-transferAssetId']) : 0;
