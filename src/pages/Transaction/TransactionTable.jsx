@@ -1,14 +1,16 @@
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-restricted-syntax */
-import React, { Component } from 'react';
+import React, { Component, useState } from 'react';
 import { Search, Grid, Table, Feedback } from '@icedesign/base';
 import { Tag, Balloon } from '@alifd/next';
 import IceContainer from '@icedesign/container';
 import * as fractal from 'fractal-web3'
+import ReactJson from 'react-json-view';
 import formatHighlight from 'json-format-highlight';
 import TransactionList from '../../TransactionList';
 import { T } from '../../utils/lang';
+import * as utils from '../../utils/utils';
 
 const { Row, Col } = Grid;
 
@@ -22,7 +24,10 @@ export default class TransactionTable extends Component {
       assetInfos: {},
       actions: [],
       txFrom: {},
-      txRawData: '',
+      txRawData: {},
+      txReceiptData: {},
+      src: null,
+      setSrc: null,
     };
   }
 
@@ -31,8 +36,8 @@ export default class TransactionTable extends Component {
     if (hash.indexOf('0x') === 0) {
       let txInfo = await fractal.ft.getTransactionByHash(hash);
       if (txInfo != null) {
-        const txReceiptData = formatHighlight(await fractal.ft.getTransactionReceipt(hash), COLOR_OPTION);
-        const txRawData = formatHighlight(txInfo, COLOR_OPTION);
+        const txReceiptData = await fractal.ft.getTransactionReceipt(hash);//formatHighlight(await fractal.ft.getTransactionReceipt(hash), COLOR_OPTION);
+        const txRawData = txInfo;//formatHighlight(txInfo, COLOR_OPTION);
 
         this.setState({
           txFrom: { txHashArr: [hash] },
@@ -79,12 +84,18 @@ export default class TransactionTable extends Component {
         <br />
         <IceContainer style={styles.container}>
           <h4 style={styles.title}>{T('交易原始信息')}</h4>
-          <div dangerouslySetInnerHTML={{__html: this.state.txRawData}} />
+          <ReactJson
+            src={this.state.txRawData}
+          />
+          {/* <div dangerouslySetInnerHTML={{__html: this.state.txRawData}} /> */}
         </IceContainer>
         <br />
         <IceContainer style={styles.container}>
           <h4 style={styles.title}>{T('交易Receipt信息')}</h4>
-          <div dangerouslySetInnerHTML={{__html: this.state.txReceiptData}} />
+          <ReactJson
+            src={this.state.txReceiptData}
+          />
+          {/* <div dangerouslySetInnerHTML={{__html: this.state.txReceiptData}} /> */}
         </IceContainer>
       </div>
     );
