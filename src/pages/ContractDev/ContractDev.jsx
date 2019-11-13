@@ -8,6 +8,7 @@ import * as ethUtil from 'ethereumjs-util';
 import cookie from 'react-cookies';
 import BigNumber from 'bignumber.js';
 import { encode } from 'rlp';
+import ReactJson from 'react-json-view';
 
 import * as utils from '../../utils/utils';
 import * as txParser from '../../utils/transactionParser';
@@ -64,13 +65,21 @@ const TxReceiptResult = ({self, contractName, funcName}) => {
     <Button key='getTxInfo' type="primary" onClick={self.getTxInfo.bind(self, contractName, funcName)} style={{marginRight: '20px'}}>{T('查询交易')}</Button>
     <Button key='getReceiptInfo' type="primary" onClick={self.getReceiptInfo.bind(self, contractName, funcName)}>{T('查询Receipt')}</Button>
     <br /><br />
-    <Input  key='txReceiptResult' id={contractName + funcName + 'TxReceipt'} 
+    {/* <Input  key='txReceiptResult' id={contractName + funcName + 'TxReceipt'} 
       value={self.state.result[contractName + funcName + 'TxReceipt']}
       multiple
       rows="5"
       style={{ width: 600 }}
       addonBefore={T("交易/Receipt信息:")}
       size="medium"
+    /> */}
+    交易信息:<br />
+    <ReactJson key='txInfoResult' id={contractName + funcName + 'TxInfo'}
+      src={utils.isEmptyObj(self.state.result[contractName + funcName + 'TxInfo']) ? {} : JSON.parse(self.state.result[contractName + funcName + 'TxInfo'])}
+    />
+    <br />Receipt信息:<br />
+    <ReactJson key='receiptInfoResult' id={contractName + funcName + 'ReceiptInfo'}
+      src={utils.isEmptyObj(self.state.result[contractName + funcName + 'ReceiptInfo']) ? {} : JSON.parse(self.state.result[contractName + funcName + 'ReceiptInfo'])}
     />
   </div>
 }
@@ -511,7 +520,7 @@ export default class ContractManager extends Component {
       }
       fractal.ft.getTransactionByHash(txHash).then(txInfo => {        
         this.addLog("交易信息\n" + JSON.stringify(txInfo));
-        this.state.result[contractName + funcName + 'TxReceipt'] = JSON.stringify(txInfo);
+        this.state.result[contractName + funcName + 'TxInfo'] = JSON.stringify(txInfo);
         this.setState({result: this.state.result, txSendVisible: false});
       });
     }
@@ -530,7 +539,7 @@ export default class ContractManager extends Component {
           return;
         }
         this.addLog("receipt\n" + JSON.stringify(receipt));
-        this.state.result[contractName + funcName + 'TxReceipt'] = JSON.stringify(receipt);
+        this.state.result[contractName + funcName + 'ReceiptInfo'] = JSON.stringify(receipt);
         this.setState({result: this.state.result, txSendVisible: false});
         const actionResults = receipt.actionResults;
         if (actionResults[0].status == 0) {
