@@ -18,7 +18,6 @@ import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 import ContractEditor from './components/Editor';
 import './ContractDev.scss';
-import { assetSol, cryptoSol } from './sampleCode';
 import * as CompilerSrv from './CompilerSrv'
 
 const { Row, Col } = Grid;
@@ -209,6 +208,8 @@ export default class ContractManager extends Component {
       resultDetailInfo: '',
       solFileList: ['sample.sol'],
       tabFileList: ['sample.sol'],
+      libFileList: [],
+      smapleFileList: [],
       fileContractMap: {},
       contractList: [],
       contractAccountAbiMap: {},
@@ -244,9 +245,6 @@ export default class ContractManager extends Component {
      if (contractAccountInfo != null) {
       this.state.contractAccountInfo = JSON.parse(contractAccountInfo);
     }
-
-     global.localStorage.setItem('sol:asset.sol', assetSol);
-     global.localStorage.setItem('sol:crypto.sol', cryptoSol);
   }
 
   componentDidMount = async () => {
@@ -267,6 +265,7 @@ export default class ContractManager extends Component {
         }
       }
     }
+
     if (this.state.accounts.length > 0) {
       this.setState({ selectedAccountName: this.state.accounts[0].object.accountName, 
                       selectedAccount: this.state.accounts[0].object,
@@ -284,6 +283,18 @@ export default class ContractManager extends Component {
       });
     }
     this.syncSolFileToSrv();
+
+    const libFiles = await CompilerSrv.getLibSolFile();
+    for(var fileName in libFiles) {
+      this.state.libFileList.push(fileName);
+      global.localStorage.setItem('sol:' + fileName, libFiles[fileName]);
+    }
+    
+    const sampleFiles = await CompilerSrv.getSampleSolFile();
+    for(var fileName in sampleFiles) {
+      this.state.smapleFileList.push(fileName);
+      global.localStorage.setItem('sol:' + fileName, sampleFiles[fileName]);
+    }
 
     const abiInfo = global.localStorage.getItem('abiInfo');
     if (abiInfo != null) {
@@ -645,23 +656,29 @@ export default class ContractManager extends Component {
   onRightClick(info) {
     console.log('onRightClick', info);
   }
+  
   onSelectSolFile = (selectedKeys) => {
     console.log('onSelectSolFile', selectedKeys);
     this.state.selectContactFile = selectedKeys[0];
     this.addSolTab(this.state.selectContactFile);
   }
+  
   addSolFile = () => {
     this.setState({addNewContractFileVisible: true, txSendVisible: false});
   }
+  
   handleContractNameChange = (value) => {
     this.state.newContractFileName = value;
   }
+  
   handleContractAccountNameChange = (value) => {
     this.setState({newContractAccountName: value});
   }
+  
   handleContractPublicKeyChange = (value) => {
     this.setState({newContractPublicKey: value});
   }
+  
   handleFTAmountChange = (value) => {
     this.setState({ftAmount: value});
   }
@@ -1044,9 +1061,16 @@ export default class ContractManager extends Component {
                     }
                   </TreeNode>
                   
-                  <TreeNode key="1" label="案例模板" selectable={false}>
-                      <TreeNode key="asset.sol" label="asset.sol"/>
-                      <TreeNode key="crypto.sol" label="crypto.sol"/>
+                  <TreeNode key="1" label="公共库(可直接调用)" selectable={false}>
+                    {
+                      this.state.libFileList.map(solFile => <TreeNode key={solFile} label={solFile}/>)
+                    }
+                  </TreeNode>
+                  
+                  <TreeNode key="1" label="示例(仅供参考)" selectable={false}>
+                    {
+                      this.state.smapleFileList.map(solFile => <TreeNode key={solFile} label={solFile}/>)
+                    }
                   </TreeNode>
               </Tree>
             </Col>
@@ -1182,11 +1206,11 @@ export default class ContractManager extends Component {
           />
           <br />
           {
-            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://52.193.45.25:8888'  
+            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://182.92.108.173:8888'  
               ? '当前服务器地址:' + this.state.compileSrv : ''
           }
           <br />
-          默认服务器地址:http://52.193.45.25:8888
+          默认服务器地址:http://182.92.108.173:8888
           <br />
           服务器代码:https://github.com/syslink/FTSolCompilerSrv
         </Dialog>

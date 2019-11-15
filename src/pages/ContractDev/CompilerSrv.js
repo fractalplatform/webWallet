@@ -1,7 +1,23 @@
-let srvAddr = "http://52.193.45.25:8888/solidity/";
+let userFileAddr = "http://182.92.108.173:8888/solidity/";
+let libFileAddr = "http://182.92.108.173:8888/libsList/";
+let sampleFileAddr = "http://182.92.108.173:8888/sampleCodeList/";
 
 export function changeSrv(compileSrv) {
-  srvAddr = compileSrv + '/solidity/';
+  userFileAddr = compileSrv + '/solidity/';
+  libFileAddr = compileSrv + '/libsList/';
+  sampleFileAddr = compileSrv + '/sampleCodeList/';
+}
+
+export async function getLibSolFile() {
+  let resp = await fetch(libFileAddr, {});
+  resp = await resp.json();
+  return resp;
+}
+
+export async function getSampleSolFile() {
+  let resp = await fetch(sampleFileAddr, {});
+  resp = await resp.json();
+  return resp;
 }
 
 export function addSol(accountName, solFileName) {
@@ -10,7 +26,7 @@ export function addSol(accountName, solFileName) {
     solFileName: solFileName,
     newSolFileName: "",
     solFileContent: ""});
-  fetch(srvAddr, 
+  fetch(userFileAddr, 
         {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToSrv})
   .then(resp => {
           resp.json().then(response => console.log(response));
@@ -23,7 +39,7 @@ export function delSol(accountName, solFileName) {
     solFileName: solFileName,
     newSolFileName: "",
     solFileContent: ""});
-  fetch(srvAddr, 
+  fetch(userFileAddr, 
         {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToSrv})
   .then(resp => {
           resp.json().then(response => console.log(response));
@@ -36,7 +52,7 @@ export function updateSol(accountName, solFileName, solFileContent) {
     solFileName: solFileName,
     newSolFileName: "",
     solFileContent: solFileContent});
-  fetch(srvAddr, 
+  fetch(userFileAddr, 
         {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToSrv})
   .then(resp => {
           resp.json().then(response => console.log(response));
@@ -49,7 +65,7 @@ export async function listSol(accountName) {
     solFileName: "",
     newSolFileName: "",
     solFileContent: ""});
-  let resp = await fetch(srvAddr, 
+  let resp = await fetch(userFileAddr, 
         {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToSrv});
   resp = await resp.json();
   console.log(resp);
@@ -62,7 +78,7 @@ export function renameSol(accountName, solFileName, newSolFileName) {
     solFileName: solFileName,
     newSolFileName: newSolFileName,
     solFileContent: ""});
-  fetch(srvAddr, 
+  fetch(userFileAddr, 
         {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToSrv})
   .then(resp => {
           resp.json().then(response => console.log(response));
@@ -75,7 +91,7 @@ export async function compileSol(accountName, solFileName) {
     solFileName: solFileName,
     newSolFileName: "",
     solFileContent: ""});
-  let resp = await fetch(srvAddr, 
+  let resp = await fetch(userFileAddr, 
       {headers: { "Content-Type": "application/json" }, method: 'POST', body: dataToSrv});
   resp = await resp.json();
   console.log(resp);

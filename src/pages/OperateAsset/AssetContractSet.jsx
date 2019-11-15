@@ -87,7 +87,7 @@ export default class AssetContractSet extends Component {
 
     const assetId = parseInt(value.assetId, 10);
 
-    const rlpData = encode([assetId, value.founder]);
+    const rlpData = encode([assetId, value.contractAccount]);
     txInfo.payload = `0x${rlpData.toString('hex')}`;
 
     this.setState({
