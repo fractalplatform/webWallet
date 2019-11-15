@@ -50,6 +50,9 @@ function getActionTypeStr(actionTypeNum) {
     case actionTypes.SET_ASSET_FOUNDER:
       actionType = '设置资产创办者';
       break;
+    case actionTypes.UPDATE_ASSET_CONTRACT:
+      actionType = '设置协议资产合约账号';
+      break;
     case actionTypes.REG_CANDIDATE:
       actionType = '注册候选者';
       break;
@@ -72,6 +75,15 @@ function getActionTypeStr(actionTypeNum) {
       console.log('error action type:' + actionTypeNum);
   }
   return T(actionType);
+}
+
+function calcAssetId(assetIdInfos) {
+  const length = assetIdInfos.length;
+  if (length == 0) return 0;
+
+  if (length == 1) return assetIdInfos[0];
+  
+  if (length == 2) return assetIdInfos[0] * 256 + assetIdInfos[1];
 }
 
 function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
@@ -205,7 +217,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       case actionTypes.INCREASE_ASSET: 
         actionParseInfo.actionType = '增发资产';
         if (payloadInfo.length >= 3) {
-          const assetId = payloadInfo[0][0] == null ? 0 : payloadInfo[0][0];
+          const assetId = calcAssetId(payloadInfo[0]);
           let amount = bytes2Number(payloadInfo[1]).toNumber();
           const addedAssetInfo = allAssetInfos[assetId];
           if (addedAssetInfo != null) {
@@ -260,7 +272,7 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       case actionTypes.SET_ASSET_OWNER: 
         actionParseInfo.actionType = '设置资产所有者';
         if (payloadInfo.length >= 2) {
-          const assetId = payloadInfo[0][0];
+          const assetId = calcAssetId(payloadInfo[0]);
           const owner = String.fromCharCode.apply(null, payloadInfo[1]);
           actionParseInfo.detailInfo = T('资产ID') + ':' + assetId + ',' + T('新的管理者') + ':' + owner;
           actionParseInfo.detailObj = {};
@@ -271,9 +283,20 @@ function parseAction(actionInfo, assetInfo, allAssetInfos, dposInfo) {
       case actionTypes.SET_ASSET_FOUNDER: 
         actionParseInfo.actionType = '设置资产创办者';
         if (payloadInfo.length >= 2) {
-          const assetId = payloadInfo[0][0];
+          const assetId = calcAssetId(payloadInfo[0]);
           const founder = String.fromCharCode.apply(null, payloadInfo[1]);
           actionParseInfo.detailInfo = T('资产ID') + ':' + assetId + ',' + T('新的创办者') + ':' + founder;
+          actionParseInfo.detailObj = {};
+        } else {
+          actionParseInfo.detailInfo = T('payload信息不足，无法解析');
+        }
+        break;
+      case actionTypes.UPDATE_ASSET_CONTRACT: 
+        actionParseInfo.actionType = '设置协议资产合约账号';
+        if (payloadInfo.length >= 2) {
+          const assetId = calcAssetId(payloadInfo[0]);
+          const contract = String.fromCharCode.apply(null, payloadInfo[1]);
+          actionParseInfo.detailInfo = T('资产ID') + ':' + assetId + ',' + T('合约账号') + ':' + contract;
           actionParseInfo.detailObj = {};
         } else {
           actionParseInfo.detailInfo = T('payload信息不足，无法解析');
