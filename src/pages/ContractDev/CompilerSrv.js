@@ -1,6 +1,6 @@
-let userFileAddr = "http://182.92.108.173:8888/solidity/";
-let libFileAddr = "http://182.92.108.173:8888/libsList/";
-let sampleFileAddr = "http://182.92.108.173:8888/sampleCodeList/";
+let userFileAddr = "http://52.193.45.25:8888/solidity/";
+let libFileAddr = "http://52.193.45.25:8888/libsList/";
+let sampleFileAddr = "http://52.193.45.25:8888/sampleCodeList/";
 
 export function changeSrv(compileSrv) {
   userFileAddr = compileSrv + '/solidity/';

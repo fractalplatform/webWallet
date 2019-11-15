@@ -18,7 +18,7 @@ import TxSend from "../TxSend";
 import * as Constant from '../../utils/constant';
 import ContractEditor from './components/Editor';
 import './ContractDev.scss';
-import * as CompilerSrv from './CompilerSrv'
+import * as CompilerSrv from './CompilerSrv';
 
 const { Row, Col } = Grid;
 const TreeNode = Tree.Node;
@@ -283,7 +283,7 @@ export default class ContractManager extends Component {
       });
     }
     this.syncSolFileToSrv();
-
+    
     const libFiles = await CompilerSrv.getLibSolFile();
     for(var fileName in libFiles) {
       this.state.libFileList.push(fileName);
@@ -1206,11 +1206,11 @@ export default class ContractManager extends Component {
           />
           <br />
           {
-            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://182.92.108.173:8888'  
+            !utils.isEmptyObj(this.state.compileSrv) && this.state.compileSrv != 'http://52.193.45.25:8888'  
               ? '当前服务器地址:' + this.state.compileSrv : ''
           }
           <br />
-          默认服务器地址:http://182.92.108.173:8888
+          默认服务器地址:http://52.193.45.25:8888
           <br />
           服务器代码:https://github.com/syslink/FTSolCompilerSrv
         </Dialog>
