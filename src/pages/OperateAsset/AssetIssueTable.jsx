@@ -110,11 +110,13 @@ export default class AssetIssueTable extends Component {
 
     let fatherAsset = null;
     let validFatherAsset = false;
-    let fatherAssetNames = this.getFatherAssets(value.assetName);
+    let fatherAssetNames = this.getFatherAssets(assetName);
     for (const fatherAssetName of fatherAssetNames) {
-      const assetInfo = await fractal.account.getAssetInfoByName(fatherAssetName);
-      if (assetInfo == null) {
-        Feedback.toast.error(T('父资产不存在'));
+      let assetInfo = null;
+      try {
+        assetInfo = await fractal.account.getAssetInfoByName(fatherAssetName);        
+      } catch (error) {
+        Feedback.toast.error(T('父资产不存在，不可创建子资产'));
         return;
       }
       if (assetInfo.owner == this.state.curAccountName) {

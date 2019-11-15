@@ -465,49 +465,54 @@ export default class ContractManager extends Component {
   }
 
   callContractFunc = async (contractAccountName, contractName, funcName) => {
-    if (utils.isEmptyObj(this.state.selectedAccountName)) {
-      Feedback.toast.error(T('请选择发起合约调用的账号'));
-      return;
-    }
-
-    if (utils.isEmptyObj(contractAccountName)) {
-      Feedback.toast.error(T('请输入合约账号名'));
-      return;
-    }
-    const contractAccount = await fractal.account.getAccountByName(contractAccountName);
-    if (contractAccount == null) {
-      Feedback.toast.error(T('合约不存在，请检查合约名是否输入错误'));
-      return;
-    }
-    const paraNames = this.state.funcParaNames[contractName][funcName];
-    const values = [];
-    for (const paraName of paraNames) {
-      const value = this.state.paraValue[contractName + '-' + funcName + '-' + paraName];
-      if (value == null) {
-        Feedback.toast.error(T('参数') + paraName + T('尚未输入值'));
+    try {      
+      if (utils.isEmptyObj(this.state.selectedAccountName)) {
+        Feedback.toast.error(T('请选择发起合约调用的账号'));
         return;
       }
-      values.push(value);
-    }
-    const self = this;
-    const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[contractName][funcName], values);
-    if (this.state.funcParaConstant[contractName][funcName]) {
-      const callInfo = {actionType:0, from: 'fractal.founder', to: contractAccountName, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
-      fractal.ft.call(callInfo, 'latest').then(resp => {
-        const ret = utils.parseResult(self.state.funcResultOutputs[contractName][funcName], resp);
-        this.addLog("调用函数" + funcName + "获得的结果：" + ret);
-        self.state.result[contractName + funcName] = ret;
-        self.setState({ result: self.state.result, txSendVisible: false });
-      });
-    } else {
-      const assetId = this.state.transferTogether[contractName + funcName] ? parseInt(this.state.paraValue[contractName + '-' + funcName + '-transferAssetId']) : 0;
-      const amount = this.state.transferTogether[contractName + funcName] ? parseInt(this.state.paraValue[contractName + '-' + funcName + '-transferAssetValue']) : 0;
-      this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
-        toAccountName: contractAccountName,
-        assetId,
-        amount,
-        payload };
-      this.setState({ txSendVisible: true, curContractName: contractName, curCallFuncName: funcName });
+
+      if (utils.isEmptyObj(contractAccountName)) {
+        Feedback.toast.error(T('请输入合约账号名'));
+        return;
+      }
+      const contractAccount = await fractal.account.getAccountByName(contractAccountName);
+      if (contractAccount == null) {
+        Feedback.toast.error(T('合约不存在，请检查合约名是否输入错误'));
+        return;
+      }
+      const paraNames = this.state.funcParaNames[contractName][funcName];
+      const values = [];
+      for (const paraName of paraNames) {
+        const value = this.state.paraValue[contractName + '-' + funcName + '-' + paraName];
+        if (value == null) {
+          Feedback.toast.error(T('参数') + paraName + T('尚未输入值'));
+          return;
+        }
+        values.push(value);
+      }
+      const self = this;
+      const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[contractName][funcName], values);
+      if (this.state.funcParaConstant[contractName][funcName]) {
+        const callInfo = {actionType:0, from: 'fractal.founder', to: contractAccountName, assetId:0, gas:200000000, gasPrice:10000000000, value:0, data:payload, remark:''};
+        fractal.ft.call(callInfo, 'latest').then(resp => {
+          const ret = utils.parseResult(self.state.funcResultOutputs[contractName][funcName], resp);
+          this.addLog("调用函数" + funcName + "获得的结果：" + ret);
+          self.state.result[contractName + funcName] = ret;
+          self.setState({ result: self.state.result, txSendVisible: false });
+        });
+      } else {
+        const assetId = this.state.transferTogether[contractName + funcName] ? parseInt(this.state.paraValue[contractName + '-' + funcName + '-transferAssetId']) : 0;
+        const amount = this.state.transferTogether[contractName + funcName] ? parseInt(this.state.paraValue[contractName + '-' + funcName + '-transferAssetValue']) : 0;
+        this.state.txInfo = { actionType: Constant.CALL_CONTRACT,
+          toAccountName: contractAccountName,
+          assetId,
+          amount,
+          payload };
+        this.setState({ txSendVisible: true, curContractName: contractName, curCallFuncName: funcName });
+      }
+    } catch (error) {
+      this.addLog('函数调用失败:' + error);
+      Feedback.toast.error('函数调用失败：' + error);
     }
   }
 
