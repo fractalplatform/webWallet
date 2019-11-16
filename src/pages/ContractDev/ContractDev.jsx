@@ -5,10 +5,12 @@ import { Button, Tab, Grid, Tree, Dialog, Collapse, Message } from '@alifd/next'
 import * as fractal from 'fractal-web3';
 import * as ethers from 'ethers';
 import * as ethUtil from 'ethereumjs-util';
+import * as abiUtil from 'ethereumjs-abi';
 import cookie from 'react-cookies';
 import BigNumber from 'bignumber.js';
 import { encode } from 'rlp';
 import ReactJson from 'react-json-view';
+import copy from 'copy-to-clipboard';
 
 import * as utils from '../../utils/utils';
 import * as txParser from '../../utils/transactionParser';
@@ -83,12 +85,12 @@ const TxReceiptResult = ({self, contractName, funcName}) => {
   </div>
 }
 
-const Parameters = ({self, contractName, funcName, parameterNames, parameterTypes}) => {
+const Parameters = ({self, contractName, funcName, parameterNames, parameterTypes, width}) => {
   return parameterNames.map((paraName, index) => (
     <div>
       <Input key={paraName} hasClear
         onChange={self.handleParaValueChange.bind(self, contractName, funcName, paraName)}
-        style={{ width: 600 }}
+        style={{ width }}
         addonBefore={paraName}
         size="medium"
         placeholder={parameterTypes[index]}
@@ -106,7 +108,7 @@ const OneFunc = ({self, contractAccountName, contractName, funcName, parameterTy
     self.state.visibilityValue[contractName + funcName] = (transferTogether != null && transferTogether) ? 'block' : 'none';
   }
   return <Card style={{ width: 800, marginBottom: "20px" }} bodyHeight="auto" title={funcName}>
-          <Parameters self={self} contractName={contractName} funcName={funcName} 
+          <Parameters self={self} contractName={contractName} funcName={funcName} width='600px'
             parameterNames={parameterNames} parameterTypes={parameterTypes} />
           {
             !self.state.funcParaConstant[contractName][funcName] ? 
@@ -191,7 +193,9 @@ export default class ContractManager extends Component {
       funcParaTypes: {},
       funcParaNames: {},
       funcParaConstant: {},
-      funcResultOutputs: {},
+      funcResultOutputs: {},      
+      constructorParaNames: [],
+      constructorParaTypes: [],
       result: {},
       txInfo: {},
       txSendVisible: false,
@@ -244,7 +248,18 @@ export default class ContractManager extends Component {
      const contractAccountInfo = global.localStorage.getItem('contractAccountInfo');
      if (contractAccountInfo != null) {
       this.state.contractAccountInfo = JSON.parse(contractAccountInfo);
-    }
+     }
+     
+
+     const contractList = global.localStorage.getItem('contractList');
+     if (contractList != null) {
+      this.state.contractList = JSON.parse(contractList);
+     }
+
+     const fileContractMap = global.localStorage.getItem('fileContractMap');
+     if (fileContractMap != null) {
+       this.state.fileContractMap = JSON.parse(fileContractMap);
+     }
   }
 
   componentDidMount = async () => {
@@ -308,11 +323,20 @@ export default class ContractManager extends Component {
     })
   }
 
-  // shouldComponentUpdate(nextProps, nextState){
-  //   console.log(this.state.visibilityValue);
-  //   console.log(nextState.visibilityValue);
-  //   return true;
-  // }
+  parseConstructorInputs = (contractAbi) => {
+    this.state.constructorParaNames = [];
+    this.state.constructorParaTypes = [];
+    for (let interfaceInfo of contractAbi) {
+      if (interfaceInfo.type == 'constructor') {
+        for (let input of interfaceInfo.inputs) {
+          this.state.constructorParaNames.push(input.name);
+          this.state.constructorParaTypes.push(input.type);
+        }
+        return;
+      }
+    }
+  }
+
   syncSolFileToSrv = () => {
     for (const solFile of this.state.solFileList) {
      const solCode = global.localStorage.getItem('sol:' + solFile);
@@ -385,6 +409,13 @@ export default class ContractManager extends Component {
   }
 
   onChangeContract = (contractToDeploy) => {
+    const contractInfo = contractToDeploy.split(':');      
+    const contractCode = this.state.fileContractMap[contractInfo[0]][contractInfo[1]];
+    const oneContractABI = JSON.parse(contractCode.abi);
+    if (oneContractABI != null) {
+      this.parseConstructorInputs(oneContractABI);
+    }
+
     this.setState({ selectedContractToDeploy: contractToDeploy, txSendVisible: false });
   }
 
@@ -423,6 +454,15 @@ export default class ContractManager extends Component {
     this.setState({resultInfo: this.state.resultInfo + logInfo, txSendVisible: false});
   }
 
+  copyAccount = () => {
+    if (utils.isEmptyObj(this.state.selectedAccountName)) {
+      Feedback.toast.error(T('请先选择账号'));
+      return;
+    }
+    copy(this.state.selectedAccountName);
+    Feedback.toast.success(T('账号已拷贝到粘贴板'));
+  }
+
   compileContract = async () => {
     if (utils.isEmptyObj(this.state.selectedFileToCompile)) {
       Feedback.toast.error(T('请选择待编译的文件'));
@@ -447,7 +487,15 @@ export default class ContractManager extends Component {
         this.addLog("合约" + contractName + "编译结果\n" + compiledInfo[contractName].abi);
       }
     }
-    this.setState({contractList: this.state.contractList, txSendVisible: false});
+    global.localStorage.setItem("contractList", JSON.stringify(this.state.contractList));
+    global.localStorage.setItem("fileContractMap", JSON.stringify(this.state.fileContractMap));
+    if (this.state.selectedContractToDeploy != null 
+      && this.state.selectedContractToDeploy.indexOf(this.state.selectedFileToCompile) > -1) {
+        this.state.selectedContractToDeploy = "";
+        this.state.constructorParaNames = [];
+        this.state.constructorParaTypes = [];
+    }
+    this.setState({contractList: this.state.contractList, selectedContractToDeploy: this.state.selectedContractToDeploy, txSendVisible: false});
   }
   setCompileSrv = () => {
     this.setState({compileSrvSettingVisible: true, txSendVisible: false});
@@ -944,6 +992,22 @@ export default class ContractManager extends Component {
       return;
     }
 
+    const values = [];
+    let index = 0;
+    for (let paraName of this.state.constructorParaNames) {
+      let value = this.state.paraValue[this.state.curContractName + '-constructor-' + paraName];
+      if (value == null) {
+        Message.error('参数' + paraName + '尚未输入值');
+        return;
+      }
+      if (this.state.constructorParaTypes[index] == 'bool') {
+        value = ((value == 'false' || value == 0) ? false : true);
+      }
+      values.push(value);
+      index++;
+    }
+    const constructorPayload = abiUtil.rawEncode(this.state.constructorParaTypes, values).toString('hex');
+
     Feedback.toast.success('开始部署合约');
     this.addLog('开始部署合约');
     const contractAccount = await fractal.account.getAccountByName(this.state.newContractAccountName);
@@ -953,7 +1017,7 @@ export default class ContractManager extends Component {
         return;
       }
       // 由合约账户直接发起部署合约的操作
-      this.deployContractTx(this.state.newContractAccountName, contractCode.bin, this.state.gasPrice, this.state.gasLimit).then(txHash => {
+      this.deployContractTx(this.state.newContractAccountName, contractCode.bin + constructorPayload, this.state.gasPrice, this.state.gasLimit).then(txHash => {
         this.addLog('部署合约的交易hash:' + txHash);
         this.checkReceipt('部署合约', txHash, () => {
           Feedback.toast.success('成功部署合约');
@@ -998,7 +1062,7 @@ export default class ContractManager extends Component {
           // 2:由合约账户部署合约
           Feedback.toast.success('合约账户创建成功，即将为账户添加合约代码');  
           this.addLog('合约账户已创建，可部署合约');    
-          this.deployContractTx(this.state.newContractAccountName, contractCode.bin, this.state.gasPrice, this.state.gasLimit).then(txHash => {
+          this.deployContractTx(this.state.newContractAccountName, contractCode.bin + constructorPayload, this.state.gasPrice, this.state.gasLimit).then(txHash => {
             this.addLog('部署合约的交易hash:' + txHash);
             this.checkReceipt('部署合约', txHash, () => {
               Feedback.toast.success('成功部署合约'); 
@@ -1111,13 +1175,17 @@ export default class ContractManager extends Component {
               <ContractCollapse self={self} contractAccountInfo={this.state.contractAccountInfo}/>
             </Col>
             <Col fixedSpan="20" className="custom-col-right-sidebar">
-              <Select
-                style={{ width: 280 }}
-                placeholder={T("选择有权限发起合约操作的账户")}
-                onChange={this.onChangeAccount.bind(this)}
-                dataSource={this.state.accounts}
-              />
-              <br/><br/>
+              <Row style={{width:280}}>
+                <Select
+                  style={{ width: 190 }}
+                  placeholder={T("选择有权限发起合约操作的账户")}
+                  onChange={this.onChangeAccount.bind(this)}
+                  dataSource={this.state.accounts}
+                />
+                &nbsp;&nbsp;&nbsp;
+                <Button type="primary" onClick={this.copyAccount.bind(this)}>{T("复制账号")}</Button>
+              </Row>
+              <br/>
               <Row style={{width:280}}>
                 <Select
                   style={{ width: 150 }}
@@ -1155,17 +1223,14 @@ export default class ContractManager extends Component {
                 &nbsp;&nbsp;&nbsp;
                 <Button type="primary" onClick={this.loadContract.bind(this)}>{T("加载")}</Button>
               </Row>
-              {/* <br/>
-              <Row style={{width:280}}>
-                <Select
-                  style={{ width: 220 }}
-                  placeholder={T("请选择合约账户")}
-                  onChange={this.onChangeContractAccount.bind(this)}
-                  dataSource={this.state.contractAccountList}
-                />
-                &nbsp;&nbsp;&nbsp;
-                <Button type="primary" onClick={this.deployContract.bind(this)}>{T("部署")}</Button>
-              </Row> */}
+              <br/>
+              {
+                this.state.constructorParaNames.length > 0 ? 
+                <Card style={{ width: 280, marginBottom: "20px" }} bodyHeight="auto" title="构造函数">
+                  <Parameters self={this} width='250' contractName={this.state.curContractName} funcName='constructor' 
+                    parameterNames={this.state.constructorParaNames} parameterTypes={this.state.constructorParaTypes} />
+                </Card> : ''
+              }
              
             </Col>
         </Row>
