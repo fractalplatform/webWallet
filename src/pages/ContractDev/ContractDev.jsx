@@ -541,13 +541,24 @@ export default class ContractManager extends Component {
       }
       const paraNames = this.state.funcParaNames[contractName][funcName];
       const values = [];
+      let index = 0;
       for (const paraName of paraNames) {
         const value = this.state.paraValue[contractName + '-' + funcName + '-' + paraName];
         if (value == null) {
           Feedback.toast.error(T('参数') + paraName + T('尚未输入值'));
           return;
         }
-        values.push(value);
+        const type = this.state.funcParaTypes[contractName][funcName][index];
+        if (type.lastIndexOf(']') === type.length - 1) {
+          if (value.indexOf('[') != 0 || value.lastIndexOf(']') != value.length - 1) {
+            Feedback.toast.error('数组类型的值请按如下格式填写：[a,b,c]');
+            return;
+          }          
+          values.push(value.substr(1, value.length - 2).split(','));
+        } else {
+          values.push(value);
+        }
+        index++;
       }
       const self = this;
       const payload = '0x' + fractal.utils.getContractPayload(funcName, this.state.funcParaTypes[contractName][funcName], values);
@@ -1119,7 +1130,7 @@ export default class ContractManager extends Component {
                   onEditFinish={this.onEditFinish.bind(this)}
                   onRightClick={this.onRightClick}
                   onSelect={this.onSelectSolFile}>
-                  <TreeNode key="0" label="智能合约" selectable={false}>
+                  <TreeNode key="0" label="我的合约" selectable={false}>
                     {
                       this.state.solFileList.map(solFile => <TreeNode key={solFile} label={solFile}/>)
                     }
@@ -1131,7 +1142,7 @@ export default class ContractManager extends Component {
                     }
                   </TreeNode>
                   
-                  <TreeNode key="1" label="示例(仅供参考)" selectable={false}>
+                  <TreeNode key="2" label="示例(仅供参考)" selectable={false}>
                     {
                       this.state.smapleFileList.map(solFile => <TreeNode key={solFile} label={solFile}/>)
                     }
