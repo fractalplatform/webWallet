@@ -162,7 +162,8 @@ const ContractCollapse = ({self, contractAccountInfo}) => {
   return <Collapse rtl='ltr'>
             {contractAccountInfo.map((contract, index) => (
               <Panel key={index}  
-                title={"编号：" + (index + 1) + '，合约账号:' + contract.contractAccountName + '，合约名：' + contract.contractName + '，时间：' + new Date().toLocaleString()}>
+                title={"编号：" + (index + 1) + '，合约账号:' + contract.contractAccountName 
+                       + '，合约名：' + contract.contractName + '，创建时间：' + (contract.createDate == null ? '未记录' : contract.createDate)}>
                 <ContractArea self={self} contract={contract}/>
               </Panel>
             ))}
@@ -188,6 +189,7 @@ export default class ContractManager extends Component {
       contractFuncInfo: [],
       abiInfos: [],
       contractAccountInfo: [],
+      contractAccountCreateTime: {},
       abiInfo: abiInfoStr,
       paraValue: {},
       funcParaTypes: {},
@@ -1096,7 +1098,7 @@ export default class ContractManager extends Component {
     }
   }
   displayContractFunc = (contractAccountName, contractName, contractAbi) => {
-    this.state.contractAccountInfo = [{contractAccountName, contractName, contractAbi}, ...this.state.contractAccountInfo];
+    this.state.contractAccountInfo = [{contractAccountName, contractName, contractAbi, createDate: new Date().toLocaleString()}, ...this.state.contractAccountInfo];
     this.setState({contractAccountInfo: this.state.contractAccountInfo, txSendVisible: false});
   }
 
