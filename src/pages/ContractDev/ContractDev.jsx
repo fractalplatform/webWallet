@@ -11,6 +11,7 @@ import BigNumber from 'bignumber.js';
 import { encode } from 'rlp';
 import ReactJson from 'react-json-view';
 import copy from 'copy-to-clipboard';
+import IceEllipsis from '@icedesign/ellipsis';
 
 import * as utils from '../../utils/utils';
 import * as txParser from '../../utils/transactionParser';
@@ -224,6 +225,10 @@ export default class ContractManager extends Component {
       deployContractVisible: false,
       compileSrvSettingVisible: false,
       contractInfoVisible: false,
+      displayAbiVisible: false,
+      displayBinVisible: false,
+      curAbi: null,
+      curBin: null,
       loadedContractAccount: '',
       compileSrv: '',
       selectContactFile: '',
@@ -514,7 +519,32 @@ export default class ContractManager extends Component {
     this.state.newContractPublicKey = this.getAccountPublicKey();
     this.setState({deployContractVisible: true, txSendVisible: false});
   }
-
+  displayAbi = () => {
+    if (this.state.selectedContractToDeploy == null) {
+      Feedback.toast.error(T('请选择合约'));
+      return;
+    }
+    const contractInfo = this.state.selectedContractToDeploy.split(':');      
+    const contractCode = this.state.fileContractMap[contractInfo[0]][contractInfo[1]];
+    if (contractCode == null) {
+      Feedback.toast.error(T('无此合约编译信息'));
+      return;
+    }
+    this.setState({curAbi: JSON.parse(contractCode.abi), displayAbiVisible: true, txSendVisible: false});
+  }
+  displayBin = () => {
+    if (this.state.selectedContractToDeploy == null) {
+      Feedback.toast.error(T('请选择合约'));
+      return;
+    }
+    const contractInfo = this.state.selectedContractToDeploy.split(':');      
+    const contractCode = this.state.fileContractMap[contractInfo[0]][contractInfo[1]];
+    if (contractCode == null) {
+      Feedback.toast.error(T('无此合约编译信息'));
+      return;
+    }
+    this.setState({curBin: contractCode.bin, displayBinVisible: true, txSendVisible: false});
+  }
   generateContractAccount = async () => {
     const nonce = await fractal.account.getNonce(this.state.selectedAccountName);
     const shaResult = sha256.hex_sha256(this.state.selectedAccountName + nonce).substr(2);
@@ -811,6 +841,24 @@ export default class ContractManager extends Component {
 
   onAddContractABIClose = () => {
     this.setState({ contractInfoVisible: false });
+  }
+
+  onDisplayABIOK = () => {
+    copy(JSON.stringify(this.state.curAbi));
+    Feedback.toast.success(T('ABI信息已拷贝到粘贴板'));
+  }
+
+  onDisplayABIClose = () => {
+    this.setState({ displayAbiVisible: false });
+  }
+
+  onDisplayBINOK = () => {
+    copy(this.state.curBin);
+    Feedback.toast.success(T('BIN信息已拷贝到粘贴板'));
+  }
+
+  onDisplayBINClose = () => {
+    this.setState({ displayBinVisible: false });
   }
 
   handleContractABIChange = (value) => {
@@ -1226,6 +1274,12 @@ export default class ContractManager extends Component {
               </Row>
               <br/>
               <Row style={{width:280}}>
+                <Button type="primary" onClick={this.displayAbi.bind(this)}>{T("查看合约ABI")}</Button>
+                &nbsp;&nbsp;&nbsp;
+                <Button type="primary" onClick={this.displayBin.bind(this)}>{T("查看合约BIN")}</Button>
+              </Row>
+              <br/>
+              <Row style={{width:280}}>
                 <Input hasClear
                   onChange={this.handleLoadedContractAccountChange.bind(this)}
                   value={this.state.loadedContractAccount}
@@ -1309,6 +1363,32 @@ export default class ContractManager extends Component {
             hasLimitHint
           />
         </Dialog>
+        
+        <Dialog closeable='close,esc,mask'
+          visible={this.state.displayAbiVisible}
+          title={T("合约ABI信息")}
+          footerAlign="center"
+          onOk={this.onDisplayABIOK.bind(this)}
+          onCancel={this.onDisplayABIClose.bind(this)}
+          onClose={this.onDisplayABIClose.bind(this)}
+          okProps={{children: '复制ABI'}}
+        >
+          <ReactJson src={this.state.curAbi}/>
+        </Dialog>
+
+        <Dialog closeable='close,esc,mask'
+          style={{ width: '500px' }}
+          visible={this.state.displayBinVisible}
+          title={T("合约BIN信息")}
+          footerAlign="center"
+          onOk={this.onDisplayBINOK.bind(this)}
+          onCancel={this.onDisplayBINClose.bind(this)}
+          onClose={this.onDisplayBINClose.bind(this)}
+          okProps={{children: '复制BIN'}}
+        >
+          <IceEllipsis lineNumber={10} text= {this.state.curBin} />
+        </Dialog>
+
         <Dialog closeable='close,esc,mask'
           visible={this.state.deployContractVisible}
           title={T("部署合约")}
